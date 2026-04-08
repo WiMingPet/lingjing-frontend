@@ -1,0 +1,9 @@
+{
+  "build": {
+    "command": "npm install --legacy-peer-deps && npx expo export --platform web",
+    "output": "dist"
+  },
+  "start": {
+    "command": "npx serve dist"
+  }
+}
