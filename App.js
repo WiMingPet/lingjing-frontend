@@ -41,6 +41,7 @@ export default function App() {
   const [prompt, setPrompt] = useState('');
   const [modelImage, setModelImage] = useState(null);
   const [garmentImage, setGarmentImage] = useState(null);
+  const [duration, setDuration] = useState(5);
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -172,7 +173,7 @@ export default function App() {
     const file = await convertToFile(selectedImage);
     formData.append('image', file);
     formData.append('prompt', prompt || '生成动态视频');
-    formData.append('duration', '5');
+    formData.append('duration', duration.toString());
     formData.append('mode', 'std');
     try {
       const res = await axios.post(`${API_URL}/video/generate`, formData, {
@@ -452,6 +453,23 @@ export default function App() {
               />
             </Card>
           )}
+            {/* 新增：时长选择器 */}
+            <Card style={styles.inputCard}>
+              <Text style={styles.cardTitle}>⏱️ 视频时长</Text>
+              <View style={styles.durationRow}>
+                {[5, 10, 15].map(sec => (
+                  <TouchableOpacity
+                    key={sec}
+                    style={[styles.durationButton, duration === sec && styles.durationButtonActive]}
+                    onPress={() => setDuration(sec)}
+                  >
+                    <Text style={[styles.durationText, duration === sec && styles.durationTextActive]}>{sec}秒</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </Card>
+          </>
+        )}
 
           {/* 视频生成的 prompt 输入框 */}
           {activeTab === 'video' && (
@@ -569,6 +587,11 @@ const styles = StyleSheet.create({
   heightRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   heightInput: { backgroundColor: '#2d2d44', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16, width: 100, color: '#fff', fontSize: 16, textAlign: 'center' },
   heightUnit: { color: '#aaa', fontSize: 14 },
+  durationRow: { flexDirection: 'row', gap: 12 },
+  durationButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, backgroundColor: '#2d2d44' },
+  durationButtonActive: { backgroundColor: '#7c3aed' },
+  durationText: { color: '#aaa', fontSize: 14 },
+  durationTextActive: { color: '#fff' },
   promptCard: { padding: 20 },
   promptInput: {
     backgroundColor: '#2d2d44',
