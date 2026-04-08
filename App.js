@@ -38,9 +38,9 @@ export default function App() {
   const [previewUrl, setPreviewUrl] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [prompt, setPrompt] = useState('');  // 新增 prompt 状态
-  const [modelImage, setModelImage] = useState(null);   // 模特图（虚拟试穿）
-  const [garmentImage, setGarmentImage] = useState(null); // 服装图（虚拟试穿）
+  const [prompt, setPrompt] = useState('');
+  const [modelImage, setModelImage] = useState(null);
+  const [garmentImage, setGarmentImage] = useState(null);
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -83,6 +83,24 @@ export default function App() {
       if (res.assets && res.assets[0]) {
         setSelectedImage(res.assets[0]);
         setResult(null);
+      }
+    });
+  };
+
+  // 选择模特图（虚拟试穿）
+  const pickModelImage = () => {
+    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
+      if (res.assets && res.assets[0]) {
+        setModelImage(res.assets[0]);
+      }
+    });
+  };
+
+  // 选择服装图（虚拟试穿）
+  const pickGarmentImage = () => {
+    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
+      if (res.assets && res.assets[0]) {
+        setGarmentImage(res.assets[0]);
       }
     });
   };
@@ -320,33 +338,88 @@ export default function App() {
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Card style={styles.imageCard}>
-            <Text style={styles.cardTitle}>
-              {activeTab === 'size' ? '📸 上传全身照' :
-               activeTab === 'image' ? '🎨 上传参考图' :
-               activeTab === 'video' ? '🎥 上传图片' : '👤 上传模特图'}
-            </Text>
-            <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
-              {selectedImage ? (
-                <Image source={{ uri: selectedImage.uri }} style={styles.previewImage} />
-              ) : (
-                <View style={styles.placeholder}>
-                  <Icon name="cloud-upload-outline" size={48} color="#666" />
-                  <Text style={styles.placeholderText}>点击上传图片</Text>
+          {/* 根据不同的 tab 显示不同的上传区域 */}
+          {activeTab !== 'tryon' && (
+            <Card style={styles.imageCard}>
+              <Text style={styles.cardTitle}>
+                {activeTab === 'size' ? '📸 上传全身照' :
+                 activeTab === 'image' ? '🎨 上传参考图' :
+                 activeTab === 'video' ? '🎥 上传图片' : '👤 上传模特图'}
+              </Text>
+              <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
+                {selectedImage ? (
+                  <Image source={{ uri: selectedImage.uri }} style={styles.previewImage} />
+                ) : (
+                  <View style={styles.placeholder}>
+                    <Icon name="cloud-upload-outline" size={48} color="#666" />
+                    <Text style={styles.placeholderText}>点击上传图片</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              <View style={styles.buttonRow}>
+                <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
+                  <Icon name="images-outline" size={20} color="#fff" />
+                  <Text style={styles.iconButtonText}>相册</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.iconButton} onPress={takePhoto}>
+                  <Icon name="camera-outline" size={20} color="#fff" />
+                  <Text style={styles.iconButtonText}>拍照</Text>
+                </TouchableOpacity>
+              </View>
+            </Card>
+          )}
+
+          {/* 虚拟试穿：两个独立的上传区域 */}
+          {activeTab === 'tryon' && (
+            <>
+              <Card style={styles.imageCard}>
+                <Text style={styles.cardTitle}>👤 上传模特图</Text>
+                <TouchableOpacity onPress={pickModelImage} style={styles.imagePicker}>
+                  {modelImage ? (
+                    <Image source={{ uri: modelImage.uri }} style={styles.previewImage} />
+                  ) : (
+                    <View style={styles.placeholder}>
+                      <Icon name="person-outline" size={48} color="#666" />
+                      <Text style={styles.placeholderText}>点击上传模特图</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity style={styles.iconButton} onPress={pickModelImage}>
+                    <Icon name="images-outline" size={20} color="#fff" />
+                    <Text style={styles.iconButtonText}>相册</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.iconButton} onPress={pickModelImage}>
+                    <Icon name="camera-outline" size={20} color="#fff" />
+                    <Text style={styles.iconButtonText}>拍照</Text>
+                  </TouchableOpacity>
                 </View>
-              )}
-            </TouchableOpacity>
-            <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
-                <Icon name="images-outline" size={20} color="#fff" />
-                <Text style={styles.iconButtonText}>相册</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.iconButton} onPress={takePhoto}>
-                <Icon name="camera-outline" size={20} color="#fff" />
-                <Text style={styles.iconButtonText}>拍照</Text>
-              </TouchableOpacity>
-            </View>
-          </Card>
+              </Card>
+              <Card style={styles.imageCard}>
+                <Text style={styles.cardTitle}>👕 上传服装图</Text>
+                <TouchableOpacity onPress={pickGarmentImage} style={styles.imagePicker}>
+                  {garmentImage ? (
+                    <Image source={{ uri: garmentImage.uri }} style={styles.previewImage} />
+                  ) : (
+                    <View style={styles.placeholder}>
+                      <Icon name="shirt-outline" size={48} color="#666" />
+                      <Text style={styles.placeholderText}>点击上传服装图</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity style={styles.iconButton} onPress={pickGarmentImage}>
+                    <Icon name="images-outline" size={20} color="#fff" />
+                    <Text style={styles.iconButtonText}>相册</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.iconButton} onPress={pickGarmentImage}>
+                    <Icon name="camera-outline" size={20} color="#fff" />
+                    <Text style={styles.iconButtonText}>拍照</Text>
+                  </TouchableOpacity>
+                </View>
+              </Card>
+            </>
+          )}
 
           {activeTab === 'size' && (
             <Card style={styles.inputCard}>
