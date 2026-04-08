@@ -38,6 +38,7 @@ export default function App() {
   const [previewUrl, setPreviewUrl] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [prompt, setPrompt] = useState('');  // 新增 prompt 状态
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -125,7 +126,7 @@ export default function App() {
     const formData = new FormData();
     const file = await convertToFile(selectedImage);
     formData.append('reference_image', file);
-    formData.append('prompt', '生成一张高质量的图片');
+    formData.append('prompt', prompt || '生成一张高质量的图片');
     formData.append('width', '512');
     formData.append('height', '512');
     try {
@@ -150,8 +151,9 @@ export default function App() {
     const formData = new FormData();
     const file = await convertToFile(selectedImage);
     formData.append('image', file);
-    formData.append('prompt', '生成动态视频');
+    formData.append('prompt', prompt || '生成动态视频');
     formData.append('duration', '5');
+    formData.append('mode', 'std');
     try {
       const res = await axios.post(`${API_URL}/video/generate`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -359,6 +361,51 @@ export default function App() {
             </Card>
           )}
 
+          {/* 图片生成的 prompt 输入框 */}
+          {activeTab === 'image' && (
+            <Card style={styles.promptCard}>
+              <Text style={styles.cardTitle}>💬 描述你想要的图片</Text>
+              <TextInput
+                style={styles.promptInput}
+                value={prompt}
+                onChangeText={setPrompt}
+                placeholder="例如：把衣服穿在模特身上，自然光线，4K高清..."
+                placeholderTextColor="#888"
+                multiline
+              />
+            </Card>
+          )}
+
+          {/* 视频生成的 prompt 输入框 */}
+          {activeTab === 'video' && (
+            <Card style={styles.promptCard}>
+              <Text style={styles.cardTitle}>💬 描述你想要的视频</Text>
+              <TextInput
+                style={styles.promptInput}
+                value={prompt}
+                onChangeText={setPrompt}
+                placeholder="例如：衣服随风飘动，模特在T台上走秀..."
+                placeholderTextColor="#888"
+                multiline
+              />
+            </Card>
+          )}
+
+          {/* 虚拟试穿的 prompt 输入框 */}
+          {activeTab === 'tryon' && (
+            <Card style={styles.promptCard}>
+              <Text style={styles.cardTitle}>💬 描述试穿效果（可选）</Text>
+              <TextInput
+                style={styles.promptInput}
+                value={prompt}
+                onChangeText={setPrompt}
+                placeholder="例如：自然贴合，光线柔和..."
+                placeholderTextColor="#888"
+                multiline
+              />
+            </Card>
+          )}
+
           <TouchableOpacity onPress={handleGenerate} disabled={loading} style={styles.generateButton}>
             {loading ? (
               <ActivityIndicator color="#fff" size="small" />
@@ -445,6 +492,16 @@ const styles = StyleSheet.create({
   heightRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   heightInput: { backgroundColor: '#2d2d44', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16, width: 100, color: '#fff', fontSize: 16, textAlign: 'center' },
   heightUnit: { color: '#aaa', fontSize: 14 },
+  promptCard: { padding: 20 },
+  promptInput: {
+    backgroundColor: '#2d2d44',
+    borderRadius: 12,
+    padding: 12,
+    color: '#fff',
+    fontSize: 14,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
   generateButton: { backgroundColor: '#7c3aed', borderRadius: 40, paddingVertical: 16, alignItems: 'center', marginBottom: 24 },
   generateText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   resultCard: { alignItems: 'center' },
