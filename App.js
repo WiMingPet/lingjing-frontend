@@ -39,6 +39,8 @@ export default function App() {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [prompt, setPrompt] = useState('');  // 新增 prompt 状态
+  const [modelImage, setModelImage] = useState(null);   // 模特图（虚拟试穿）
+  const [garmentImage, setGarmentImage] = useState(null); // 服装图（虚拟试穿）
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -171,12 +173,14 @@ export default function App() {
   };
 
   const generateTryon = async () => {
-    if (!selectedImage) return showToast('请先选择模特图片');
+    if (!modelImage) return showToast('请先选择模特图片');
+    if (!garmentImage) return showToast('请先选择服装图片');
     setLoading(true);
     const formData = new FormData();
-    const file = await convertToFile(selectedImage);
-    formData.append('model_image', file);
-    formData.append('garment_image', file);
+    const modelFile = await convertToFile(modelImage);
+    const garmentFile = await convertToFile(garmentImage);
+    formData.append('model_image', modelFile);
+    formData.append('garment_image', garmentFile);
     try {
       const res = await axios.post(`${API_URL}/tryon/generate`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
