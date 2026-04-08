@@ -88,7 +88,6 @@ export default function App() {
     });
   };
 
-  // 选择模特图（虚拟试穿）
   const pickModelImage = () => {
     ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
       if (res.assets && res.assets[0]) {
@@ -97,7 +96,6 @@ export default function App() {
     });
   };
 
-  // 选择服装图（虚拟试穿）
   const pickGarmentImage = () => {
     ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
       if (res.assets && res.assets[0]) {
@@ -339,7 +337,6 @@ export default function App() {
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {/* 根据不同的 tab 显示不同的上传区域 */}
           {activeTab !== 'tryon' && (
             <Card style={styles.imageCard}>
               <Text style={styles.cardTitle}>
@@ -370,7 +367,6 @@ export default function App() {
             </Card>
           )}
 
-          {/* 虚拟试穿：两个独立的上传区域 */}
           {activeTab === 'tryon' && (
             <>
               <Card style={styles.imageCard}>
@@ -439,7 +435,6 @@ export default function App() {
             </Card>
           )}
 
-          {/* 图片生成的 prompt 输入框 */}
           {activeTab === 'image' && (
             <Card style={styles.promptCard}>
               <Text style={styles.cardTitle}>💬 描述你想要的图片</Text>
@@ -453,40 +448,37 @@ export default function App() {
               />
             </Card>
           )}
-            {/* 新增：时长选择器 */}
-            <Card style={styles.inputCard}>
-              <Text style={styles.cardTitle}>⏱️ 视频时长</Text>
-              <View style={styles.durationRow}>
-                {[5, 10, 15].map(sec => (
-                  <TouchableOpacity
-                    key={sec}
-                    style={[styles.durationButton, duration === sec && styles.durationButtonActive]}
-                    onPress={() => setDuration(sec)}
-                  >
-                    <Text style={[styles.durationText, duration === sec && styles.durationTextActive]}>{sec}秒</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </Card>
-          </>
-        )}
 
-          {/* 视频生成的 prompt 输入框 */}
           {activeTab === 'video' && (
-            <Card style={styles.promptCard}>
-              <Text style={styles.cardTitle}>💬 描述你想要的视频</Text>
-              <TextInput
-                style={styles.promptInput}
-                value={prompt}
-                onChangeText={setPrompt}
-                placeholder="例如：衣服随风飘动，模特在T台上走秀..."
-                placeholderTextColor="#888"
-                multiline
-              />
-            </Card>
+            <>
+              <Card style={styles.promptCard}>
+                <Text style={styles.cardTitle}>💬 描述你想要的视频</Text>
+                <TextInput
+                  style={styles.promptInput}
+                  value={prompt}
+                  onChangeText={setPrompt}
+                  placeholder="例如：衣服随风飘动，模特在T台上走秀..."
+                  placeholderTextColor="#888"
+                  multiline
+                />
+              </Card>
+              <Card style={styles.inputCard}>
+                <Text style={styles.cardTitle}>⏱️ 视频时长</Text>
+                <View style={styles.durationRow}>
+                  {[5, 10, 15].map(sec => (
+                    <TouchableOpacity
+                      key={sec}
+                      style={[styles.durationButton, duration === sec && styles.durationButtonActive]}
+                      onPress={() => setDuration(sec)}
+                    >
+                      <Text style={[styles.durationText, duration === sec && styles.durationTextActive]}>{sec}秒</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </Card>
+            </>
           )}
 
-          {/* 虚拟试穿的 prompt 输入框 */}
           {activeTab === 'tryon' && (
             <Card style={styles.promptCard}>
               <Text style={styles.cardTitle}>💬 描述试穿效果（可选）</Text>
