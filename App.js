@@ -50,6 +50,13 @@ export default function App() {
     }
   }, []);
 
+  // 切换 tab 时清空输入框内容
+  useEffect(() => {
+    setPrompt('');
+    setHeight('170');
+    setResult(null);
+  }, [activeTab]);
+
   const showToast = (msg, isError = false) => {
     setToastMessage(msg);
     setToastVisible(true);
@@ -339,14 +346,26 @@ export default function App() {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {activeTab !== 'tryon' && (
             <Card style={styles.imageCard}>
-              <Text style={styles.cardTitle}>
-                {activeTab === 'size' ? '📸 上传全身照' :
-                 activeTab === 'image' ? '🎨 上传参考图' :
-                 activeTab === 'video' ? '🎥 上传图片' : '👤 上传模特图'}
-              </Text>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>
+                  {activeTab === 'size' ? '📸 上传全身照' :
+                   activeTab === 'image' ? '🎨 上传参考图' :
+                   activeTab === 'video' ? '🎥 上传图片' : '👤 上传模特图'}
+                </Text>
+                {selectedImage && (
+                  <TouchableOpacity onPress={() => { setSelectedImage(null); setResult(null); }} style={styles.deleteButton}>
+                    <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                  </TouchableOpacity>
+                )}
+              </View>
               <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
                 {selectedImage ? (
-                  <Image source={{ uri: selectedImage.uri }} style={styles.previewImage} />
+                  <>
+                    <Image source={{ uri: selectedImage.uri }} style={styles.previewImage} />
+                    <View style={styles.imageOverlay}>
+                      <Text style={styles.overlayText}>点击更换</Text>
+                    </View>
+                  </>
                 ) : (
                   <View style={styles.placeholder}>
                     <Icon name="cloud-upload-outline" size={48} color="#666" />
@@ -370,10 +389,22 @@ export default function App() {
           {activeTab === 'tryon' && (
             <>
               <Card style={styles.imageCard}>
-                <Text style={styles.cardTitle}>👤 上传模特图</Text>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardTitle}>👤 上传模特图</Text>
+                  {modelImage && (
+                    <TouchableOpacity onPress={() => setModelImage(null)} style={styles.deleteButton}>
+                      <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                    </TouchableOpacity>
+                  )}
+                </View>
                 <TouchableOpacity onPress={pickModelImage} style={styles.imagePicker}>
                   {modelImage ? (
-                    <Image source={{ uri: modelImage.uri }} style={styles.previewImage} />
+                    <>
+                      <Image source={{ uri: modelImage.uri }} style={styles.previewImage} />
+                      <View style={styles.imageOverlay}>
+                        <Text style={styles.overlayText}>点击更换</Text>
+                      </View>
+                    </>
                   ) : (
                     <View style={styles.placeholder}>
                       <Icon name="person-outline" size={48} color="#666" />
@@ -393,10 +424,22 @@ export default function App() {
                 </View>
               </Card>
               <Card style={styles.imageCard}>
-                <Text style={styles.cardTitle}>👕 上传服装图</Text>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardTitle}>👕 上传服装图</Text>
+                  {garmentImage && (
+                    <TouchableOpacity onPress={() => setGarmentImage(null)} style={styles.deleteButton}>
+                      <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                    </TouchableOpacity>
+                  )}
+                </View>
                 <TouchableOpacity onPress={pickGarmentImage} style={styles.imagePicker}>
                   {garmentImage ? (
-                    <Image source={{ uri: garmentImage.uri }} style={styles.previewImage} />
+                    <>
+                      <Image source={{ uri: garmentImage.uri }} style={styles.previewImage} />
+                      <View style={styles.imageOverlay}>
+                        <Text style={styles.overlayText}>点击更换</Text>
+                      </View>
+                    </>
                   ) : (
                     <View style={styles.placeholder}>
                       <Icon name="shirt-outline" size={48} color="#666" />
@@ -567,9 +610,27 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingBottom: 40 },
   card: { backgroundColor: '#1e1e2e', borderRadius: 24, padding: 20, marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 },
   imageCard: { alignItems: 'center' },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 16,
+  },
+  deleteButton: { padding: 4 },
   cardTitle: { fontSize: 18, fontWeight: '600', color: '#fff', marginBottom: 16, alignSelf: 'flex-start' },
-  imagePicker: { width: '100%', height: 200, borderRadius: 16, overflow: 'hidden', backgroundColor: '#2d2d44', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  imagePicker: { width: '100%', height: 200, borderRadius: 16, overflow: 'hidden', backgroundColor: '#2d2d44', justifyContent: 'center', alignItems: 'center', marginBottom: 16, position: 'relative' },
   previewImage: { width: '100%', height: '100%' },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 8,
+    alignItems: 'center',
+  },
+  overlayText: { color: '#fff', fontSize: 12 },
   placeholder: { alignItems: 'center' },
   placeholderText: { color: '#aaa', marginTop: 8 },
   buttonRow: { flexDirection: 'row', gap: 16 },
