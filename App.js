@@ -28,6 +28,7 @@ const Card = ({ children, style }) => (
 );
 
 export default function App() {
+  // 原有状态
   const [selectedImage, setSelectedImage] = useState(null);
   const [height, setHeight] = useState('170');
   const [loading, setLoading] = useState(false);
@@ -43,6 +44,14 @@ export default function App() {
   const [garmentImage, setGarmentImage] = useState(null);
   const [duration, setDuration] = useState(5);
 
+  // 数字人分身相关状态
+  const [digitalImage, setDigitalImage] = useState(null);
+  const [digitalAudio, setDigitalAudio] = useState(null);
+  const [digitalName, setDigitalName] = useState('');
+
+  // 多角度试穿相关状态
+  const [multiImages, setMultiImages] = useState([]); // 最多4张
+
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
     if (saved) {
@@ -50,7 +59,7 @@ export default function App() {
     }
   }, []);
 
-  // 切换 tab 时清空输入框内容
+  // 切换 tab 时清空输入框内容（但不清空图片，保留用户上传）
   useEffect(() => {
     setPrompt('');
     setHeight('170');
@@ -77,6 +86,7 @@ export default function App() {
     showToast(`${type} 已保存到历史记录`);
   };
 
+  // 图片选择（通用）
   const pickImage = () => {
     ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
       if (res.assets && res.assets[0]) {
@@ -111,6 +121,46 @@ export default function App() {
     });
   };
 
+  // 数字人：选择照片
+  const pickDigitalImage = () => {
+    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
+      if (res.assets && res.assets[0]) {
+        setDigitalImage(res.assets[0]);
+      }
+    });
+  };
+
+  // 数字人：选择音频文件（Web 原生）
+  const pickDigitalAudio = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'audio/*';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        setDigitalAudio({
+          uri: URL.createObjectURL(file),
+          name: file.name,
+          type: file.type,
+        });
+      }
+    };
+    input.click();
+  };
+
+  // 多角度：选择多张照片
+  const pickMultiImage = () => {
+    if (multiImages.length >= 4) {
+      showToast('最多上传4张照片', true);
+      return;
+    }
+    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8, selectionLimit: 1 }, (res) => {
+      if (res.assets && res.assets[0]) {
+        setMultiImages([...multiImages, res.assets[0]]);
+      }
+    });
+  };
+
   const convertToFile = async (imageAsset) => {
     const uri = imageAsset.uri;
     if (uri.startsWith('data:')) {
@@ -125,6 +175,7 @@ export default function App() {
     };
   };
 
+  // 尺码推荐
   const recommendSize = async () => {
     if (!selectedImage) return showToast('请先选择一张照片');
     setLoading(true);
@@ -146,6 +197,7 @@ export default function App() {
     }
   };
 
+  // 图片生成
   const generateImage = async () => {
     if (!selectedImage) return showToast('请先选择一张参考图片');
     setLoading(true);
@@ -171,6 +223,7 @@ export default function App() {
     }
   };
 
+  // 视频生成
   const generateVideo = async () => {
     if (!selectedImage) return showToast('请先选择一张图片');
     setLoading(true);
@@ -196,6 +249,7 @@ export default function App() {
     }
   };
 
+  // 虚拟试穿
   const generateTryon = async () => {
     if (!modelImage) return showToast('请先选择模特图片');
     if (!garmentImage) return showToast('请先选择服装图片');
@@ -221,12 +275,72 @@ export default function App() {
     }
   };
 
+  // 数字人分身
+  const generateDigitalHuman = async () => {
+    if (!digitalImage) return showToast('请先上传照片');
+    if (!digitalAudio) return showToast('请先上传音频文件');
+    setLoading(true);
+    const formData = new FormData();
+    const imageFile = await convertToFile(digitalImage);
+    formData.append('image', imageFile);
+    // 音频文件需要特殊处理
+    const audioFile = {
+      uri: digitalAudio.uri,
+      type: digitalAudio.type || 'audio/mpeg',
+      name: digitalAudio.name || 'audio.mp3',
+    };
+    formData.append('audio', audioFile);
+    if (digitalName) formData.append('name', digitalName);
+    try {
+      const res = await axios.post(`${API_URL}/digital-human/generate`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 180000,
+      });
+      const videoUrl = res.data.data.output_data.video_url;
+      setResult({ video_url: videoUrl });
+      saveToHistory(videoUrl, '数字人分身');
+      showToast('数字人视频生成成功');
+    } catch (err) {
+      showToast(err.response?.data?.detail || '生成失败', true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 多角度试穿
+  const generateMultiAngle = async () => {
+    if (multiImages.length < 2) return showToast('请至少上传2张照片');
+    setLoading(true);
+    const formData = new FormData();
+    for (let i = 0; i < multiImages.length; i++) {
+      const file = await convertToFile(multiImages[i]);
+      formData.append('images', file);
+    }
+    formData.append('prompt', prompt || '合成统一角色，自然光线');
+    try {
+      const res = await axios.post(`${API_URL}/multi-angle/tryon`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120000,
+      });
+      const imageUrl = res.data.data.output_data.image_url;
+      setResult({ images: [{ url: imageUrl }] });
+      saveToHistory(imageUrl, '多角度试穿');
+      showToast('多角度合成成功');
+    } catch (err) {
+      showToast(err.response?.data?.detail || '合成失败', true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGenerate = () => {
     switch (activeTab) {
       case 'size': recommendSize(); break;
       case 'image': generateImage(); break;
       case 'video': generateVideo(); break;
       case 'tryon': generateTryon(); break;
+      case 'digital': generateDigitalHuman(); break;
+      case 'multi': generateMultiAngle(); break;
       default: break;
     }
   };
@@ -254,7 +368,7 @@ export default function App() {
           <Text style={styles.recommendSize}>推荐尺码: {result.recommended_size}</Text>
         </Card>
       );
-    } else if (activeTab === 'image' && result && result.images) {
+    } else if ((activeTab === 'image' || activeTab === 'multi') && result && result.images) {
       const originalUrl = result.images[0].url;
       const proxyUrl = `${API_URL.replace('/api', '')}/api/proxy/image?url=${encodeURIComponent(originalUrl)}`;
       const copyToClipboard = () => {
@@ -263,7 +377,7 @@ export default function App() {
       };
       return (
         <Card style={styles.resultCard}>
-          <Text style={styles.resultTitle}>✨ 生成图片</Text>
+          <Text style={styles.resultTitle}>{activeTab === 'image' ? '✨ 生成图片' : '🔄 多角度合成'}</Text>
           <TouchableOpacity onPress={() => { setPreviewUrl(proxyUrl); setModalVisible(true); }}>
             <Image source={{ uri: proxyUrl }} style={styles.resultImage} resizeMode="contain" />
           </TouchableOpacity>
@@ -275,34 +389,21 @@ export default function App() {
           </View>
         </Card>
       );
-    } else if (activeTab === 'video' && result.video_url) {
+    } else if ((activeTab === 'video' || activeTab === 'tryon' || activeTab === 'digital') && result.video_url) {
       const videoUrl = result.video_url;
       const copyToClipboard = () => {
         navigator.clipboard.writeText(videoUrl);
         showToast('URL已复制到剪贴板');
       };
+      let title = '';
+      if (activeTab === 'video') title = '🎬 生成视频';
+      else if (activeTab === 'tryon') title = '👗 试穿结果';
+      else title = '🤖 数字人视频';
       return (
         <Card style={styles.resultCard}>
-          <Text style={styles.resultTitle}>🎬 生成视频</Text>
+          <Text style={styles.resultTitle}>{title}</Text>
           <View style={styles.urlRow}>
             <Text selectable style={styles.linkText} numberOfLines={1} ellipsizeMode="tail">{videoUrl}</Text>
-            <TouchableOpacity onPress={copyToClipboard} style={styles.copyButton}>
-              <Icon name="copy-outline" size={20} color="#7c3aed" />
-            </TouchableOpacity>
-          </View>
-        </Card>
-      );
-    } else if (activeTab === 'tryon' && result.video_url) {
-      const tryonUrl = result.video_url;
-      const copyToClipboard = () => {
-        navigator.clipboard.writeText(tryonUrl);
-        showToast('URL已复制到剪贴板');
-      };
-      return (
-        <Card style={styles.resultCard}>
-          <Text style={styles.resultTitle}>👗 试穿结果</Text>
-          <View style={styles.urlRow}>
-            <Text selectable style={styles.linkText} numberOfLines={1} ellipsizeMode="tail">{tryonUrl}</Text>
             <TouchableOpacity onPress={copyToClipboard} style={styles.copyButton}>
               <Icon name="copy-outline" size={20} color="#7c3aed" />
             </TouchableOpacity>
@@ -318,6 +419,8 @@ export default function App() {
     { key: 'image', icon: 'image-outline', label: '图片', color: '#10b981' },
     { key: 'video', icon: 'videocam-outline', label: '视频', color: '#f59e0b' },
     { key: 'tryon', icon: 'shirt-outline', label: '试穿', color: '#ef4444' },
+    { key: 'digital', icon: 'person-circle-outline', label: '数字人', color: '#06b6d4' },
+    { key: 'multi', icon: 'albums-outline', label: '多角度', color: '#8b5cf6' },
   ];
 
   return (
@@ -344,13 +447,14 @@ export default function App() {
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {activeTab !== 'tryon' && (
+          {/* 尺码、图片、视频、试穿（原有） */}
+          {activeTab !== 'tryon' && activeTab !== 'digital' && activeTab !== 'multi' && (
             <Card style={styles.imageCard}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>
                   {activeTab === 'size' ? '📸 上传全身照' :
                    activeTab === 'image' ? '🎨 上传参考图' :
-                   activeTab === 'video' ? '🎥 上传图片' : '👤 上传模特图'}
+                   activeTab === 'video' ? '🎥 上传图片' : ''}
                 </Text>
                 {selectedImage && (
                   <TouchableOpacity onPress={() => { setSelectedImage(null); setResult(null); }} style={styles.deleteButton}>
@@ -386,6 +490,7 @@ export default function App() {
             </Card>
           )}
 
+          {/* 虚拟试穿（原有） */}
           {activeTab === 'tryon' && (
             <>
               <Card style={styles.imageCard}>
@@ -461,6 +566,89 @@ export default function App() {
             </>
           )}
 
+          {/* 数字人分身 */}
+          {activeTab === 'digital' && (
+            <>
+              <Card style={styles.imageCard}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardTitle}>📸 上传照片</Text>
+                  {digitalImage && (
+                    <TouchableOpacity onPress={() => setDigitalImage(null)} style={styles.deleteButton}>
+                      <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <TouchableOpacity onPress={pickDigitalImage} style={styles.imagePicker}>
+                  {digitalImage ? (
+                    <>
+                      <Image source={{ uri: digitalImage.uri }} style={styles.previewImage} />
+                      <View style={styles.imageOverlay}>
+                        <Text style={styles.overlayText}>点击更换</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <View style={styles.placeholder}>
+                      <Icon name="person-outline" size={48} color="#666" />
+                      <Text style={styles.placeholderText}>点击上传照片</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </Card>
+              <Card style={styles.imageCard}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardTitle}>🎵 上传音频</Text>
+                  {digitalAudio && (
+                    <TouchableOpacity onPress={() => setDigitalAudio(null)} style={styles.deleteButton}>
+                      <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <TouchableOpacity onPress={pickDigitalAudio} style={styles.audioPicker}>
+                  <View style={styles.placeholder}>
+                    <Icon name="musical-notes-outline" size={48} color="#666" />
+                    <Text style={styles.placeholderText}>
+                      {digitalAudio ? digitalAudio.name : '点击选择音频文件（MP3/WAV）'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </Card>
+              <Card style={styles.inputCard}>
+                <Text style={styles.cardTitle}>📛 数字人名称（可选）</Text>
+                <TextInput
+                  style={styles.promptInput}
+                  value={digitalName}
+                  onChangeText={setDigitalName}
+                  placeholder="我的数字人"
+                  placeholderTextColor="#888"
+                />
+              </Card>
+            </>
+          )}
+
+          {/* 多角度试穿 */}
+          {activeTab === 'multi' && (
+            <Card style={styles.imageCard}>
+              <Text style={styles.cardTitle}>🖼️ 上传多张照片（2-4张）</Text>
+              <View style={styles.multiImageRow}>
+                {multiImages.map((img, idx) => (
+                  <View key={idx} style={styles.multiImageItem}>
+                    <Image source={{ uri: img.uri }} style={styles.multiPreview} />
+                    <TouchableOpacity onPress={() => setMultiImages(multiImages.filter((_, i) => i !== idx))} style={styles.removeMultiImage}>
+                      <Icon name="close-circle" size={24} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                {multiImages.length < 4 && (
+                  <TouchableOpacity onPress={pickMultiImage} style={styles.addImageButton}>
+                    <Icon name="add-circle-outline" size={48} color="#666" />
+                    <Text style={styles.addImageText}>添加照片</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </Card>
+          )}
+
+          {/* 身高输入（仅尺码） */}
           {activeTab === 'size' && (
             <Card style={styles.inputCard}>
               <Text style={styles.cardTitle}>📏 身高</Text>
@@ -478,61 +666,44 @@ export default function App() {
             </Card>
           )}
 
-          {activeTab === 'image' && (
+          {/* prompt 输入框（图片、视频、虚拟试穿、多角度） */}
+          {(activeTab === 'image' || activeTab === 'video' || activeTab === 'tryon' || activeTab === 'multi') && (
             <Card style={styles.promptCard}>
-              <Text style={styles.cardTitle}>💬 描述你想要的图片</Text>
+              <Text style={styles.cardTitle}>
+                💬 描述{' '}
+                {activeTab === 'image' ? '图片' : activeTab === 'video' ? '视频' : activeTab === 'tryon' ? '试穿效果' : '合成效果'}
+              </Text>
               <TextInput
                 style={styles.promptInput}
                 value={prompt}
                 onChangeText={setPrompt}
-                placeholder="例如：把衣服穿在模特身上，自然光线，4K高清..."
+                placeholder={
+                  activeTab === 'image' ? '例如：把衣服穿在模特身上，自然光线，4K高清...' :
+                  activeTab === 'video' ? '例如：衣服随风飘动，模特在T台上走秀...' :
+                  activeTab === 'tryon' ? '例如：自然贴合，光线柔和...' :
+                  '例如：统一角色，正面站立，自然光线...'
+                }
                 placeholderTextColor="#888"
                 multiline
               />
             </Card>
           )}
 
+          {/* 视频时长选择器（仅视频） */}
           {activeTab === 'video' && (
-            <>
-              <Card style={styles.promptCard}>
-                <Text style={styles.cardTitle}>💬 描述你想要的视频</Text>
-                <TextInput
-                  style={styles.promptInput}
-                  value={prompt}
-                  onChangeText={setPrompt}
-                  placeholder="例如：衣服随风飘动，模特在T台上走秀..."
-                  placeholderTextColor="#888"
-                  multiline
-                />
-              </Card>
-              <Card style={styles.inputCard}>
-                <Text style={styles.cardTitle}>⏱️ 视频时长</Text>
-                <View style={styles.durationRow}>
-                  {[5, 10, 15].map(sec => (
-                    <TouchableOpacity
-                      key={sec}
-                      style={[styles.durationButton, duration === sec && styles.durationButtonActive]}
-                      onPress={() => setDuration(sec)}
-                    >
-                      <Text style={[styles.durationText, duration === sec && styles.durationTextActive]}>{sec}秒</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </Card>
-            </>
-          )}
-
-          {activeTab === 'tryon' && (
-            <Card style={styles.promptCard}>
-              <Text style={styles.cardTitle}>💬 描述试穿效果（可选）</Text>
-              <TextInput
-                style={styles.promptInput}
-                value={prompt}
-                onChangeText={setPrompt}
-                placeholder="例如：自然贴合，光线柔和..."
-                placeholderTextColor="#888"
-                multiline
-              />
+            <Card style={styles.inputCard}>
+              <Text style={styles.cardTitle}>⏱️ 视频时长</Text>
+              <View style={styles.durationRow}>
+                {[5, 10, 15].map(sec => (
+                  <TouchableOpacity
+                    key={sec}
+                    style={[styles.durationButton, duration === sec && styles.durationButtonActive]}
+                    onPress={() => setDuration(sec)}
+                  >
+                    <Text style={[styles.durationText, duration === sec && styles.durationTextActive]}>{sec}秒</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </Card>
           )}
 
@@ -543,7 +714,9 @@ export default function App() {
               <Text style={styles.generateText}>
                 {activeTab === 'size' ? '开始尺码推荐' :
                  activeTab === 'image' ? '开始生成图片' :
-                 activeTab === 'video' ? '开始生成视频' : '开始虚拟试穿'}
+                 activeTab === 'video' ? '开始生成视频' :
+                 activeTab === 'tryon' ? '开始虚拟试穿' :
+                 activeTab === 'digital' ? '生成数字人视频' : '开始多角度合成'}
               </Text>
             )}
           </TouchableOpacity>
@@ -558,12 +731,12 @@ export default function App() {
                   <TouchableOpacity
                     key={item.id}
                     onPress={() => {
-                      if (item.type === '图片生成') {
+                      if (item.type === '图片生成' || item.type === '多角度试穿') {
                         setResult({ images: [{ url: item.url }] });
-                        setActiveTab('image');
+                        setActiveTab(item.type === '图片生成' ? 'image' : 'multi');
                       } else {
                         setResult({ video_url: item.url });
-                        setActiveTab(item.type === '视频生成' ? 'video' : 'tryon');
+                        setActiveTab(item.type === '视频生成' ? 'video' : (item.type === '虚拟试穿' ? 'tryon' : 'digital'));
                       }
                     }}
                     style={styles.historyItem}
@@ -603,33 +776,19 @@ const styles = StyleSheet.create({
   header: { paddingTop: Platform.OS === 'web' ? 30 : 50, paddingBottom: 20, alignItems: 'center' },
   logo: { fontSize: 36, fontWeight: 'bold', color: '#fff', letterSpacing: 2 },
   subtitle: { fontSize: 14, color: '#aaa', marginTop: 4 },
-  tabContainer: { flexDirection: 'row', justifyContent: 'space-around', backgroundColor: '#1a1a2e', marginHorizontal: 20, marginVertical: 15, borderRadius: 40, paddingVertical: 8 },
-  tab: { alignItems: 'center', paddingVertical: 8, paddingHorizontal: 20, borderRadius: 30 },
+  tabContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', backgroundColor: '#1a1a2e', marginHorizontal: 20, marginVertical: 15, borderRadius: 40, paddingVertical: 8 },
+  tab: { alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 30 },
   activeTab: { backgroundColor: 'rgba(124,58,237,0.2)' },
   tabText: { fontSize: 12, marginTop: 4, color: '#888', fontWeight: '500' },
   content: { paddingHorizontal: 20, paddingBottom: 40 },
   card: { backgroundColor: '#1e1e2e', borderRadius: 24, padding: 20, marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 },
   imageCard: { alignItems: 'center' },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 16,
-  },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 16 },
   deleteButton: { padding: 4 },
   cardTitle: { fontSize: 18, fontWeight: '600', color: '#fff', marginBottom: 16, alignSelf: 'flex-start' },
   imagePicker: { width: '100%', height: 200, borderRadius: 16, overflow: 'hidden', backgroundColor: '#2d2d44', justifyContent: 'center', alignItems: 'center', marginBottom: 16, position: 'relative' },
   previewImage: { width: '100%', height: '100%' },
-  imageOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    padding: 8,
-    alignItems: 'center',
-  },
+  imageOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', padding: 8, alignItems: 'center' },
   overlayText: { color: '#fff', fontSize: 12 },
   placeholder: { alignItems: 'center' },
   placeholderText: { color: '#aaa', marginTop: 8 },
@@ -646,15 +805,7 @@ const styles = StyleSheet.create({
   durationText: { color: '#aaa', fontSize: 14 },
   durationTextActive: { color: '#fff' },
   promptCard: { padding: 20 },
-  promptInput: {
-    backgroundColor: '#2d2d44',
-    borderRadius: 12,
-    padding: 12,
-    color: '#fff',
-    fontSize: 14,
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
+  promptInput: { backgroundColor: '#2d2d44', borderRadius: 12, padding: 12, color: '#fff', fontSize: 14, minHeight: 80, textAlignVertical: 'top' },
   generateButton: { backgroundColor: '#7c3aed', borderRadius: 40, paddingVertical: 16, alignItems: 'center', marginBottom: 24 },
   generateText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   resultCard: { alignItems: 'center' },
@@ -678,4 +829,12 @@ const styles = StyleSheet.create({
   modalImage: { width: width * 0.9, height: height * 0.7 },
   toast: { position: 'absolute', bottom: 100, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.8)', borderRadius: 30, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center', zIndex: 1000 },
   toastText: { color: '#fff', fontSize: 14 },
+  // 数字人和多角度专用样式
+  audioPicker: { width: '100%', minHeight: 120, borderRadius: 16, backgroundColor: '#2d2d44', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  multiImageRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 10 },
+  multiImageItem: { position: 'relative' },
+  multiPreview: { width: 80, height: 80, borderRadius: 12, backgroundColor: '#2d2d44' },
+  removeMultiImage: { position: 'absolute', top: -8, right: -8 },
+  addImageButton: { width: 80, height: 80, borderRadius: 12, backgroundColor: '#2d2d44', justifyContent: 'center', alignItems: 'center' },
+  addImageText: { color: '#aaa', fontSize: 10, marginTop: 4 },
 });
