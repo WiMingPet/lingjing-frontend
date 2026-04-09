@@ -303,7 +303,6 @@ export default function App() {
       case 'video': generateVideo(); break;
       case 'tryon': generateTryon(); break;
       case 'digital': generateDigitalHuman(); break;
-      case 'multi': generateMultiAngle(); break;
       default: break;
     }
   };
@@ -383,7 +382,6 @@ export default function App() {
     { key: 'video', icon: 'videocam-outline', label: '视频', color: '#f59e0b' },
     { key: 'tryon', icon: 'shirt-outline', label: '试穿', color: '#ef4444' },
     { key: 'digital', icon: 'person-circle-outline', label: '数字人', color: '#06b6d4' },
-    { key: 'multi', icon: 'albums-outline', label: '多角度', color: '#8b5cf6' },
   ];
 
   return (
