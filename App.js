@@ -28,7 +28,6 @@ const Card = ({ children, style }) => (
 );
 
 export default function App() {
-  // 原有状态
   const [selectedImage, setSelectedImage] = useState(null);
   const [height, setHeight] = useState('170');
   const [loading, setLoading] = useState(false);
@@ -43,14 +42,11 @@ export default function App() {
   const [modelImage, setModelImage] = useState(null);
   const [garmentImage, setGarmentImage] = useState(null);
   const [duration, setDuration] = useState(5);
-
-  // 数字人分身相关状态
   const [digitalImage, setDigitalImage] = useState(null);
-  const [digitalAudio, setDigitalAudio] = useState(null);
+  const [digitalText, setDigitalText] = useState('');
+  const [digitalVoice, setDigitalVoice] = useState('温柔女声');
   const [digitalName, setDigitalName] = useState('');
-
-  // 多角度试穿相关状态
-  const [multiImages, setMultiImages] = useState([]); // 最多4张
+  const [multiImages, setMultiImages] = useState([]);
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -59,7 +55,6 @@ export default function App() {
     }
   }, []);
 
-  // 切换 tab 时清空输入框内容（但不清空图片，保留用户上传）
   useEffect(() => {
     setPrompt('');
     setHeight('170');
@@ -86,7 +81,6 @@ export default function App() {
     showToast(`${type} 已保存到历史记录`);
   };
 
-  // 图片选择（通用）
   const pickImage = () => {
     ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
       if (res.assets && res.assets[0]) {
@@ -121,7 +115,6 @@ export default function App() {
     });
   };
 
-  // 数字人：选择照片
   const pickDigitalImage = () => {
     ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
       if (res.assets && res.assets[0]) {
@@ -130,25 +123,6 @@ export default function App() {
     });
   };
 
-  // 数字人：选择音频文件（Web 原生）
-  const pickDigitalAudio = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'audio/*';
-    input.onchange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        setDigitalAudio({
-          uri: URL.createObjectURL(file),
-          name: file.name,
-          type: file.type,
-        });
-      }
-    };
-    input.click();
-  };
-
-  // 多角度：选择多张照片
   const pickMultiImage = () => {
     if (multiImages.length >= 4) {
       showToast('最多上传4张照片', true);
@@ -175,7 +149,6 @@ export default function App() {
     };
   };
 
-  // 尺码推荐
   const recommendSize = async () => {
     if (!selectedImage) return showToast('请先选择一张照片');
     setLoading(true);
@@ -197,7 +170,6 @@ export default function App() {
     }
   };
 
-  // 图片生成
   const generateImage = async () => {
     if (!selectedImage) return showToast('请先选择一张参考图片');
     setLoading(true);
@@ -223,7 +195,6 @@ export default function App() {
     }
   };
 
-  // 视频生成
   const generateVideo = async () => {
     if (!selectedImage) return showToast('请先选择一张图片');
     setLoading(true);
@@ -249,7 +220,6 @@ export default function App() {
     }
   };
 
-  // 虚拟试穿
   const generateTryon = async () => {
     if (!modelImage) return showToast('请先选择模特图片');
     if (!garmentImage) return showToast('请先选择服装图片');
@@ -275,28 +245,22 @@ export default function App() {
     }
   };
 
-  // 数字人分身
   const generateDigitalHuman = async () => {
     if (!digitalImage) return showToast('请先上传照片');
-    if (!digitalAudio) return showToast('请先上传音频文件');
+    if (!digitalText.trim()) return showToast('请输入说话内容');
     setLoading(true);
     const formData = new FormData();
     const imageFile = await convertToFile(digitalImage);
     formData.append('image', imageFile);
-    // 音频文件需要特殊处理
-    const audioFile = {
-      uri: digitalAudio.uri,
-      type: digitalAudio.type || 'audio/mpeg',
-      name: digitalAudio.name || 'audio.mp3',
-    };
-    formData.append('audio', audioFile);
+    formData.append('text', digitalText);
+    formData.append('voice', digitalVoice);
     if (digitalName) formData.append('name', digitalName);
     try {
       const res = await axios.post(`${API_URL}/digital-human/generate`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 180000,
       });
-      const videoUrl = res.data.data.output_data.video_url;
+      const videoUrl = res.data.data.video_url;
       setResult({ video_url: videoUrl });
       saveToHistory(videoUrl, '数字人分身');
       showToast('数字人视频生成成功');
@@ -307,7 +271,6 @@ export default function App() {
     }
   };
 
-  // 多角度试穿
   const generateMultiAngle = async () => {
     if (multiImages.length < 2) return showToast('请至少上传2张照片');
     setLoading(true);
@@ -447,7 +410,6 @@ export default function App() {
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {/* 尺码、图片、视频、试穿（原有） */}
           {activeTab !== 'tryon' && activeTab !== 'digital' && activeTab !== 'multi' && (
             <Card style={styles.imageCard}>
               <View style={styles.cardHeader}>
@@ -490,7 +452,6 @@ export default function App() {
             </Card>
           )}
 
-          {/* 虚拟试穿（原有） */}
           {activeTab === 'tryon' && (
             <>
               <Card style={styles.imageCard}>
@@ -566,7 +527,6 @@ export default function App() {
             </>
           )}
 
-          {/* 数字人分身 */}
           {activeTab === 'digital' && (
             <>
               <Card style={styles.imageCard}>
@@ -594,24 +554,34 @@ export default function App() {
                   )}
                 </TouchableOpacity>
               </Card>
-              <Card style={styles.imageCard}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle}>🎵 上传音频</Text>
-                  {digitalAudio && (
-                    <TouchableOpacity onPress={() => setDigitalAudio(null)} style={styles.deleteButton}>
-                      <Icon name="close-circle-outline" size={24} color="#ef4444" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <TouchableOpacity onPress={pickDigitalAudio} style={styles.audioPicker}>
-                  <View style={styles.placeholder}>
-                    <Icon name="musical-notes-outline" size={48} color="#666" />
-                    <Text style={styles.placeholderText}>
-                      {digitalAudio ? digitalAudio.name : '点击选择音频文件（MP3/WAV）'}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+
+              <Card style={styles.promptCard}>
+                <Text style={styles.cardTitle}>💬 输入说话内容</Text>
+                <TextInput
+                  style={styles.promptInput}
+                  value={digitalText}
+                  onChangeText={setDigitalText}
+                  placeholder="例如：大家好，我是灵境AI平台创造的数字人，很高兴认识大家！"
+                  placeholderTextColor="#888"
+                  multiline
+                />
               </Card>
+
+              <Card style={styles.inputCard}>
+                <Text style={styles.cardTitle}>🎵 选择音色</Text>
+                <View style={styles.voiceRow}>
+                  {['温柔女声', '沉稳男声', '可爱童声', '磁性男声'].map(voice => (
+                    <TouchableOpacity
+                      key={voice}
+                      style={[styles.voiceButton, digitalVoice === voice && styles.voiceButtonActive]}
+                      onPress={() => setDigitalVoice(voice)}
+                    >
+                      <Text style={[styles.voiceText, digitalVoice === voice && styles.voiceTextActive]}>{voice}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </Card>
+
               <Card style={styles.inputCard}>
                 <Text style={styles.cardTitle}>📛 数字人名称（可选）</Text>
                 <TextInput
@@ -625,7 +595,6 @@ export default function App() {
             </>
           )}
 
-          {/* 多角度试穿 */}
           {activeTab === 'multi' && (
             <Card style={styles.imageCard}>
               <Text style={styles.cardTitle}>🖼️ 上传多张照片（2-4张）</Text>
@@ -648,7 +617,6 @@ export default function App() {
             </Card>
           )}
 
-          {/* 身高输入（仅尺码） */}
           {activeTab === 'size' && (
             <Card style={styles.inputCard}>
               <Text style={styles.cardTitle}>📏 身高</Text>
@@ -666,7 +634,6 @@ export default function App() {
             </Card>
           )}
 
-          {/* prompt 输入框（图片、视频、虚拟试穿、多角度） */}
           {(activeTab === 'image' || activeTab === 'video' || activeTab === 'tryon' || activeTab === 'multi') && (
             <Card style={styles.promptCard}>
               <Text style={styles.cardTitle}>
@@ -689,7 +656,6 @@ export default function App() {
             </Card>
           )}
 
-          {/* 视频时长选择器（仅视频） */}
           {activeTab === 'video' && (
             <Card style={styles.inputCard}>
               <Text style={styles.cardTitle}>⏱️ 视频时长</Text>
@@ -804,6 +770,11 @@ const styles = StyleSheet.create({
   durationButtonActive: { backgroundColor: '#7c3aed' },
   durationText: { color: '#aaa', fontSize: 14 },
   durationTextActive: { color: '#fff' },
+  voiceRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  voiceButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, backgroundColor: '#2d2d44' },
+  voiceButtonActive: { backgroundColor: '#7c3aed' },
+  voiceText: { color: '#aaa', fontSize: 14 },
+  voiceTextActive: { color: '#fff' },
   promptCard: { padding: 20 },
   promptInput: { backgroundColor: '#2d2d44', borderRadius: 12, padding: 12, color: '#fff', fontSize: 14, minHeight: 80, textAlignVertical: 'top' },
   generateButton: { backgroundColor: '#7c3aed', borderRadius: 40, paddingVertical: 16, alignItems: 'center', marginBottom: 24 },
@@ -829,8 +800,6 @@ const styles = StyleSheet.create({
   modalImage: { width: width * 0.9, height: height * 0.7 },
   toast: { position: 'absolute', bottom: 100, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.8)', borderRadius: 30, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center', zIndex: 1000 },
   toastText: { color: '#fff', fontSize: 14 },
-  // 数字人和多角度专用样式
-  audioPicker: { width: '100%', minHeight: 120, borderRadius: 16, backgroundColor: '#2d2d44', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   multiImageRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 10 },
   multiImageItem: { position: 'relative' },
   multiPreview: { width: 80, height: 80, borderRadius: 12, backgroundColor: '#2d2d44' },
