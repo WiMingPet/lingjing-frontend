@@ -47,6 +47,10 @@ export default function App() {
   const [digitalVoice, setDigitalVoice] = useState('温柔女声');
   const [digitalName, setDigitalName] = useState('');
   const [multiImages, setMultiImages] = useState([]);
+  // 数字人定制
+  const [customVideo, setCustomVideo] = useState(null);
+  const [customName, setCustomName] = useState('');
+  const [customDesc, setCustomDesc] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -119,6 +123,15 @@ export default function App() {
     ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
       if (res.assets && res.assets[0]) {
         setDigitalImage(res.assets[0]);
+      }
+    });
+  };
+
+  // 选择定制视频
+  const pickCustomVideo = () => {
+    ImagePicker.launchImageLibrary({ mediaType: 'video', quality: 0.8 }, (res) => {
+      if (res.assets && res.assets[0]) {
+        setCustomVideo(res.assets[0]);
       }
     });
   };
@@ -270,6 +283,30 @@ export default function App() {
       setLoading(false);
     }
   };
+  // 定制数字人（上传视频训练）
+  const generateDigitalHumanCustom = async () => {
+    if (!customVideo) return showToast('请先上传训练视频');
+    if (!customName.trim()) return showToast('请输入数字人名称');
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('source_video', customVideo);
+    formData.append('name', customName);
+    if (customDesc) formData.append('description', customDesc);
+    try {
+      const res = await axios.post(`${API_URL}/digital_human/`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120000,
+      });
+      showToast('数字人定制任务已提交');
+      setCustomVideo(null);
+      setCustomName('');
+      setCustomDesc('');
+    } catch (err) {
+      showToast(err.response?.data?.detail || '定制失败', true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const generateMultiAngle = async () => {
     if (multiImages.length < 2) return showToast('请至少上传2张照片');
@@ -303,6 +340,7 @@ export default function App() {
       case 'video': generateVideo(); break;
       case 'tryon': generateTryon(); break;
       case 'digital': generateDigitalHuman(); break;
+      case 'digital_custom': generateDigitalHumanCustom(); break;
       default: break;
     }
   };
@@ -382,6 +420,8 @@ export default function App() {
     { key: 'video', icon: 'videocam-outline', label: '视频', color: '#f59e0b' },
     { key: 'tryon', icon: 'shirt-outline', label: '试穿', color: '#ef4444' },
     { key: 'digital', icon: 'person-circle-outline', label: '数字人', color: '#06b6d4' },
+    { key: 'digital_custom', icon: 'construct-outline', label: '定制', color: '#f97316' },
+    { key: 'multi', icon: 'albums-outline', label: '多角度', color: '#8b5cf6' },
   ];
 
   return (
@@ -592,6 +632,49 @@ export default function App() {
               </Card>
             </>
           )}
+          {activeTab === 'digital_custom' && (
+            <>
+              <Card style={styles.imageCard}>
+                <Text style={styles.cardTitle}>🎥 上传训练视频</Text>
+                <TouchableOpacity onPress={pickCustomVideo} style={styles.imagePicker}>
+                  {customVideo ? (
+                    <View style={styles.placeholder}>
+                      <Icon name="videocam-outline" size={48} color="#666" />
+                      <Text style={styles.placeholderText}>{customVideo.name}</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.placeholder}>
+                      <Icon name="videocam-outline" size={48} color="#666" />
+                      <Text style={styles.placeholderText}>点击上传视频（MP4）</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </Card>
+
+              <Card style={styles.inputCard}>
+                <Text style={styles.cardTitle}>📛 数字人名称</Text>
+                <TextInput
+                  style={styles.promptInput}
+                  value={customName}
+                  onChangeText={setCustomName}
+                  placeholder="例如：我的专属数字人"
+                  placeholderTextColor="#888"
+                />
+              </Card>
+
+              <Card style={styles.promptCard}>
+                <Text style={styles.cardTitle}>📝 描述（可选）</Text>
+                <TextInput
+                  style={styles.promptInput}
+                  value={customDesc}
+                  onChangeText={setCustomDesc}
+                  placeholder="描述这个数字人的特点"
+                  placeholderTextColor="#888"
+                  multiline
+                />
+              </Card>
+            </>
+          )}
 
           {activeTab === 'multi' && (
             <Card style={styles.imageCard}>
@@ -680,7 +763,9 @@ export default function App() {
                  activeTab === 'image' ? '开始生成图片' :
                  activeTab === 'video' ? '开始生成视频' :
                  activeTab === 'tryon' ? '开始虚拟试穿' :
-                 activeTab === 'digital' ? '生成数字人视频' : '开始多角度合成'}
+                 activeTab === 'digital' ? '生成数字人视频' :
+                 activeTab === 'digital_custom' ? '开始定制数字人' :
+                 activeTab === 'multi' ? '开始多角度合成' : '开始'}
               </Text>
             )}
           </TouchableOpacity>
