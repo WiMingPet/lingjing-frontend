@@ -129,11 +129,16 @@ export default function App() {
 
   // 选择定制视频
   const pickCustomVideo = () => {
-    ImagePicker.launchImageLibrary({ mediaType: 'video', quality: 0.8 }, (res) => {
-      if (res.assets && res.assets[0]) {
-        setCustomVideo(res.assets[0]);
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'video/mp4,video/quicktime,video/x-msvideo';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        setCustomVideo(file);
       }
-    });
+    };
+    input.click();
   };
 
   const pickMultiImage = () => {
@@ -149,8 +154,13 @@ export default function App() {
   };
 
   const convertToFile = async (imageAsset) => {
+    // 如果是 File 对象（Web 原生上传的视频）
+    if (imageAsset && imageAsset.name && imageAsset.type && !imageAsset.uri) {
+      return imageAsset;
+    }
+  
     const uri = imageAsset.uri;
-    if (uri.startsWith('data:')) {
+    if (uri && uri.startsWith('data:')) {
       const response = await fetch(uri);
       const blob = await response.blob();
       return new File([blob], imageAsset.fileName || 'photo.jpg', { type: blob.type });
