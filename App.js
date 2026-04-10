@@ -681,32 +681,34 @@ export default function App() {
               </Card>
             </>
           )}
-          <Card style={styles.imageCard}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>🎥 上传训练视频</Text>
-              {customVideo && (
-                <TouchableOpacity onPress={() => setCustomVideo(null)} style={styles.deleteButton}>
-                  <Icon name="close-circle-outline" size={24} color="#ef4444" />
+          {activeTab === 'digital_custom' && (
+            <>
+              <Card style={styles.imageCard}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardTitle}>🎥 上传训练视频</Text>
+                  {customVideo && (
+                    <TouchableOpacity onPress={() => setCustomVideo(null)} style={styles.deleteButton}>
+                      <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <TouchableOpacity onPress={pickCustomVideo} style={styles.imagePicker}>
+                  {customVideo ? (
+                    <View style={styles.placeholder}>
+                      <Icon name="videocam-outline" size={48} color="#666" />
+                      <Text style={styles.placeholderText}>{customVideo.name}</Text>
+                      <View style={styles.imageOverlay}>
+                        <Text style={styles.overlayText}>点击更换</Text>
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.placeholder}>
+                      <Icon name="videocam-outline" size={48} color="#666" />
+                      <Text style={styles.placeholderText}>点击上传视频（MP4）</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
-              )}
-            </View>
-            <TouchableOpacity onPress={pickCustomVideo} style={styles.imagePicker}>
-              {customVideo ? (
-                <View style={styles.placeholder}>
-                  <Icon name="videocam-outline" size={48} color="#666" />
-                  <Text style={styles.placeholderText}>{customVideo.name}</Text>
-                  <View style={styles.imageOverlay}>
-                    <Text style={styles.overlayText}>点击更换</Text>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.placeholder}>
-                  <Icon name="videocam-outline" size={48} color="#666" />
-                  <Text style={styles.placeholderText}>点击上传视频（MP4）</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </Card>
+              </Card>
 
               <Card style={styles.inputCard}>
                 <Text style={styles.cardTitle}>📛 数字人名称</Text>
@@ -732,7 +734,6 @@ export default function App() {
               </Card>
             </>
           )}
-
           {activeTab === 'multi' && (
             <Card style={styles.imageCard}>
               <Text style={styles.cardTitle}>🖼️ 上传多张照片（2-4张）</Text>
