@@ -303,7 +303,7 @@ export default function App() {
     formData.append('name', customName);
     if (customDesc) formData.append('description', customDesc);
     try {
-      const res = await axios.post(`${API_URL}/digital_human/`, formData, {
+      const res = await axios.post(`${API_URL}/digital-human/`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 120000,
       });
