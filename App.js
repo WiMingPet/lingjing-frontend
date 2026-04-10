@@ -51,6 +51,11 @@ export default function App() {
   const [customVideo, setCustomVideo] = useState(null);
   const [customName, setCustomName] = useState('');
   const [customDesc, setCustomDesc] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [accessToken, setAccessToken] = useState('');
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginPhone, setLoginPhone] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -64,6 +69,34 @@ export default function App() {
     setHeight('170');
     setResult(null);
   }, [activeTab]);
+
+  // 登录
+  const handleLogin = async () => {
+    if (!loginPhone.trim()) return showToast('请输入手机号');
+    if (!loginPassword.trim()) return showToast('请输入密码');
+    try {
+      const res = await axios.post(`${API_URL}/auth/login`, {
+        phone: loginPhone,
+        password: loginPassword
+      });
+      const token = res.data.data.access_token;
+      setAccessToken(token);
+      localStorage.setItem('access_token', token);
+      setIsLoggedIn(true);
+      setShowLoginModal(false);
+      showToast('登录成功');
+    } catch (err) {
+      showToast(err.response?.data?.detail || '登录失败', true);
+    }
+  };
+
+  // 退出登录
+  const handleLogout = () => {
+    setAccessToken('');
+    localStorage.removeItem('access_token');
+    setIsLoggedIn(false);
+    showToast('已退出登录');
+  };
 
   const showToast = (msg, isError = false) => {
     setToastMessage(msg);
@@ -302,9 +335,15 @@ export default function App() {
     formData.append('source_video', customVideo);
     formData.append('name', customName);
     if (customDesc) formData.append('description', customDesc);
+  
+    const token = localStorage.getItem('access_token');
+  
     try {
       const res = await axios.post(`${API_URL}/digital-human/`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': token ? `Bearer ${token}` : undefined
+        },
         timeout: 120000,
       });
       showToast('数字人定制任务已提交');
@@ -642,24 +681,32 @@ export default function App() {
               </Card>
             </>
           )}
-          {activeTab === 'digital_custom' && (
-            <>
-              <Card style={styles.imageCard}>
-                <Text style={styles.cardTitle}>🎥 上传训练视频</Text>
-                <TouchableOpacity onPress={pickCustomVideo} style={styles.imagePicker}>
-                  {customVideo ? (
-                    <View style={styles.placeholder}>
-                      <Icon name="videocam-outline" size={48} color="#666" />
-                      <Text style={styles.placeholderText}>{customVideo.name}</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.placeholder}>
-                      <Icon name="videocam-outline" size={48} color="#666" />
-                      <Text style={styles.placeholderText}>点击上传视频（MP4）</Text>
-                    </View>
-                  )}
+          <Card style={styles.imageCard}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>🎥 上传训练视频</Text>
+              {customVideo && (
+                <TouchableOpacity onPress={() => setCustomVideo(null)} style={styles.deleteButton}>
+                  <Icon name="close-circle-outline" size={24} color="#ef4444" />
                 </TouchableOpacity>
-              </Card>
+              )}
+            </View>
+            <TouchableOpacity onPress={pickCustomVideo} style={styles.imagePicker}>
+              {customVideo ? (
+                <View style={styles.placeholder}>
+                  <Icon name="videocam-outline" size={48} color="#666" />
+                  <Text style={styles.placeholderText}>{customVideo.name}</Text>
+                  <View style={styles.imageOverlay}>
+                    <Text style={styles.overlayText}>点击更换</Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.placeholder}>
+                  <Icon name="videocam-outline" size={48} color="#666" />
+                  <Text style={styles.placeholderText}>点击上传视频（MP4）</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </Card>
 
               <Card style={styles.inputCard}>
                 <Text style={styles.cardTitle}>📛 数字人名称</Text>
@@ -810,6 +857,38 @@ export default function App() {
           )}
         </ScrollView>
 
+        {/* 登录弹窗 */}
+        <Modal visible={showLoginModal} transparent={true} animationType="slide">
+          <View style={styles.modalContainer}>
+            <Card style={styles.loginCard}>
+              <Text style={styles.cardTitle}>登录</Text>
+              <TextInput
+                style={styles.loginInput}
+                placeholder="手机号"
+                placeholderTextColor="#888"
+                value={loginPhone}
+                onChangeText={setLoginPhone}
+              />
+              <TextInput
+                style={styles.loginInput}
+                placeholder="密码"
+                placeholderTextColor="#888"
+                secureTextEntry
+                value={loginPassword}
+                onChangeText={setLoginPassword}
+              />
+              <View style={styles.loginButtonRow}>
+                <TouchableOpacity onPress={() => setShowLoginModal(false)} style={styles.loginCancelButton}>
+                  <Text style={styles.loginButtonText}>取消</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleLogin} style={styles.loginConfirmButton}>
+                  <Text style={styles.loginButtonText}>登录</Text>
+                </TouchableOpacity>
+              </View>
+            </Card>
+          </View>
+        </Modal>
+
         <Modal visible={modalVisible} transparent={true} animationType="fade">
           <View style={styles.modalContainer}>
             <TouchableOpacity style={styles.modalClose} onPress={() => setModalVisible(false)}>
@@ -899,4 +978,10 @@ const styles = StyleSheet.create({
   removeMultiImage: { position: 'absolute', top: -8, right: -8 },
   addImageButton: { width: 80, height: 80, borderRadius: 12, backgroundColor: '#2d2d44', justifyContent: 'center', alignItems: 'center' },
   addImageText: { color: '#aaa', fontSize: 10, marginTop: 4 },
+  loginCard: { width: '80%', padding: 20 },
+  loginInput: { backgroundColor: '#2d2d44', borderRadius: 8, padding: 12, color: '#fff', marginBottom: 12 },
+  loginButtonRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
+  loginCancelButton: { flex: 1, backgroundColor: '#3b3b5c', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
+  loginConfirmButton: { flex: 1, backgroundColor: '#7c3aed', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
+  loginButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });
