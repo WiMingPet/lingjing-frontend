@@ -58,6 +58,8 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [userCredits, setUserCredits] = useState(0);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [loginMode, setLoginMode] = useState('password'); // 'password' 或 'code'
+  const [loginCode, setLoginCode] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -75,20 +77,40 @@ export default function App() {
   // 登录
   const handleLogin = async () => {
     if (!loginPhone.trim()) return showToast('请输入手机号');
-    if (!loginPassword.trim()) return showToast('请输入密码');
+    if (loginMode === 'password' && !loginPassword.trim()) return showToast('请输入密码');
+    if (loginMode === 'code' && !loginCode.trim()) return showToast('请输入验证码');
+  
+    setLoading(true);
+    const payload = { phone: loginPhone };
+    if (loginMode === 'password') {
+      payload.password = loginPassword;
+    } else {
+      payload.code = loginCode;
+    }
+  
     try {
-      const res = await axios.post(`${API_URL}/auth/login`, {
-        phone: loginPhone,
-        password: loginPassword
-      });
+      const res = await axios.post(`${API_URL}/auth/login`, payload);
       const token = res.data.data.access_token;
-      setAccessToken(token);
+      const credits = res.data.data.credits;
       localStorage.setItem('access_token', token);
+      setAccessToken(token);
+      setUserCredits(credits);
       setIsLoggedIn(true);
       setShowLoginModal(false);
       showToast('登录成功');
     } catch (err) {
       showToast(err.response?.data?.detail || '登录失败', true);
+    } finally {
+      setLoading(false);
+    }
+  };
+  const sendVerificationCode = async () => {
+    if (!loginPhone.trim()) return showToast('请输入手机号');
+    try {
+      const res = await axios.post(`${API_URL}/auth/send_code`, { phone: loginPhone });
+      showToast('验证码已发送（测试验证码：123456）');
+    } catch (err) {
+      showToast('发送失败', true);
     }
   };
 
@@ -215,8 +237,12 @@ export default function App() {
     formData.append('image', file);
     formData.append('height', height);
     try {
+      const token = localStorage.getItem('access_token');
       const res = await axios.post(`${API_URL}/size/recommend`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': token ? `Bearer ${token}` : undefined
+        },
         timeout: 30000,
       });
       setResult(res.data.data.output_data);
@@ -238,8 +264,12 @@ export default function App() {
     formData.append('width', '512');
     formData.append('height', '512');
     try {
+      const token = localStorage.getItem('access_token');
       const res = await axios.post(`${API_URL}/image/generate`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': token ? `Bearer ${token}` : undefined
+        },
         timeout: 60000,
       });
       const imgUrl = res.data.data.output_data.images[0].url;
@@ -263,8 +293,12 @@ export default function App() {
     formData.append('duration', duration.toString());
     formData.append('mode', 'std');
     try {
+      const token = localStorage.getItem('access_token');
       const res = await axios.post(`${API_URL}/video/generate`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': token ? `Bearer ${token}` : undefined
+        },
         timeout: 120000,
       });
       const videoUrl = res.data.data.output_data.video_url;
@@ -288,8 +322,12 @@ export default function App() {
     formData.append('model_image', modelFile);
     formData.append('garment_image', garmentFile);
     try {
+      const token = localStorage.getItem('access_token');
       const res = await axios.post(`${API_URL}/tryon/generate`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': token ? `Bearer ${token}` : undefined
+        },
         timeout: 120000,
       });
       const tryonUrl = res.data.data.output_data.video_url;
@@ -314,8 +352,12 @@ export default function App() {
     formData.append('voice', digitalVoice);
     if (digitalName) formData.append('name', digitalName);
     try {
+      const token = localStorage.getItem('access_token');
       const res = await axios.post(`${API_URL}/digital-human/generate`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': token ? `Bearer ${token}` : undefined
+        },
         timeout: 180000,
       });
       const videoUrl = res.data.data.video_url;
@@ -369,8 +411,12 @@ export default function App() {
     }
     formData.append('prompt', prompt || '合成统一角色，自然光线');
     try {
+      const token = localStorage.getItem('access_token');
       const res = await axios.post(`${API_URL}/multi-angle/tryon`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': token ? `Bearer ${token}` : undefined
+        },
         timeout: 120000,
       });
       const imageUrl = res.data.data.output_data.image_url;
@@ -899,21 +945,62 @@ export default function App() {
           <View style={styles.modalContainer}>
             <Card style={styles.loginCard}>
               <Text style={styles.cardTitle}>登录</Text>
+      
+              {/* 切换登录方式 */}
+              <View style={styles.loginModeRow}>
+                <TouchableOpacity
+                  style={[styles.loginModeButton, loginMode === 'password' && styles.loginModeActive]}
+                  onPress={() => setLoginMode('password')}
+                >
+                  <Text style={[styles.loginModeText, loginMode === 'password' && styles.loginModeTextActive]}>密码登录</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.loginModeButton, loginMode === 'code' && styles.loginModeActive]}
+                  onPress={() => setLoginMode('code')}
+                >
+                  <Text style={[styles.loginModeText, loginMode === 'code' && styles.loginModeTextActive]}>验证码登录</Text>
+                </TouchableOpacity>
+              </View>
+      
+              {/* 手机号输入 */}
               <TextInput
                 style={styles.loginInput}
                 placeholder="手机号"
                 placeholderTextColor="#888"
                 value={loginPhone}
                 onChangeText={setLoginPhone}
+                keyboardType="phone-pad"
               />
-              <TextInput
-                style={styles.loginInput}
-                placeholder="密码"
-                placeholderTextColor="#888"
-                secureTextEntry
-                value={loginPassword}
-                onChangeText={setLoginPassword}
-              />
+      
+              {/* 密码输入（密码登录模式） */}
+              {loginMode === 'password' && (
+                <TextInput
+                  style={styles.loginInput}
+                  placeholder="密码"
+                  placeholderTextColor="#888"
+                  secureTextEntry
+                  value={loginPassword}
+                  onChangeText={setLoginPassword}
+                />
+              )}
+      
+              {/* 验证码输入（验证码登录模式） */}
+              {loginMode === 'code' && (
+                <View style={styles.codeRow}>
+                  <TextInput
+                    style={styles.codeInput}
+                    placeholder="验证码"
+                    placeholderTextColor="#888"
+                    keyboardType="numeric"
+                    value={loginCode}
+                    onChangeText={setLoginCode}
+                  />
+                  <TouchableOpacity style={styles.getCodeButton} onPress={sendVerificationCode}>
+                    <Text style={styles.getCodeText}>获取验证码</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+      
               <View style={styles.loginButtonRow}>
                 <TouchableOpacity onPress={() => setShowLoginModal(false)} style={styles.loginCancelButton}>
                   <Text style={styles.loginButtonText}>取消</Text>
@@ -923,15 +1010,6 @@ export default function App() {
                 </TouchableOpacity>
               </View>
             </Card>
-          </View>
-        </Modal>
-
-        <Modal visible={modalVisible} transparent={true} animationType="fade">
-          <View style={styles.modalContainer}>
-            <TouchableOpacity style={styles.modalClose} onPress={() => setModalVisible(false)}>
-              <Icon name="close-outline" size={30} color="#fff" />
-            </TouchableOpacity>
-            <Image source={{ uri: previewUrl }} style={styles.modalImage} resizeMode="contain" />
           </View>
         </Modal>
 
@@ -1036,4 +1114,13 @@ const styles = StyleSheet.create({
   loginPrompt: { alignItems: 'center', paddingVertical: 40 },
   loginPromptText: { color: '#aaa', fontSize: 16, marginTop: 16, marginBottom: 24 },
   loginButton: { backgroundColor: '#7c3aed', borderRadius: 30, paddingVertical: 12, paddingHorizontal: 40 },
+  loginModeRow: { flexDirection: 'row', marginBottom: 16, borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#3b3b5c' },
+  loginModeButton: { flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: '#2d2d44' },
+  loginModeActive: { backgroundColor: '#7c3aed' },
+  loginModeText: { color: '#aaa', fontSize: 14 },
+  loginModeTextActive: { color: '#fff' },
+  codeRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  codeInput: { flex: 1, backgroundColor: '#2d2d44', borderRadius: 8, padding: 12, color: '#fff' },
+  getCodeButton: { backgroundColor: '#3b3b5c', borderRadius: 8, paddingHorizontal: 16, justifyContent: 'center' },
+  getCodeText: { color: '#7c3aed', fontSize: 14 },
 });
