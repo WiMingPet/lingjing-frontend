@@ -61,7 +61,7 @@ export default function App() {
   const [loginMode, setLoginMode] = useState('password'); // 'password' 或 'code'
   const [loginCode, setLoginCode] = useState('');
   const [digitalHumans, setDigitalHumans] = useState([]);
-  const [showSettingMenu, setShowSettingMenu] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -837,52 +837,16 @@ export default function App() {
                   <Icon name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>我的</Text>
-                <TouchableOpacity onPress={() => setShowSettingMenu(true)} style={styles.menuButton}>
+                <TouchableOpacity onPress={() => setShowSidebar(true)} style={styles.menuButton}>
                   <Icon name="menu-outline" size={24} color="#fff" />
                 </TouchableOpacity>
               </View>
 
-              <ScrollView contentContainerStyle={styles.profileContent}>
-                {/* 用户信息区域 */}
-                <View style={styles.userInfoSection}>
-                  <Icon name="person-circle" size={80} color="#7c3aed" />
-                  <Text style={styles.userName}>用户</Text>
-                  <Text style={styles.userPhone}>{loginPhone || '未登录'}</Text>
-                </View>
-
-                {/* 灵境点卡片 */}
-                <View style={styles.creditsCard}>
-                  <Text style={styles.creditsLabel}>灵境点余额</Text>
-                  <Text style={styles.creditsValue}>{userCredits}</Text>
-                  <TouchableOpacity style={styles.rechargeButtonSmall} onPress={() => setShowRechargeModal(true)}>
-                    <Text style={styles.rechargeButtonTextSmall}>充值</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* 我的数字人 */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>📋 我的数字人</Text>
-                  {digitalHumans.filter(d => !d.is_default).map(human => (
-                    <View key={human.id} style={styles.humanItem}>
-                      <Icon name="person-circle" size={24} color="#7c3aed" />
-                      <View style={styles.humanInfo}>
-                        <Text style={styles.humanName}>{human.name}</Text>
-                        <Text style={styles.humanStatus}>
-                          {human.is_active ? '✅ 已激活' : '⏳ 训练中'}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-                  {digitalHumans.filter(d => !d.is_default).length === 0 && (
-                    <Text style={styles.emptyText}>暂无定制数字人，去「定制」页面创建</Text>
-                  )}
-                </View>
-
-                {/* 退出登录 */}
-                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                  <Text style={styles.logoutButtonText}>退出登录</Text>
-                </TouchableOpacity>
-              </ScrollView>
+              {/* 页面主要内容（可以放欢迎语或其他内容） */}
+              <View style={styles.profileContent}>
+                <Text style={styles.welcomeText}>欢迎使用灵境AI</Text>
+                <Text style={styles.welcomeSubText}>点击右上角菜单查看账户信息</Text>
+              </View>
             </>
           )}
 
@@ -1060,26 +1024,87 @@ export default function App() {
             </Card>
           </View>
         </Modal>
-        <Modal visible={showSettingMenu} transparent={true} animationType="slide">
-          <View style={styles.modalContainer}>
-            <View style={styles.settingMenu}>
-              <TouchableOpacity onPress={() => setShowSettingMenu(false)} style={styles.settingClose}>
-                <Icon name="close" size={24} color="#fff" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.settingItem} onPress={() => { /* 账号安全 */ }}>
-                <Icon name="shield-outline" size={20} color="#fff" />
-                <Text style={styles.settingText}>账号安全</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.settingItem} onPress={() => { /* 消费记录 */ }}>
-                <Icon name="receipt-outline" size={20} color="#fff" />
-                <Text style={styles.settingText}>消费记录</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.settingItem} onPress={() => { /* 关于我们 */ }}>
-                <Icon name="information-circle-outline" size={20} color="#fff" />
-                <Text style={styles.settingText}>关于我们</Text>
-              </TouchableOpacity>
+        {/* 侧边栏菜单 */}
+        <Modal visible={showSidebar} transparent={true} animationType="slide" presentationStyle="overFullScreen">
+          <TouchableOpacity 
+            style={styles.sidebarOverlay} 
+            activeOpacity={1} 
+            onPress={() => setShowSidebar(false)}
+          >
+            <View style={styles.sidebarContainer}>
+              {/* 用户信息 */}
+              <View style={styles.sidebarUserInfo}>
+                <Icon name="person-circle" size={60} color="#7c3aed" />
+                <Text style={styles.sidebarUserName}>{loginPhone || '未登录'}</Text>
+                {isLoggedIn && (
+                  <Text style={styles.sidebarUserPhone}>{loginPhone}</Text>
+                )}
+              </View>
+
+              {/* 灵境点余额 */}
+              <View style={styles.sidebarCredits}>
+                <Text style={styles.sidebarCreditsLabel}>灵境点余额</Text>
+                <Text style={styles.sidebarCreditsValue}>{userCredits}</Text>
+                <TouchableOpacity style={styles.sidebarRechargeBtn} onPress={() => {
+                  setShowSidebar(false);
+                  setShowRechargeModal(true);
+                }}>
+                  <Text style={styles.sidebarRechargeText}>充值</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* 我的数字人列表 */}
+              <View style={styles.sidebarSection}>
+                <Text style={styles.sidebarSectionTitle}>我的数字人</Text>
+                {digitalHumans.filter(d => !d.is_default).map(human => (
+                  <View key={human.id} style={styles.sidebarHumanItem}>
+                    <Icon name="person-circle" size={20} color="#7c3aed" />
+                    <Text style={styles.sidebarHumanName}>{human.name}</Text>
+                    <Text style={styles.sidebarHumanStatus}>
+                      {human.is_active ? '✅' : '⏳'}
+                    </Text>
+                  </View>
+                ))}
+                {digitalHumans.filter(d => !d.is_default).length === 0 && (
+                  <Text style={styles.sidebarEmptyText}>暂无定制数字人</Text>
+                )}
+              </View>
+
+              {/* 设置选项 */}
+              <View style={styles.sidebarSection}>
+                <TouchableOpacity style={styles.sidebarMenuItem} onPress={() => {
+                  setShowSidebar(false);
+                  showToast('账号安全开发中');
+                }}>
+                  <Icon name="shield-outline" size={20} color="#fff" />
+                  <Text style={styles.sidebarMenuText}>账号安全</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.sidebarMenuItem} onPress={() => {
+                  setShowSidebar(false);
+                  showToast('消费记录开发中');
+                }}>
+                  <Icon name="receipt-outline" size={20} color="#fff" />
+                  <Text style={styles.sidebarMenuText}>消费记录</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.sidebarMenuItem} onPress={() => {
+                  setShowSidebar(false);
+                  showToast('关于我们开发中');
+                }}>
+                  <Icon name="information-circle-outline" size={20} color="#fff" />
+                  <Text style={styles.sidebarMenuText}>关于我们</Text>
+                </TouchableOpacity>
+                {isLoggedIn && (
+                  <TouchableOpacity style={[styles.sidebarMenuItem, styles.sidebarLogout]} onPress={() => {
+                    setShowSidebar(false);
+                    handleLogout();
+                  }}>
+                    <Icon name="log-out-outline" size={20} color="#ef4444" />
+                    <Text style={[styles.sidebarMenuText, { color: '#ef4444' }]}>退出登录</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </Modal>
 
         {toastVisible && (
@@ -1199,29 +1224,31 @@ const styles = StyleSheet.create({
   humanStatus: { color: '#aaa', fontSize: 12, marginTop: 2 },
   emptyText: { color: '#666', fontSize: 14, textAlign: 'center', paddingVertical: 20 },
   profileHeaderBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-  backButton: { padding: 8 },
+  backButton: { padding: 8, opacity: 0 }, // 隐藏返回按钮
   menuButton: { padding: 8 },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
-  profileContent: { paddingBottom: 40 },
-  userInfoSection: { alignItems: 'center', paddingVertical: 30 },
-  userName: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginTop: 12 },
-  userPhone: { color: '#aaa', fontSize: 14, marginTop: 4 },
-  creditsCard: { backgroundColor: '#7c3aed', borderRadius: 16, padding: 20, marginHorizontal: 16, marginBottom: 24, alignItems: 'center' },
-  creditsLabel: { color: '#ddd', fontSize: 14 },
-  creditsValue: { color: '#fff', fontSize: 36, fontWeight: 'bold', marginVertical: 8 },
-  rechargeButtonSmall: { backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 20, paddingVertical: 8 },
-  rechargeButtonTextSmall: { color: '#7c3aed', fontSize: 14, fontWeight: 'bold' },
-  section: { marginHorizontal: 16, marginBottom: 24 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 12 },
-  humanItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#2d2d44' },
-  humanInfo: { marginLeft: 12, flex: 1 },
-  humanName: { color: '#fff', fontSize: 16 },
-  humanStatus: { color: '#aaa', fontSize: 12, marginTop: 2 },
-  emptyText: { color: '#666', fontSize: 14, textAlign: 'center', paddingVertical: 20 },
-  logoutButton: { backgroundColor: '#ef4444', borderRadius: 30, paddingVertical: 12, marginHorizontal: 16, alignItems: 'center' },
-  logoutButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  settingMenu: { backgroundColor: '#1e1e2e', borderRadius: 16, padding: 20, width: '80%', alignSelf: 'center' },
-  settingClose: { alignItems: 'flex-end', marginBottom: 16 },
-  settingItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 12 },
-  settingText: { color: '#fff', fontSize: 16 },
+  profileContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  welcomeText: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
+  welcomeSubText: { fontSize: 14, color: '#aaa' },
+
+  // 侧边栏样式
+  sidebarOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  sidebarContainer: { width: '70%', backgroundColor: '#1a1a2e', height: '100%', padding: 20, borderTopLeftRadius: 20, borderBottomLeftRadius: 20 },
+  sidebarUserInfo: { alignItems: 'center', marginBottom: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#2d2d44' },
+  sidebarUserName: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginTop: 8 },
+  sidebarUserPhone: { color: '#aaa', fontSize: 14, marginTop: 4 },
+  sidebarCredits: { backgroundColor: '#7c3aed', borderRadius: 12, padding: 16, marginBottom: 20 },
+  sidebarCreditsLabel: { color: '#ddd', fontSize: 12 },
+  sidebarCreditsValue: { color: '#fff', fontSize: 28, fontWeight: 'bold', marginVertical: 4 },
+  sidebarRechargeBtn: { backgroundColor: '#fff', borderRadius: 16, paddingVertical: 6, alignItems: 'center', marginTop: 8 },
+  sidebarRechargeText: { color: '#7c3aed', fontSize: 12, fontWeight: 'bold' },
+  sidebarSection: { marginBottom: 20 },
+  sidebarSectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#aaa', marginBottom: 12 },
+  sidebarHumanItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, gap: 8 },
+  sidebarHumanName: { flex: 1, color: '#fff', fontSize: 14 },
+  sidebarHumanStatus: { color: '#aaa', fontSize: 12 },
+  sidebarEmptyText: { color: '#666', fontSize: 12, textAlign: 'center', paddingVertical: 10 },
+  sidebarMenuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 12 },
+  sidebarMenuText: { color: '#fff', fontSize: 14 },
+  sidebarLogout: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#2d2d44' },
 });
