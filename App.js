@@ -61,6 +61,7 @@ export default function App() {
   const [loginMode, setLoginMode] = useState('password'); // 'password' 或 'code'
   const [loginCode, setLoginCode] = useState('');
   const [digitalHumans, setDigitalHumans] = useState([]);
+  const [showSettingMenu, setShowSettingMenu] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -829,21 +830,38 @@ export default function App() {
             </Card>
           )}
           {activeTab === 'profile' && (
-            <Card style={styles.profileCard}>
-              {isLoggedIn ? (
-                <>
-                  <View style={styles.profileHeader}>
-                    <Icon name="person-circle" size={60} color="#7c3aed" />
-                    <View style={styles.profileInfo}>
-                      <Text style={styles.profileName}>用户</Text>
-                      <Text style={styles.profilePhone}>{loginPhone}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.creditsCard}>
-                    <Text style={styles.creditsLabel}>灵境点余额</Text>
-                    <Text style={styles.creditsValue}>{userCredits}</Text>
-                  </View>
-                  <Text style={styles.sectionTitle}>我的数字人</Text>
+            <>
+              {/* 顶部导航栏 */}
+              <View style={styles.profileHeaderBar}>
+                <TouchableOpacity onPress={() => {}} style={styles.backButton}>
+                  <Icon name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>我的</Text>
+                <TouchableOpacity onPress={() => setShowSettingMenu(true)} style={styles.menuButton}>
+                  <Icon name="menu-outline" size={24} color="#fff" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView contentContainerStyle={styles.profileContent}>
+                {/* 用户信息区域 */}
+                <View style={styles.userInfoSection}>
+                  <Icon name="person-circle" size={80} color="#7c3aed" />
+                  <Text style={styles.userName}>用户</Text>
+                  <Text style={styles.userPhone}>{loginPhone || '未登录'}</Text>
+                </View>
+
+                {/* 灵境点卡片 */}
+                <View style={styles.creditsCard}>
+                  <Text style={styles.creditsLabel}>灵境点余额</Text>
+                  <Text style={styles.creditsValue}>{userCredits}</Text>
+                  <TouchableOpacity style={styles.rechargeButtonSmall} onPress={() => setShowRechargeModal(true)}>
+                    <Text style={styles.rechargeButtonTextSmall}>充值</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* 我的数字人 */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>📋 我的数字人</Text>
                   {digitalHumans.filter(d => !d.is_default).map(human => (
                     <View key={human.id} style={styles.humanItem}>
                       <Icon name="person-circle" size={24} color="#7c3aed" />
@@ -858,23 +876,14 @@ export default function App() {
                   {digitalHumans.filter(d => !d.is_default).length === 0 && (
                     <Text style={styles.emptyText}>暂无定制数字人，去「定制」页面创建</Text>
                   )}
-                  <TouchableOpacity style={styles.rechargeButton} onPress={() => setShowRechargeModal(true)}>
-                    <Text style={styles.rechargeButtonText}>充值</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                    <Text style={styles.logoutButtonText}>退出登录</Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <View style={styles.loginPrompt}>
-                  <Icon name="person-circle-outline" size={80} color="#666" />
-                  <Text style={styles.loginPromptText}>登录后享受更多功能</Text>
-                  <TouchableOpacity style={styles.loginButton} onPress={() => setShowLoginModal(true)}>
-                    <Text style={styles.loginButtonText}>立即登录</Text>
-                  </TouchableOpacity>
                 </View>
-              )}
-            </Card>
+
+                {/* 退出登录 */}
+                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                  <Text style={styles.logoutButtonText}>退出登录</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </>
           )}
 
           {activeTab === 'size' && (
@@ -1051,6 +1060,27 @@ export default function App() {
             </Card>
           </View>
         </Modal>
+        <Modal visible={showSettingMenu} transparent={true} animationType="slide">
+          <View style={styles.modalContainer}>
+            <View style={styles.settingMenu}>
+              <TouchableOpacity onPress={() => setShowSettingMenu(false)} style={styles.settingClose}>
+                <Icon name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.settingItem} onPress={() => { /* 账号安全 */ }}>
+                <Icon name="shield-outline" size={20} color="#fff" />
+                <Text style={styles.settingText}>账号安全</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.settingItem} onPress={() => { /* 消费记录 */ }}>
+                <Icon name="receipt-outline" size={20} color="#fff" />
+                <Text style={styles.settingText}>消费记录</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.settingItem} onPress={() => { /* 关于我们 */ }}>
+                <Icon name="information-circle-outline" size={20} color="#fff" />
+                <Text style={styles.settingText}>关于我们</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
         {toastVisible && (
           <View style={styles.toast}>
@@ -1168,4 +1198,30 @@ const styles = StyleSheet.create({
   humanName: { color: '#fff', fontSize: 16 },
   humanStatus: { color: '#aaa', fontSize: 12, marginTop: 2 },
   emptyText: { color: '#666', fontSize: 14, textAlign: 'center', paddingVertical: 20 },
+  profileHeaderBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
+  backButton: { padding: 8 },
+  menuButton: { padding: 8 },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
+  profileContent: { paddingBottom: 40 },
+  userInfoSection: { alignItems: 'center', paddingVertical: 30 },
+  userName: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginTop: 12 },
+  userPhone: { color: '#aaa', fontSize: 14, marginTop: 4 },
+  creditsCard: { backgroundColor: '#7c3aed', borderRadius: 16, padding: 20, marginHorizontal: 16, marginBottom: 24, alignItems: 'center' },
+  creditsLabel: { color: '#ddd', fontSize: 14 },
+  creditsValue: { color: '#fff', fontSize: 36, fontWeight: 'bold', marginVertical: 8 },
+  rechargeButtonSmall: { backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 20, paddingVertical: 8 },
+  rechargeButtonTextSmall: { color: '#7c3aed', fontSize: 14, fontWeight: 'bold' },
+  section: { marginHorizontal: 16, marginBottom: 24 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 12 },
+  humanItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#2d2d44' },
+  humanInfo: { marginLeft: 12, flex: 1 },
+  humanName: { color: '#fff', fontSize: 16 },
+  humanStatus: { color: '#aaa', fontSize: 12, marginTop: 2 },
+  emptyText: { color: '#666', fontSize: 14, textAlign: 'center', paddingVertical: 20 },
+  logoutButton: { backgroundColor: '#ef4444', borderRadius: 30, paddingVertical: 12, marginHorizontal: 16, alignItems: 'center' },
+  logoutButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  settingMenu: { backgroundColor: '#1e1e2e', borderRadius: 16, padding: 20, width: '80%', alignSelf: 'center' },
+  settingClose: { alignItems: 'flex-end', marginBottom: 16 },
+  settingItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 12 },
+  settingText: { color: '#fff', fontSize: 16 },
 });
