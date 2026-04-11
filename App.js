@@ -56,6 +56,8 @@ export default function App() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginPhone, setLoginPhone] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [userCredits, setUserCredits] = useState(0);
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -471,6 +473,7 @@ export default function App() {
     { key: 'digital', icon: 'person-circle-outline', label: '数字人', color: '#06b6d4' },
     { key: 'digital_custom', icon: 'construct-outline', label: '定制', color: '#f97316' },
     { key: 'multi', icon: 'albums-outline', label: '多角度', color: '#8b5cf6' },
+    { key: 'profile', icon: 'person-outline', label: '我的', color: '#7c3aed' },
   ];
 
   return (
@@ -755,6 +758,39 @@ export default function App() {
               </View>
             </Card>
           )}
+          {activeTab === 'profile' && (
+            <Card style={styles.profileCard}>
+              {isLoggedIn ? (
+                <>
+                  <View style={styles.profileHeader}>
+                    <Icon name="person-circle" size={60} color="#7c3aed" />
+                    <View style={styles.profileInfo}>
+                      <Text style={styles.profileName}>用户</Text>
+                      <Text style={styles.profilePhone}>{loginPhone}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.creditsCard}>
+                    <Text style={styles.creditsLabel}>灵境点余额</Text>
+                    <Text style={styles.creditsValue}>{userCredits}</Text>
+                  </View>
+                  <TouchableOpacity style={styles.rechargeButton} onPress={() => setShowRechargeModal(true)}>
+                    <Text style={styles.rechargeButtonText}>充值</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                    <Text style={styles.logoutButtonText}>退出登录</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <View style={styles.loginPrompt}>
+                  <Icon name="person-circle-outline" size={80} color="#666" />
+                  <Text style={styles.loginPromptText}>登录后享受更多功能</Text>
+                  <TouchableOpacity style={styles.loginButton} onPress={() => setShowLoginModal(true)}>
+                    <Text style={styles.loginButtonText}>立即登录</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </Card>
+          )}
 
           {activeTab === 'size' && (
             <Card style={styles.inputCard}>
@@ -985,4 +1021,19 @@ const styles = StyleSheet.create({
   loginCancelButton: { flex: 1, backgroundColor: '#3b3b5c', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
   loginConfirmButton: { flex: 1, backgroundColor: '#7c3aed', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
   loginButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  profileCard: { alignItems: 'center' },
+  profileHeader: { flexDirection: 'row', alignItems: 'center', width: '100%', marginBottom: 20 },
+  profileInfo: { marginLeft: 15 },
+  profileName: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
+  profilePhone: { color: '#aaa', marginTop: 4 },
+  creditsCard: { backgroundColor: '#7c3aed', borderRadius: 16, padding: 20, width: '100%', alignItems: 'center', marginBottom: 20 },
+  creditsLabel: { color: '#ddd', fontSize: 14 },
+  creditsValue: { color: '#fff', fontSize: 36, fontWeight: 'bold', marginTop: 8 },
+  rechargeButton: { backgroundColor: '#10b981', borderRadius: 30, paddingVertical: 12, paddingHorizontal: 30, marginBottom: 12 },
+  rechargeButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  logoutButton: { backgroundColor: '#ef4444', borderRadius: 30, paddingVertical: 12, paddingHorizontal: 30 },
+  logoutButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  loginPrompt: { alignItems: 'center', paddingVertical: 40 },
+  loginPromptText: { color: '#aaa', fontSize: 16, marginTop: 16, marginBottom: 24 },
+  loginButton: { backgroundColor: '#7c3aed', borderRadius: 30, paddingVertical: 12, paddingHorizontal: 40 },
 });
