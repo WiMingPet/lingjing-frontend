@@ -60,11 +60,20 @@ export default function App() {
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [loginMode, setLoginMode] = useState('password'); // 'password' 或 'code'
   const [loginCode, setLoginCode] = useState('');
+  const [digitalHumans, setDigitalHumans] = useState([]);
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
     if (saved) {
       setHistory(JSON.parse(saved));
+    }
+    // 检查是否已登录
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      setIsLoggedIn(true);
+      setAccessToken(token);
+      fetchDigitalHumans();
+      // 可选：获取用户信息（灵境点余额等）
     }
   }, []);
 
@@ -97,6 +106,7 @@ export default function App() {
       setUserCredits(credits);
       setIsLoggedIn(true);
       setShowLoginModal(false);
+      fetchDigitalHumans();  // ← 添加这一行
       showToast('登录成功');
     } catch (err) {
       showToast(err.response?.data?.detail || '登录失败', true);
@@ -120,6 +130,20 @@ export default function App() {
     localStorage.removeItem('access_token');
     setIsLoggedIn(false);
     showToast('已退出登录');
+  };
+  // 获取我的数字人列表
+  const fetchDigitalHumans = async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
+    try {
+      const res = await axios.get(`${API_URL}/digital-human/`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setDigitalHumans(res.data.data.items || []);
+      console.log('数字人列表:', res.data.data.items);
+    } catch (err) {
+      console.log('获取数字人列表失败', err);
+    }
   };
 
   const showToast = (msg, isError = false) => {
@@ -819,6 +843,21 @@ export default function App() {
                     <Text style={styles.creditsLabel}>灵境点余额</Text>
                     <Text style={styles.creditsValue}>{userCredits}</Text>
                   </View>
+                  <Text style={styles.sectionTitle}>我的数字人</Text>
+                  {digitalHumans.filter(d => !d.is_default).map(human => (
+                    <View key={human.id} style={styles.humanItem}>
+                      <Icon name="person-circle" size={24} color="#7c3aed" />
+                      <View style={styles.humanInfo}>
+                        <Text style={styles.humanName}>{human.name}</Text>
+                        <Text style={styles.humanStatus}>
+                          {human.is_active ? '✅ 已激活' : '⏳ 训练中'}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                  {digitalHumans.filter(d => !d.is_default).length === 0 && (
+                    <Text style={styles.emptyText}>暂无定制数字人，去「定制」页面创建</Text>
+                  )}
                   <TouchableOpacity style={styles.rechargeButton} onPress={() => setShowRechargeModal(true)}>
                     <Text style={styles.rechargeButtonText}>充值</Text>
                   </TouchableOpacity>
@@ -1123,4 +1162,10 @@ const styles = StyleSheet.create({
   codeInput: { flex: 1, backgroundColor: '#2d2d44', borderRadius: 8, padding: 12, color: '#fff' },
   getCodeButton: { backgroundColor: '#3b3b5c', borderRadius: 8, paddingHorizontal: 16, justifyContent: 'center' },
   getCodeText: { color: '#7c3aed', fontSize: 14 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginTop: 20, marginBottom: 12 },
+  humanItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#2d2d44' },
+  humanInfo: { marginLeft: 12, flex: 1 },
+  humanName: { color: '#fff', fontSize: 16 },
+  humanStatus: { color: '#aaa', fontSize: 12, marginTop: 2 },
+  emptyText: { color: '#666', fontSize: 14, textAlign: 'center', paddingVertical: 20 },
 });
