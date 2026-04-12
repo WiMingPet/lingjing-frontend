@@ -951,7 +951,6 @@ const [membershipPackages, setMembershipPackages] = useState([
               </ScrollView>
             </Card>
           )}
-        </ScrollView>
           {activeTab === 'profile' && (
             <View style={{ position: 'relative', flex: 1 }}>
               {/* 顶部导航栏 */}
@@ -1033,6 +1032,8 @@ const [membershipPackages, setMembershipPackages] = useState([
             </View>
           </View>
         )}
+        </ScrollView>
+
 
         {/* 登录弹窗 */}
         <Modal visible={showLoginModal} transparent={true} animationType="slide">
@@ -1259,6 +1260,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: '#0a0a0a',
+    position: 'relative',  // 添加这一行
   },
   menuButton: { padding: 8 },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
@@ -1291,7 +1293,7 @@ const styles = StyleSheet.create({
   },
   dropdownMenu: {
   position: 'absolute',
-  top: 120,
+  top: 50,
   right: 16,
   width: 280,
   backgroundColor: '#1e1e2e',
