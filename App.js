@@ -47,7 +47,6 @@ export default function App() {
   const [digitalVoice, setDigitalVoice] = useState('温柔女声');
   const [digitalName, setDigitalName] = useState('');
   const [multiImages, setMultiImages] = useState([]);
-  // 数字人定制
   const [customVideo, setCustomVideo] = useState(null);
   const [customName, setCustomName] = useState('');
   const [customDesc, setCustomDesc] = useState('');
@@ -58,35 +57,33 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [userCredits, setUserCredits] = useState(0);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
-  const [loginMode, setLoginMode] = useState('password'); // 'password' 或 'code'
+  const [loginMode, setLoginMode] = useState('password');
   const [loginCode, setLoginCode] = useState('');
   const [digitalHumans, setDigitalHumans] = useState([]);
   const [membershipLevel, setMembershipLevel] = useState('free');
   const [showSidebarMenu, setShowSidebarMenu] = useState(false);
   const [rechargePackages, setRechargePackages] = useState([
-  { id: 1, name: '小试牛刀', credits: 100, price: 9.9, discount: 0 },
-  { id: 2, name: '进阶创作', credits: 350, price: 29.9, discount: 20, bonus: 20 },
-  { id: 3, name: '专业玩家', credits: 900, price: 69.9, discount: 100, bonus: 100 },
-  { id: 4, name: '商业大师', credits: 2000, price: 149.9, discount: 300, bonus: 300 },
-]);
-const [membershipPackages, setMembershipPackages] = useState([
-  { id: 1, name: '黄金会员', price: 29, monthlyCredits: 600, originalPrice: 58, features: ['无水印', '优先队列', '基础模式'] },
-  { id: 2, name: '铂金会员', price: 69, monthlyCredits: 1800, originalPrice: 138, features: ['高清模式', '优先队列', '首尾帧控制'] },
-  { id: 3, name: '钻石会员', price: 129, monthlyCredits: 4500, originalPrice: 258, features: ['专业模式', '最高优先级', '视频延长', '商业授权'] },
-]);
+    { id: 1, name: '小试牛刀', credits: 100, price: 9.9, discount: 0 },
+    { id: 2, name: '进阶创作', credits: 350, price: 29.9, discount: 20, bonus: 20 },
+    { id: 3, name: '专业玩家', credits: 900, price: 69.9, discount: 100, bonus: 100 },
+    { id: 4, name: '商业大师', credits: 2000, price: 149.9, discount: 300, bonus: 300 },
+  ]);
+  const [membershipPackages, setMembershipPackages] = useState([
+    { id: 1, name: '黄金会员', price: 29, monthlyCredits: 600, originalPrice: 58, features: ['无水印', '优先队列', '基础模式'] },
+    { id: 2, name: '铂金会员', price: 69, monthlyCredits: 1800, originalPrice: 138, features: ['高清模式', '优先队列', '首尾帧控制'] },
+    { id: 3, name: '钻石会员', price: 129, monthlyCredits: 4500, originalPrice: 258, features: ['专业模式', '最高优先级', '视频延长', '商业授权'] },
+  ]);
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
     if (saved) {
       setHistory(JSON.parse(saved));
     }
-    // 检查是否已登录
     const token = localStorage.getItem('access_token');
     if (token) {
       setIsLoggedIn(true);
       setAccessToken(token);
       fetchDigitalHumans();
-      // 可选：获取用户信息（灵境点余额等）
     }
   }, []);
 
@@ -96,12 +93,10 @@ const [membershipPackages, setMembershipPackages] = useState([
     setResult(null);
   }, [activeTab]);
 
-  // 登录
   const handleLogin = async () => {
     if (!loginPhone.trim()) return showToast('请输入手机号');
     if (loginMode === 'password' && !loginPassword.trim()) return showToast('请输入密码');
     if (loginMode === 'code' && !loginCode.trim()) return showToast('请输入验证码');
-  
     setLoading(true);
     const payload = { phone: loginPhone };
     if (loginMode === 'password') {
@@ -109,7 +104,6 @@ const [membershipPackages, setMembershipPackages] = useState([
     } else {
       payload.code = loginCode;
     }
-  
     try {
       const res = await axios.post(`${API_URL}/auth/login`, payload);
       const token = res.data.data.access_token;
@@ -119,7 +113,7 @@ const [membershipPackages, setMembershipPackages] = useState([
       setUserCredits(credits);
       setIsLoggedIn(true);
       setShowLoginModal(false);
-      fetchDigitalHumans();  // ← 添加这一行
+      fetchDigitalHumans();
       showToast('登录成功');
     } catch (err) {
       showToast(err.response?.data?.detail || '登录失败', true);
@@ -127,33 +121,35 @@ const [membershipPackages, setMembershipPackages] = useState([
       setLoading(false);
     }
   };
+
   const sendVerificationCode = async () => {
     if (!loginPhone.trim()) return showToast('请输入手机号');
     try {
-      const res = await axios.post(`${API_URL}/auth/send_code`, { phone: loginPhone });
+      await axios.post(`${API_URL}/auth/send_code`, { phone: loginPhone });
       showToast('验证码已发送（测试验证码：123456）');
     } catch (err) {
       showToast('发送失败', true);
     }
   };
 
-  // 退出登录
   const handleLogout = () => {
     setAccessToken('');
     localStorage.removeItem('access_token');
     setIsLoggedIn(false);
+    setUserCredits(0);
+    setDigitalHumans([]);
+    setShowSidebarMenu(false);
     showToast('已退出登录');
   };
+
   const handleRecharge = async (pkg) => {
-    // TODO: 接入支付宝/微信支付
     showToast(`充值 ${pkg.credits} 灵境点，功能开发中`);
   };
 
   const handleMembership = async (pkg) => {
-    // TODO: 接入支付宝/微信支付
     showToast(`开通 ${pkg.name}，功能开发中`);
   };
-  // 获取我的数字人列表
+
   const fetchDigitalHumans = async () => {
     const token = localStorage.getItem('access_token');
     if (!token) return;
@@ -162,7 +158,6 @@ const [membershipPackages, setMembershipPackages] = useState([
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setDigitalHumans(res.data.data.items || []);
-      console.log('数字人列表:', res.data.data.items);
     } catch (err) {
       console.log('获取数字人列表失败', err);
     }
@@ -230,7 +225,6 @@ const [membershipPackages, setMembershipPackages] = useState([
     });
   };
 
-  // 选择定制视频
   const pickCustomVideo = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -257,11 +251,9 @@ const [membershipPackages, setMembershipPackages] = useState([
   };
 
   const convertToFile = async (imageAsset) => {
-    // 如果是 File 对象（Web 原生上传的视频）
     if (imageAsset && imageAsset.name && imageAsset.type && !imageAsset.uri) {
       return imageAsset;
     }
-  
     const uri = imageAsset.uri;
     if (uri && uri.startsWith('data:')) {
       const response = await fetch(uri);
@@ -416,7 +408,7 @@ const [membershipPackages, setMembershipPackages] = useState([
       setLoading(false);
     }
   };
-  // 定制数字人（上传视频训练）
+
   const generateDigitalHumanCustom = async () => {
     if (!customVideo) return showToast('请先上传训练视频');
     if (!customName.trim()) return showToast('请输入数字人名称');
@@ -425,9 +417,7 @@ const [membershipPackages, setMembershipPackages] = useState([
     formData.append('source_video', customVideo);
     formData.append('name', customName);
     if (customDesc) formData.append('description', customDesc);
-  
     const token = localStorage.getItem('access_token');
-  
     try {
       const res = await axios.post(`${API_URL}/digital-human/`, formData, {
         headers: { 
@@ -591,395 +581,388 @@ const [membershipPackages, setMembershipPackages] = useState([
           ))}
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {activeTab !== 'tryon' && activeTab !== 'digital' && activeTab !== 'multi' && (
-            <Card style={styles.imageCard}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>
-                  {activeTab === 'size' ? '📸 上传全身照' :
-                   activeTab === 'image' ? '🎨 上传参考图' :
-                   activeTab === 'video' ? '🎥 上传图片' : ''}
-                </Text>
-                {selectedImage && (
-                  <TouchableOpacity onPress={() => { setSelectedImage(null); setResult(null); }} style={styles.deleteButton}>
-                    <Icon name="close-circle-outline" size={24} color="#ef4444" />
-                  </TouchableOpacity>
-                )}
-              </View>
-              <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
-                {selectedImage ? (
-                  <>
-                    <Image source={{ uri: selectedImage.uri }} style={styles.previewImage} />
-                    <View style={styles.imageOverlay}>
-                      <Text style={styles.overlayText}>点击更换</Text>
+        {/* 其他 Tab 内容（放在 ScrollView 内） */}
+        {activeTab !== 'profile' && (
+          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            {activeTab !== 'tryon' && activeTab !== 'digital' && activeTab !== 'multi' && (
+              <Card style={styles.imageCard}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardTitle}>
+                    {activeTab === 'size' ? '📸 上传全身照' :
+                     activeTab === 'image' ? '🎨 上传参考图' :
+                     activeTab === 'video' ? '🎥 上传图片' : ''}
+                  </Text>
+                  {selectedImage && (
+                    <TouchableOpacity onPress={() => { setSelectedImage(null); setResult(null); }} style={styles.deleteButton}>
+                      <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
+                  {selectedImage ? (
+                    <>
+                      <Image source={{ uri: selectedImage.uri }} style={styles.previewImage} />
+                      <View style={styles.imageOverlay}>
+                        <Text style={styles.overlayText}>点击更换</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <View style={styles.placeholder}>
+                      <Icon name="cloud-upload-outline" size={48} color="#666" />
+                      <Text style={styles.placeholderText}>点击上传图片</Text>
                     </View>
-                  </>
-                ) : (
-                  <View style={styles.placeholder}>
-                    <Icon name="cloud-upload-outline" size={48} color="#666" />
-                    <Text style={styles.placeholderText}>点击上传图片</Text>
+                  )}
+                </TouchableOpacity>
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
+                    <Icon name="images-outline" size={20} color="#fff" />
+                    <Text style={styles.iconButtonText}>相册</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.iconButton} onPress={takePhoto}>
+                    <Icon name="camera-outline" size={20} color="#fff" />
+                    <Text style={styles.iconButtonText}>拍照</Text>
+                  </TouchableOpacity>
+                </View>
+              </Card>
+            )}
+
+            {activeTab === 'tryon' && (
+              <>
+                <Card style={styles.imageCard}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.cardTitle}>👤 上传模特图</Text>
+                    {modelImage && (
+                      <TouchableOpacity onPress={() => setModelImage(null)} style={styles.deleteButton}>
+                        <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                      </TouchableOpacity>
+                    )}
                   </View>
-                )}
-              </TouchableOpacity>
-              <View style={styles.buttonRow}>
-                <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
-                  <Icon name="images-outline" size={20} color="#fff" />
-                  <Text style={styles.iconButtonText}>相册</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.iconButton} onPress={takePhoto}>
-                  <Icon name="camera-outline" size={20} color="#fff" />
-                  <Text style={styles.iconButtonText}>拍照</Text>
-                </TouchableOpacity>
-              </View>
-            </Card>
-          )}
+                  <TouchableOpacity onPress={pickModelImage} style={styles.imagePicker}>
+                    {modelImage ? (
+                      <>
+                        <Image source={{ uri: modelImage.uri }} style={styles.previewImage} />
+                        <View style={styles.imageOverlay}>
+                          <Text style={styles.overlayText}>点击更换</Text>
+                        </View>
+                      </>
+                    ) : (
+                      <View style={styles.placeholder}>
+                        <Icon name="person-outline" size={48} color="#666" />
+                        <Text style={styles.placeholderText}>点击上传模特图</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                  <View style={styles.buttonRow}>
+                    <TouchableOpacity style={styles.iconButton} onPress={pickModelImage}>
+                      <Icon name="images-outline" size={20} color="#fff" />
+                      <Text style={styles.iconButtonText}>相册</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.iconButton} onPress={pickModelImage}>
+                      <Icon name="camera-outline" size={20} color="#fff" />
+                      <Text style={styles.iconButtonText}>拍照</Text>
+                    </TouchableOpacity>
+                  </View>
+                </Card>
+                <Card style={styles.imageCard}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.cardTitle}>👕 上传服装图</Text>
+                    {garmentImage && (
+                      <TouchableOpacity onPress={() => setGarmentImage(null)} style={styles.deleteButton}>
+                        <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <TouchableOpacity onPress={pickGarmentImage} style={styles.imagePicker}>
+                    {garmentImage ? (
+                      <>
+                        <Image source={{ uri: garmentImage.uri }} style={styles.previewImage} />
+                        <View style={styles.imageOverlay}>
+                          <Text style={styles.overlayText}>点击更换</Text>
+                        </View>
+                      </>
+                    ) : (
+                      <View style={styles.placeholder}>
+                        <Icon name="shirt-outline" size={48} color="#666" />
+                        <Text style={styles.placeholderText}>点击上传服装图</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                  <View style={styles.buttonRow}>
+                    <TouchableOpacity style={styles.iconButton} onPress={pickGarmentImage}>
+                      <Icon name="images-outline" size={20} color="#fff" />
+                      <Text style={styles.iconButtonText}>相册</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.iconButton} onPress={pickGarmentImage}>
+                      <Icon name="camera-outline" size={20} color="#fff" />
+                      <Text style={styles.iconButtonText}>拍照</Text>
+                    </TouchableOpacity>
+                  </View>
+                </Card>
+              </>
+            )}
 
-          {activeTab === 'tryon' && (
-            <>
+            {activeTab === 'digital' && (
+              <>
+                <Card style={styles.imageCard}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.cardTitle}>📸 上传照片</Text>
+                    {digitalImage && (
+                      <TouchableOpacity onPress={() => setDigitalImage(null)} style={styles.deleteButton}>
+                        <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <TouchableOpacity onPress={pickDigitalImage} style={styles.imagePicker}>
+                    {digitalImage ? (
+                      <>
+                        <Image source={{ uri: digitalImage.uri }} style={styles.previewImage} />
+                        <View style={styles.imageOverlay}>
+                          <Text style={styles.overlayText}>点击更换</Text>
+                        </View>
+                      </>
+                    ) : (
+                      <View style={styles.placeholder}>
+                        <Icon name="person-outline" size={48} color="#666" />
+                        <Text style={styles.placeholderText}>点击上传照片</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </Card>
+                <Card style={styles.promptCard}>
+                  <Text style={styles.cardTitle}>💬 输入说话内容</Text>
+                  <TextInput
+                    style={styles.promptInput}
+                    value={digitalText}
+                    onChangeText={setDigitalText}
+                    placeholder="例如：大家好，我是灵境AI平台创造的数字人，很高兴认识大家！"
+                    placeholderTextColor="#888"
+                    multiline
+                  />
+                </Card>
+                <Card style={styles.inputCard}>
+                  <Text style={styles.cardTitle}>🎵 选择音色</Text>
+                  <View style={styles.voiceRow}>
+                    {['温柔女声', '沉稳男声', '可爱童声', '磁性男声'].map(voice => (
+                      <TouchableOpacity
+                        key={voice}
+                        style={[styles.voiceButton, digitalVoice === voice && styles.voiceButtonActive]}
+                        onPress={() => setDigitalVoice(voice)}
+                      >
+                        <Text style={[styles.voiceText, digitalVoice === voice && styles.voiceTextActive]}>{voice}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </Card>
+                <Card style={styles.inputCard}>
+                  <Text style={styles.cardTitle}>📛 数字人名称（可选）</Text>
+                  <TextInput
+                    style={styles.promptInput}
+                    value={digitalName}
+                    onChangeText={setDigitalName}
+                    placeholder="我的数字人"
+                    placeholderTextColor="#888"
+                  />
+                </Card>
+              </>
+            )}
+
+            {activeTab === 'digital_custom' && (
+              <>
+                <Card style={styles.imageCard}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.cardTitle}>🎥 上传训练视频</Text>
+                    {customVideo && (
+                      <TouchableOpacity onPress={() => setCustomVideo(null)} style={styles.deleteButton}>
+                        <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <TouchableOpacity onPress={pickCustomVideo} style={styles.imagePicker}>
+                    {customVideo ? (
+                      <View style={styles.placeholder}>
+                        <Icon name="videocam-outline" size={48} color="#666" />
+                        <Text style={styles.placeholderText}>{customVideo.name}</Text>
+                        <View style={styles.imageOverlay}>
+                          <Text style={styles.overlayText}>点击更换</Text>
+                        </View>
+                      </View>
+                    ) : (
+                      <View style={styles.placeholder}>
+                        <Icon name="videocam-outline" size={48} color="#666" />
+                        <Text style={styles.placeholderText}>点击上传视频（MP4）</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </Card>
+                <Card style={styles.inputCard}>
+                  <Text style={styles.cardTitle}>📛 数字人名称</Text>
+                  <TextInput
+                    style={styles.promptInput}
+                    value={customName}
+                    onChangeText={setCustomName}
+                    placeholder="例如：我的专属数字人"
+                    placeholderTextColor="#888"
+                  />
+                </Card>
+                <Card style={styles.promptCard}>
+                  <Text style={styles.cardTitle}>📝 描述（可选）</Text>
+                  <TextInput
+                    style={styles.promptInput}
+                    value={customDesc}
+                    onChangeText={setCustomDesc}
+                    placeholder="描述这个数字人的特点"
+                    placeholderTextColor="#888"
+                    multiline
+                  />
+                </Card>
+              </>
+            )}
+
+            {activeTab === 'multi' && (
               <Card style={styles.imageCard}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle}>👤 上传模特图</Text>
-                  {modelImage && (
-                    <TouchableOpacity onPress={() => setModelImage(null)} style={styles.deleteButton}>
-                      <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                <Text style={styles.cardTitle}>🖼️ 上传多张照片（2-4张）</Text>
+                <View style={styles.multiImageRow}>
+                  {multiImages.map((img, idx) => (
+                    <View key={idx} style={styles.multiImageItem}>
+                      <Image source={{ uri: img.uri }} style={styles.multiPreview} />
+                      <TouchableOpacity onPress={() => setMultiImages(multiImages.filter((_, i) => i !== idx))} style={styles.removeMultiImage}>
+                        <Icon name="close-circle" size={24} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  {multiImages.length < 4 && (
+                    <TouchableOpacity onPress={pickMultiImage} style={styles.addImageButton}>
+                      <Icon name="add-circle-outline" size={48} color="#666" />
+                      <Text style={styles.addImageText}>添加照片</Text>
                     </TouchableOpacity>
                   )}
                 </View>
-                <TouchableOpacity onPress={pickModelImage} style={styles.imagePicker}>
-                  {modelImage ? (
-                    <>
-                      <Image source={{ uri: modelImage.uri }} style={styles.previewImage} />
-                      <View style={styles.imageOverlay}>
-                        <Text style={styles.overlayText}>点击更换</Text>
-                      </View>
-                    </>
-                  ) : (
-                    <View style={styles.placeholder}>
-                      <Icon name="person-outline" size={48} color="#666" />
-                      <Text style={styles.placeholderText}>点击上传模特图</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-                <View style={styles.buttonRow}>
-                  <TouchableOpacity style={styles.iconButton} onPress={pickModelImage}>
-                    <Icon name="images-outline" size={20} color="#fff" />
-                    <Text style={styles.iconButtonText}>相册</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.iconButton} onPress={pickModelImage}>
-                    <Icon name="camera-outline" size={20} color="#fff" />
-                    <Text style={styles.iconButtonText}>拍照</Text>
-                  </TouchableOpacity>
-                </View>
               </Card>
-              <Card style={styles.imageCard}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle}>👕 上传服装图</Text>
-                  {garmentImage && (
-                    <TouchableOpacity onPress={() => setGarmentImage(null)} style={styles.deleteButton}>
-                      <Icon name="close-circle-outline" size={24} color="#ef4444" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <TouchableOpacity onPress={pickGarmentImage} style={styles.imagePicker}>
-                  {garmentImage ? (
-                    <>
-                      <Image source={{ uri: garmentImage.uri }} style={styles.previewImage} />
-                      <View style={styles.imageOverlay}>
-                        <Text style={styles.overlayText}>点击更换</Text>
-                      </View>
-                    </>
-                  ) : (
-                    <View style={styles.placeholder}>
-                      <Icon name="shirt-outline" size={48} color="#666" />
-                      <Text style={styles.placeholderText}>点击上传服装图</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-                <View style={styles.buttonRow}>
-                  <TouchableOpacity style={styles.iconButton} onPress={pickGarmentImage}>
-                    <Icon name="images-outline" size={20} color="#fff" />
-                    <Text style={styles.iconButtonText}>相册</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.iconButton} onPress={pickGarmentImage}>
-                    <Icon name="camera-outline" size={20} color="#fff" />
-                    <Text style={styles.iconButtonText}>拍照</Text>
-                  </TouchableOpacity>
-                </View>
-              </Card>
-            </>
-          )}
+            )}
 
-          {activeTab === 'digital' && (
-            <>
-              <Card style={styles.imageCard}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle}>📸 上传照片</Text>
-                  {digitalImage && (
-                    <TouchableOpacity onPress={() => setDigitalImage(null)} style={styles.deleteButton}>
-                      <Icon name="close-circle-outline" size={24} color="#ef4444" />
-                    </TouchableOpacity>
-                  )}
+            {activeTab === 'size' && (
+              <Card style={styles.inputCard}>
+                <Text style={styles.cardTitle}>📏 身高</Text>
+                <View style={styles.heightRow}>
+                  <TextInput
+                    style={styles.heightInput}
+                    value={height}
+                    onChangeText={setHeight}
+                    keyboardType="numeric"
+                    placeholder="170"
+                    placeholderTextColor="#888"
+                  />
+                  <Text style={styles.heightUnit}>cm</Text>
                 </View>
-                <TouchableOpacity onPress={pickDigitalImage} style={styles.imagePicker}>
-                  {digitalImage ? (
-                    <>
-                      <Image source={{ uri: digitalImage.uri }} style={styles.previewImage} />
-                      <View style={styles.imageOverlay}>
-                        <Text style={styles.overlayText}>点击更换</Text>
-                      </View>
-                    </>
-                  ) : (
-                    <View style={styles.placeholder}>
-                      <Icon name="person-outline" size={48} color="#666" />
-                      <Text style={styles.placeholderText}>点击上传照片</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
               </Card>
+            )}
 
+            {(activeTab === 'image' || activeTab === 'video' || activeTab === 'tryon' || activeTab === 'multi') && (
               <Card style={styles.promptCard}>
-                <Text style={styles.cardTitle}>💬 输入说话内容</Text>
+                <Text style={styles.cardTitle}>
+                  💬 描述{' '}
+                  {activeTab === 'image' ? '图片' : activeTab === 'video' ? '视频' : activeTab === 'tryon' ? '试穿效果' : '合成效果'}
+                </Text>
                 <TextInput
                   style={styles.promptInput}
-                  value={digitalText}
-                  onChangeText={setDigitalText}
-                  placeholder="例如：大家好，我是灵境AI平台创造的数字人，很高兴认识大家！"
+                  value={prompt}
+                  onChangeText={setPrompt}
+                  placeholder={
+                    activeTab === 'image' ? '例如：把衣服穿在模特身上，自然光线，4K高清...' :
+                    activeTab === 'video' ? '例如：衣服随风飘动，模特在T台上走秀...' :
+                    activeTab === 'tryon' ? '例如：自然贴合，光线柔和...' :
+                    '例如：统一角色，正面站立，自然光线...'
+                  }
                   placeholderTextColor="#888"
                   multiline
                 />
               </Card>
+            )}
 
+            {activeTab === 'video' && (
               <Card style={styles.inputCard}>
-                <Text style={styles.cardTitle}>🎵 选择音色</Text>
-                <View style={styles.voiceRow}>
-                  {['温柔女声', '沉稳男声', '可爱童声', '磁性男声'].map(voice => (
+                <Text style={styles.cardTitle}>⏱️ 视频时长</Text>
+                <View style={styles.durationRow}>
+                  {[5, 10, 15].map(sec => (
                     <TouchableOpacity
-                      key={voice}
-                      style={[styles.voiceButton, digitalVoice === voice && styles.voiceButtonActive]}
-                      onPress={() => setDigitalVoice(voice)}
+                      key={sec}
+                      style={[styles.durationButton, duration === sec && styles.durationButtonActive]}
+                      onPress={() => setDuration(sec)}
                     >
-                      <Text style={[styles.voiceText, digitalVoice === voice && styles.voiceTextActive]}>{voice}</Text>
+                      <Text style={[styles.durationText, duration === sec && styles.durationTextActive]}>{sec}秒</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </Card>
-
-              <Card style={styles.inputCard}>
-                <Text style={styles.cardTitle}>📛 数字人名称（可选）</Text>
-                <TextInput
-                  style={styles.promptInput}
-                  value={digitalName}
-                  onChangeText={setDigitalName}
-                  placeholder="我的数字人"
-                  placeholderTextColor="#888"
-                />
-              </Card>
-            </>
-          )}
-          {activeTab === 'digital_custom' && (
-            <>
-              <Card style={styles.imageCard}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle}>🎥 上传训练视频</Text>
-                  {customVideo && (
-                    <TouchableOpacity onPress={() => setCustomVideo(null)} style={styles.deleteButton}>
-                      <Icon name="close-circle-outline" size={24} color="#ef4444" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <TouchableOpacity onPress={pickCustomVideo} style={styles.imagePicker}>
-                  {customVideo ? (
-                    <View style={styles.placeholder}>
-                      <Icon name="videocam-outline" size={48} color="#666" />
-                      <Text style={styles.placeholderText}>{customVideo.name}</Text>
-                      <View style={styles.imageOverlay}>
-                        <Text style={styles.overlayText}>点击更换</Text>
-                      </View>
-                    </View>
-                  ) : (
-                    <View style={styles.placeholder}>
-                      <Icon name="videocam-outline" size={48} color="#666" />
-                      <Text style={styles.placeholderText}>点击上传视频（MP4）</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              </Card>
-
-              <Card style={styles.inputCard}>
-                <Text style={styles.cardTitle}>📛 数字人名称</Text>
-                <TextInput
-                  style={styles.promptInput}
-                  value={customName}
-                  onChangeText={setCustomName}
-                  placeholder="例如：我的专属数字人"
-                  placeholderTextColor="#888"
-                />
-              </Card>
-
-              <Card style={styles.promptCard}>
-                <Text style={styles.cardTitle}>📝 描述（可选）</Text>
-                <TextInput
-                  style={styles.promptInput}
-                  value={customDesc}
-                  onChangeText={setCustomDesc}
-                  placeholder="描述这个数字人的特点"
-                  placeholderTextColor="#888"
-                  multiline
-                />
-              </Card>
-            </>
-          )}
-          {activeTab === 'multi' && (
-            <Card style={styles.imageCard}>
-              <Text style={styles.cardTitle}>🖼️ 上传多张照片（2-4张）</Text>
-              <View style={styles.multiImageRow}>
-                {multiImages.map((img, idx) => (
-                  <View key={idx} style={styles.multiImageItem}>
-                    <Image source={{ uri: img.uri }} style={styles.multiPreview} />
-                    <TouchableOpacity onPress={() => setMultiImages(multiImages.filter((_, i) => i !== idx))} style={styles.removeMultiImage}>
-                      <Icon name="close-circle" size={24} color="#ef4444" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-                {multiImages.length < 4 && (
-                  <TouchableOpacity onPress={pickMultiImage} style={styles.addImageButton}>
-                    <Icon name="add-circle-outline" size={48} color="#666" />
-                    <Text style={styles.addImageText}>添加照片</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </Card>
-          )}
-
-          {activeTab === 'size' && (
-            <Card style={styles.inputCard}>
-              <Text style={styles.cardTitle}>📏 身高</Text>
-              <View style={styles.heightRow}>
-                <TextInput
-                  style={styles.heightInput}
-                  value={height}
-                  onChangeText={setHeight}
-                  keyboardType="numeric"
-                  placeholder="170"
-                  placeholderTextColor="#888"
-                />
-                <Text style={styles.heightUnit}>cm</Text>
-              </View>
-            </Card>
-          )}
-
-          {(activeTab === 'image' || activeTab === 'video' || activeTab === 'tryon' || activeTab === 'multi') && (
-            <Card style={styles.promptCard}>
-              <Text style={styles.cardTitle}>
-                💬 描述{' '}
-                {activeTab === 'image' ? '图片' : activeTab === 'video' ? '视频' : activeTab === 'tryon' ? '试穿效果' : '合成效果'}
-              </Text>
-              <TextInput
-                style={styles.promptInput}
-                value={prompt}
-                onChangeText={setPrompt}
-                placeholder={
-                  activeTab === 'image' ? '例如：把衣服穿在模特身上，自然光线，4K高清...' :
-                  activeTab === 'video' ? '例如：衣服随风飘动，模特在T台上走秀...' :
-                  activeTab === 'tryon' ? '例如：自然贴合，光线柔和...' :
-                  '例如：统一角色，正面站立，自然光线...'
-                }
-                placeholderTextColor="#888"
-                multiline
-              />
-            </Card>
-          )}
-
-          {activeTab === 'video' && (
-            <Card style={styles.inputCard}>
-              <Text style={styles.cardTitle}>⏱️ 视频时长</Text>
-              <View style={styles.durationRow}>
-                {[5, 10, 15].map(sec => (
-                  <TouchableOpacity
-                    key={sec}
-                    style={[styles.durationButton, duration === sec && styles.durationButtonActive]}
-                    onPress={() => setDuration(sec)}
-                  >
-                    <Text style={[styles.durationText, duration === sec && styles.durationTextActive]}>{sec}秒</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </Card>
-          )}
-
-          <TouchableOpacity onPress={handleGenerate} disabled={loading} style={styles.generateButton}>
-            {loading ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text style={styles.generateText}>
-                {activeTab === 'size' ? '开始尺码推荐' :
-                 activeTab === 'image' ? '开始生成图片' :
-                 activeTab === 'video' ? '开始生成视频' :
-                 activeTab === 'tryon' ? '开始虚拟试穿' :
-                 activeTab === 'digital' ? '生成数字人视频' :
-                 activeTab === 'digital_custom' ? '开始定制数字人' :
-                 activeTab === 'multi' ? '开始多角度合成' : '开始'}
-              </Text>
             )}
-          </TouchableOpacity>
 
-          {renderResult()}
+            <TouchableOpacity onPress={handleGenerate} disabled={loading} style={styles.generateButton}>
+              {loading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.generateText}>
+                  {activeTab === 'size' ? '开始尺码推荐' :
+                   activeTab === 'image' ? '开始生成图片' :
+                   activeTab === 'video' ? '开始生成视频' :
+                   activeTab === 'tryon' ? '开始虚拟试穿' :
+                   activeTab === 'digital' ? '生成数字人视频' :
+                   activeTab === 'digital_custom' ? '开始定制数字人' :
+                   activeTab === 'multi' ? '开始多角度合成' : '开始'}
+                </Text>
+              )}
+            </TouchableOpacity>
 
-          {history.length > 0 && (
-            <Card style={styles.historyCard}>
-              <Text style={styles.cardTitle}>📜 历史记录</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {history.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    onPress={() => {
-                      if (item.type === '图片生成' || item.type === '多角度试穿') {
-                        setResult({ images: [{ url: item.url }] });
-                        setActiveTab(item.type === '图片生成' ? 'image' : 'multi');
-                      } else {
-                        setResult({ video_url: item.url });
-                        setActiveTab(item.type === '视频生成' ? 'video' : (item.type === '虚拟试穿' ? 'tryon' : 'digital'));
-                      }
-                    }}
-                    style={styles.historyItem}
-                  >
-                    <Image source={{ uri: item.url }} style={styles.historyImage} />
-                    <Text style={styles.historyText}>{item.type}</Text>
-                    <Text style={styles.historyTime}>{item.timestamp}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </Card>
-          )}
-          {activeTab === 'profile' && (
-            <View style={{ position: 'relative', flex: 1 }}>
-              {/* 顶部导航栏 */}
-              <View style={styles.profileHeaderBar}>
-                <View style={{ width: 40 }} />
-                <Text style={styles.headerTitle}>我的</Text>
-                <TouchableOpacity onPress={() => setShowSidebarMenu(!showSidebarMenu)} style={styles.menuButton}>
-                  <Icon name="menu-outline" size={24} color="#fff" />
-                </TouchableOpacity>
-              </View>
+            {renderResult()}
 
-              {/* 下拉菜单面板 */}
-              {showSidebarMenu && (
-                <>
-                  {/* 透明背景层，点击关闭菜单 */}
-                  <TouchableOpacity 
-                    style={styles.menuOverlay} 
-                    activeOpacity={1} 
-                    onPress={() => setShowSidebarMenu(false)}
-                  />
-                  <View style={styles.dropdownMenu}>
-                    {/* 用户信息 */}
-                    <View style={styles.dropdownUserInfo}>
-                      <Icon name="person-circle" size={50} color="#7c3aed" />
-                      <Text style={styles.dropdownUserName}>{isLoggedIn ? (loginPhone || '用户') : '未登录'}</Text>
-                      {isLoggedIn && <Text style={styles.dropdownUserPhone}>{loginPhone}</Text>}
-                    </View>
+            {history.length > 0 && (
+              <Card style={styles.historyCard}>
+                <Text style={styles.cardTitle}>📜 历史记录</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {history.map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      onPress={() => {
+                        if (item.type === '图片生成' || item.type === '多角度试穿') {
+                          setResult({ images: [{ url: item.url }] });
+                          setActiveTab(item.type === '图片生成' ? 'image' : 'multi');
+                        } else {
+                          setResult({ video_url: item.url });
+                          setActiveTab(item.type === '视频生成' ? 'video' : (item.type === '虚拟试穿' ? 'tryon' : 'digital'));
+                        }
+                      }}
+                      style={styles.historyItem}
+                    >
+                      <Image source={{ uri: item.url }} style={styles.historyImage} />
+                      <Text style={styles.historyText}>{item.type}</Text>
+                      <Text style={styles.historyTime}>{item.timestamp}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </Card>
+            )}
+          </ScrollView>
+        )}
 
-                  {/* 灵境点余额 */}
+        {/* 我的页面 - 单独放在外面 */}
+        {activeTab === 'profile' && (
+          <View style={{ flex: 1, position: 'relative' }}>
+            <View style={styles.profileHeaderBar}>
+              <View style={{ width: 40 }} />
+              <Text style={styles.headerTitle}>我的</Text>
+              <TouchableOpacity onPress={() => setShowSidebarMenu(!showSidebarMenu)} style={styles.menuButton}>
+                <Icon name="menu-outline" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            {showSidebarMenu && (
+              <>
+                <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setShowSidebarMenu(false)} />
+                <View style={styles.dropdownMenu}>
+                  <View style={styles.dropdownUserInfo}>
+                    <Icon name="person-circle" size={50} color="#7c3aed" />
+                    <Text style={styles.dropdownUserName}>{isLoggedIn ? (loginPhone || '用户') : '未登录'}</Text>
+                    {isLoggedIn && <Text style={styles.dropdownUserPhone}>{loginPhone}</Text>}
+                  </View>
                   <View style={styles.dropdownCredits}>
                     <Text style={styles.dropdownCreditsLabel}>灵境点余额</Text>
                     <Text style={styles.dropdownCreditsValue}>{userCredits}</Text>
@@ -987,15 +970,11 @@ const [membershipPackages, setMembershipPackages] = useState([
                       <Text style={styles.dropdownRechargeText}>充值</Text>
                     </TouchableOpacity>
                   </View>
-
-                  {/* 会员等级 */}
                   <View style={styles.dropdownMembership}>
                     <Text style={{ color: '#fff' }}>
                       当前会员：{membershipLevel === 'free' ? '免费版' : membershipLevel === 'gold' ? '黄金会员' : membershipLevel === 'platinum' ? '铂金会员' : '钻石会员'}
                     </Text>
                   </View>
-
-                  {/* 我的数字人 */}
                   <Text style={[styles.dropdownSectionTitle, { color: '#aaa' }]}>我的数字人</Text>
                   {digitalHumans.filter(d => !d.is_default).map(human => (
                     <View key={human.id} style={styles.dropdownHumanItem}>
@@ -1003,8 +982,6 @@ const [membershipPackages, setMembershipPackages] = useState([
                       <Text style={{ color: '#aaa' }}>{human.is_active ? '✅' : '⏳'}</Text>
                     </View>
                   ))}
-
-                  {/* 设置选项 */}
                   <TouchableOpacity onPress={() => showToast('账号安全开发中')}>
                     <Text style={{ color: '#fff' }}>账号安全</Text>
                   </TouchableOpacity>
@@ -1014,8 +991,6 @@ const [membershipPackages, setMembershipPackages] = useState([
                   <TouchableOpacity onPress={() => showToast('关于我们开发中')}>
                     <Text style={{ color: '#fff' }}>关于我们</Text>
                   </TouchableOpacity>
-                  
-                  {/* 退出登录 */}
                   {isLoggedIn && (
                     <TouchableOpacity onPress={handleLogout} style={{ marginTop: 12 }}>
                       <Text style={{ color: '#ef4444' }}>退出登录</Text>
@@ -1025,23 +1000,31 @@ const [membershipPackages, setMembershipPackages] = useState([
               </>
             )}
 
-            {/* 页面主要内容 */}
-            <View style={styles.profileContent}>
-              <Text style={styles.welcomeText}>欢迎使用灵境AI</Text>
-              <Text style={styles.welcomeSubText}>点击右上角菜单查看账户信息</Text>
-            </View>
+            {isLoggedIn ? (
+              <View style={styles.profileContent}>
+                <Text style={styles.welcomeText}>欢迎回来</Text>
+                <Text style={styles.welcomeSubText}>灵境点余额: {userCredits}</Text>
+                <TouchableOpacity style={styles.rechargeButton} onPress={() => setShowRechargeModal(true)}>
+                  <Text style={styles.rechargeButtonText}>充值</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.loginPrompt}>
+                <Icon name="person-circle-outline" size={80} color="#666" />
+                <Text style={styles.loginPromptText}>登录后享受更多功能</Text>
+                <TouchableOpacity style={styles.loginButton} onPress={() => setShowLoginModal(true)}>
+                  <Text style={styles.loginButtonText}>立即登录</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
-        </ScrollView>
-
 
         {/* 登录弹窗 */}
         <Modal visible={showLoginModal} transparent={true} animationType="slide">
           <View style={styles.modalContainer}>
             <Card style={styles.loginCard}>
               <Text style={styles.cardTitle}>登录</Text>
-      
-              {/* 切换登录方式 */}
               <View style={styles.loginModeRow}>
                 <TouchableOpacity
                   style={[styles.loginModeButton, loginMode === 'password' && styles.loginModeActive]}
@@ -1056,8 +1039,6 @@ const [membershipPackages, setMembershipPackages] = useState([
                   <Text style={[styles.loginModeText, loginMode === 'code' && styles.loginModeTextActive]}>验证码登录</Text>
                 </TouchableOpacity>
               </View>
-      
-              {/* 手机号输入 */}
               <TextInput
                 style={styles.loginInput}
                 placeholder="手机号"
@@ -1066,8 +1047,6 @@ const [membershipPackages, setMembershipPackages] = useState([
                 onChangeText={setLoginPhone}
                 keyboardType="phone-pad"
               />
-      
-              {/* 密码输入（密码登录模式） */}
               {loginMode === 'password' && (
                 <TextInput
                   style={styles.loginInput}
@@ -1078,8 +1057,6 @@ const [membershipPackages, setMembershipPackages] = useState([
                   onChangeText={setLoginPassword}
                 />
               )}
-      
-              {/* 验证码输入（验证码登录模式） */}
               {loginMode === 'code' && (
                 <View style={styles.codeRow}>
                   <TextInput
@@ -1095,7 +1072,6 @@ const [membershipPackages, setMembershipPackages] = useState([
                   </TouchableOpacity>
                 </View>
               )}
-      
               <View style={styles.loginButtonRow}>
                 <TouchableOpacity onPress={() => setShowLoginModal(false)} style={styles.loginCancelButton}>
                   <Text style={styles.loginButtonText}>取消</Text>
@@ -1107,6 +1083,7 @@ const [membershipPackages, setMembershipPackages] = useState([
             </Card>
           </View>
         </Modal>
+
         {/* 充值弹窗 */}
         <Modal visible={showRechargeModal} transparent={true} animationType="slide">
           <View style={styles.modalContainer}>
@@ -1131,7 +1108,6 @@ const [membershipPackages, setMembershipPackages] = useState([
                     </View>
                   </TouchableOpacity>
                 ))}
-
                 <Text style={styles.sectionTitle}>会员套餐</Text>
                 {membershipPackages.map(pkg => (
                   <TouchableOpacity key={pkg.id} style={styles.membershipItem} onPress={() => handleMembership(pkg)}>
@@ -1252,7 +1228,6 @@ const styles = StyleSheet.create({
   loginPrompt: { alignItems: 'center', paddingVertical: 40 },
   loginPromptText: { color: '#aaa', fontSize: 16, marginTop: 16, marginBottom: 24 },
   loginButton: { backgroundColor: '#7c3aed', borderRadius: 30, paddingVertical: 12, paddingHorizontal: 40 },
-  // 顶部导航栏样式（新增）
   profileHeaderBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1260,7 +1235,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: '#0a0a0a',
-    position: 'relative',  // 添加这一行
+    position: 'relative',
   },
   menuButton: { padding: 8 },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
@@ -1292,30 +1267,30 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   dropdownMenu: {
-  position: 'absolute',
-  top: 50,
-  right: 16,
-  width: 280,
-  backgroundColor: '#1e1e2e',
-  borderRadius: 16,
-  padding: 16,
-  zIndex: 1000,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.3,
-  shadowRadius: 8,
-  elevation: 5,
-},
-dropdownUserInfo: { alignItems: 'center', marginBottom: 16 },
-dropdownUserName: { fontSize: 16, fontWeight: 'bold', color: '#fff', marginTop: 8 },
-dropdownUserPhone: { color: '#aaa', fontSize: 12, marginTop: 4 },
-dropdownCredits: { backgroundColor: '#7c3aed', borderRadius: 12, padding: 12, marginBottom: 16 },
-dropdownCreditsLabel: { color: '#ddd', fontSize: 12 },
-dropdownCreditsValue: { color: '#fff', fontSize: 24, fontWeight: 'bold' },
-dropdownRechargeText: { color: '#fff', fontSize: 12, marginTop: 8 },
-dropdownMembership: { backgroundColor: '#2d2d44', borderRadius: 8, padding: 8, marginBottom: 16 },
-dropdownSectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#aaa', marginBottom: 8 },
-dropdownHumanItem: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
+    position: 'absolute',
+    top: 50,
+    right: 16,
+    width: 280,
+    backgroundColor: '#1e1e2e',
+    borderRadius: 16,
+    padding: 16,
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  dropdownUserInfo: { alignItems: 'center', marginBottom: 16 },
+  dropdownUserName: { fontSize: 16, fontWeight: 'bold', color: '#fff', marginTop: 8 },
+  dropdownUserPhone: { color: '#aaa', fontSize: 12, marginTop: 4 },
+  dropdownCredits: { backgroundColor: '#7c3aed', borderRadius: 12, padding: 12, marginBottom: 16 },
+  dropdownCreditsLabel: { color: '#ddd', fontSize: 12 },
+  dropdownCreditsValue: { color: '#fff', fontSize: 24, fontWeight: 'bold' },
+  dropdownRechargeText: { color: '#fff', fontSize: 12, marginTop: 8 },
+  dropdownMembership: { backgroundColor: '#2d2d44', borderRadius: 8, padding: 8, marginBottom: 16 },
+  dropdownSectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#aaa', marginBottom: 8 },
+  dropdownHumanItem: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
   rechargeCard: { width: '90%', maxHeight: '80%', padding: 20 },
   rechargeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   rechargeTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
