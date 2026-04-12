@@ -61,7 +61,18 @@ export default function App() {
   const [loginMode, setLoginMode] = useState('password'); // 'password' 或 'code'
   const [loginCode, setLoginCode] = useState('');
   const [digitalHumans, setDigitalHumans] = useState([]);
-  const [showSidebar, setShowSidebar] = useState(false);
+  const [showSidebarMenu, setShowSidebarMenu] = useState(false);
+  const [rechargePackages, setRechargePackages] = useState([
+  { id: 1, name: '小试牛刀', credits: 100, price: 9.9, discount: 0 },
+  { id: 2, name: '进阶创作', credits: 350, price: 29.9, discount: 20, bonus: 20 },
+  { id: 3, name: '专业玩家', credits: 900, price: 69.9, discount: 100, bonus: 100 },
+  { id: 4, name: '商业大师', credits: 2000, price: 149.9, discount: 300, bonus: 300 },
+]);
+const [membershipPackages, setMembershipPackages] = useState([
+  { id: 1, name: '黄金会员', price: 29, monthlyCredits: 600, originalPrice: 58, features: ['无水印', '优先队列', '基础模式'] },
+  { id: 2, name: '铂金会员', price: 69, monthlyCredits: 1800, originalPrice: 138, features: ['高清模式', '优先队列', '首尾帧控制'] },
+  { id: 3, name: '钻石会员', price: 129, monthlyCredits: 4500, originalPrice: 258, features: ['专业模式', '最高优先级', '视频延长', '商业授权'] },
+]);
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -131,6 +142,15 @@ export default function App() {
     localStorage.removeItem('access_token');
     setIsLoggedIn(false);
     showToast('已退出登录');
+  };
+  const handleRecharge = async (pkg) => {
+    // TODO: 接入支付宝/微信支付
+    showToast(`充值 ${pkg.credits} 灵境点，功能开发中`);
+  };
+
+  const handleMembership = async (pkg) => {
+    // TODO: 接入支付宝/微信支付
+    showToast(`开通 ${pkg.name}，功能开发中`);
   };
   // 获取我的数字人列表
   const fetchDigitalHumans = async () => {
@@ -833,16 +853,65 @@ export default function App() {
             <>
               {/* 顶部导航栏 */}
               <View style={styles.profileHeaderBar}>
-                <TouchableOpacity onPress={() => {}} style={styles.backButton}>
-                  <Icon name="arrow-back" size={24} color="#fff" />
-                </TouchableOpacity>
+                <View style={{ width: 40 }} />
                 <Text style={styles.headerTitle}>我的</Text>
-                <TouchableOpacity onPress={() => setShowSidebar(true)} style={styles.menuButton}>
+                <TouchableOpacity onPress={() => setShowSidebarMenu(!showSidebarMenu)} style={styles.menuButton}>
                   <Icon name="menu-outline" size={24} color="#fff" />
                 </TouchableOpacity>
               </View>
 
-              {/* 页面主要内容（可以放欢迎语或其他内容） */}
+              {/* 下拉菜单面板（在页面内部） */}
+              {showSidebarMenu && (
+                <View style={styles.dropdownMenu}>
+                  {/* 用户信息 */}
+                  <View style={styles.dropdownUserInfo}>
+                    <Icon name="person-circle" size={50} color="#7c3aed" />
+                    <Text style={styles.dropdownUserName}>{isLoggedIn ? (loginPhone || '用户') : '未登录'}</Text>
+                    {isLoggedIn && <Text style={styles.dropdownUserPhone}>{loginPhone}</Text>}
+                  </View>
+
+                  {/* 灵境点余额 */}
+                  <View style={styles.dropdownCredits}>
+                    <Text style={styles.dropdownCreditsLabel}>灵境点余额</Text>
+                    <Text style={styles.dropdownCreditsValue}>{userCredits}</Text>
+                    <TouchableOpacity onPress={() => setShowRechargeModal(true)}>
+                      <Text style={styles.dropdownRechargeText}>充值</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* 会员等级 */}
+                  <View style={styles.dropdownMembership}>
+                    <Text>当前会员：{membershipLevel === 'free' ? '免费版' : membershipLevel === 'gold' ? '黄金会员' : membershipLevel === 'platinum' ? '铂金会员' : '钻石会员'}</Text>
+                  </View>
+
+                  {/* 我的数字人 */}
+                  <Text style={styles.dropdownSectionTitle}>我的数字人</Text>
+                  {digitalHumans.filter(d => !d.is_default).map(human => (
+                    <View key={human.id} style={styles.dropdownHumanItem}>
+                      <Text>{human.name}</Text>
+                      <Text>{human.is_active ? '✅' : '⏳'}</Text>
+                    </View>
+                  ))}
+
+                  {/* 设置选项 */}
+                  <TouchableOpacity onPress={() => showToast('账号安全开发中')}>
+                    <Text>账号安全</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => showToast('消费记录开发中')}>
+                    <Text>消费记录</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => showToast('关于我们开发中')}>
+                    <Text>关于我们</Text>
+                  </TouchableOpacity>
+                  {isLoggedIn && (
+                    <TouchableOpacity onPress={handleLogout}>
+                      <Text style={{ color: '#ef4444' }}>退出登录</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {/* 页面主要内容 */}
               <View style={styles.profileContent}>
                 <Text style={styles.welcomeText}>欢迎使用灵境AI</Text>
                 <Text style={styles.welcomeSubText}>点击右上角菜单查看账户信息</Text>
@@ -1024,87 +1093,48 @@ export default function App() {
             </Card>
           </View>
         </Modal>
-        {/* 侧边栏菜单 */}
-        <Modal visible={showSidebar} transparent={true} animationType="slide" presentationStyle="overFullScreen">
-          <TouchableOpacity 
-            style={styles.sidebarOverlay} 
-            activeOpacity={1} 
-            onPress={() => setShowSidebar(false)}
-          >
-            <View style={styles.sidebarContainer}>
-              {/* 用户信息 */}
-              <View style={styles.sidebarUserInfo}>
-                <Icon name="person-circle" size={60} color="#7c3aed" />
-                <Text style={styles.sidebarUserName}>{loginPhone || '未登录'}</Text>
-                {isLoggedIn && (
-                  <Text style={styles.sidebarUserPhone}>{loginPhone}</Text>
-                )}
-              </View>
-
-              {/* 灵境点余额 */}
-              <View style={styles.sidebarCredits}>
-                <Text style={styles.sidebarCreditsLabel}>灵境点余额</Text>
-                <Text style={styles.sidebarCreditsValue}>{userCredits}</Text>
-                <TouchableOpacity style={styles.sidebarRechargeBtn} onPress={() => {
-                  setShowSidebar(false);
-                  setShowRechargeModal(true);
-                }}>
-                  <Text style={styles.sidebarRechargeText}>充值</Text>
+        {/* 充值弹窗 */}
+        <Modal visible={showRechargeModal} transparent={true} animationType="slide">
+          <View style={styles.modalContainer}>
+            <Card style={styles.rechargeCard}>
+              <View style={styles.rechargeHeader}>
+                <Text style={styles.rechargeTitle}>选择充值套餐</Text>
+                <TouchableOpacity onPress={() => setShowRechargeModal(false)}>
+                  <Icon name="close-outline" size={24} color="#fff" />
                 </TouchableOpacity>
               </View>
-
-              {/* 我的数字人列表 */}
-              <View style={styles.sidebarSection}>
-                <Text style={styles.sidebarSectionTitle}>我的数字人</Text>
-                {digitalHumans.filter(d => !d.is_default).map(human => (
-                  <View key={human.id} style={styles.sidebarHumanItem}>
-                    <Icon name="person-circle" size={20} color="#7c3aed" />
-                    <Text style={styles.sidebarHumanName}>{human.name}</Text>
-                    <Text style={styles.sidebarHumanStatus}>
-                      {human.is_active ? '✅' : '⏳'}
-                    </Text>
-                  </View>
-                ))}
-                {digitalHumans.filter(d => !d.is_default).length === 0 && (
-                  <Text style={styles.sidebarEmptyText}>暂无定制数字人</Text>
-                )}
-              </View>
-
-              {/* 设置选项 */}
-              <View style={styles.sidebarSection}>
-                <TouchableOpacity style={styles.sidebarMenuItem} onPress={() => {
-                  setShowSidebar(false);
-                  showToast('账号安全开发中');
-                }}>
-                  <Icon name="shield-outline" size={20} color="#fff" />
-                  <Text style={styles.sidebarMenuText}>账号安全</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.sidebarMenuItem} onPress={() => {
-                  setShowSidebar(false);
-                  showToast('消费记录开发中');
-                }}>
-                  <Icon name="receipt-outline" size={20} color="#fff" />
-                  <Text style={styles.sidebarMenuText}>消费记录</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.sidebarMenuItem} onPress={() => {
-                  setShowSidebar(false);
-                  showToast('关于我们开发中');
-                }}>
-                  <Icon name="information-circle-outline" size={20} color="#fff" />
-                  <Text style={styles.sidebarMenuText}>关于我们</Text>
-                </TouchableOpacity>
-                {isLoggedIn && (
-                  <TouchableOpacity style={[styles.sidebarMenuItem, styles.sidebarLogout]} onPress={() => {
-                    setShowSidebar(false);
-                    handleLogout();
-                  }}>
-                    <Icon name="log-out-outline" size={20} color="#ef4444" />
-                    <Text style={[styles.sidebarMenuText, { color: '#ef4444' }]}>退出登录</Text>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={styles.sectionTitle}>灵境点充值</Text>
+                {rechargePackages.map(pkg => (
+                  <TouchableOpacity key={pkg.id} style={styles.rechargeItem} onPress={() => handleRecharge(pkg)}>
+                    <View style={styles.rechargeItemLeft}>
+                      <Text style={styles.rechargeItemName}>{pkg.name}</Text>
+                      <Text style={styles.rechargeItemCredits}>{pkg.credits} 灵境点</Text>
+                      {pkg.bonus && <Text style={styles.rechargeItemBonus}>赠送 {pkg.bonus} 点</Text>}
+                    </View>
+                    <View style={styles.rechargeItemRight}>
+                      <Text style={styles.rechargeItemPrice}>¥{pkg.price}</Text>
+                    </View>
                   </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          </TouchableOpacity>
+                ))}
+
+                <Text style={styles.sectionTitle}>会员套餐</Text>
+                {membershipPackages.map(pkg => (
+                  <TouchableOpacity key={pkg.id} style={styles.membershipItem} onPress={() => handleMembership(pkg)}>
+                    <View style={styles.membershipItemLeft}>
+                      <Text style={styles.membershipItemName}>{pkg.name}</Text>
+                      <Text style={styles.membershipItemPrice}>¥{pkg.price}/月</Text>
+                      <Text style={styles.membershipItemCredits}>送 {pkg.monthlyCredits} 灵境点/月</Text>
+                    </View>
+                    <View style={styles.membershipItemRight}>
+                      <Text style={styles.membershipItemDiscount}>原价 ¥{pkg.originalPrice}</Text>
+                      <View style={styles.membershipItemTag}>推荐</View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </Card>
+          </View>
         </Modal>
 
         {toastVisible && (
@@ -1223,32 +1253,47 @@ const styles = StyleSheet.create({
   humanName: { color: '#fff', fontSize: 16 },
   humanStatus: { color: '#aaa', fontSize: 12, marginTop: 2 },
   emptyText: { color: '#666', fontSize: 14, textAlign: 'center', paddingVertical: 20 },
-  profileHeaderBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-  backButton: { padding: 8, opacity: 0 }, // 隐藏返回按钮
-  menuButton: { padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
-  profileContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  welcomeText: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
-  welcomeSubText: { fontSize: 14, color: '#aaa' },
-
-  // 侧边栏样式
-  sidebarOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  sidebarContainer: { width: '70%', backgroundColor: '#1a1a2e', height: '100%', padding: 20, borderTopLeftRadius: 20, borderBottomLeftRadius: 20 },
-  sidebarUserInfo: { alignItems: 'center', marginBottom: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#2d2d44' },
-  sidebarUserName: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginTop: 8 },
-  sidebarUserPhone: { color: '#aaa', fontSize: 14, marginTop: 4 },
-  sidebarCredits: { backgroundColor: '#7c3aed', borderRadius: 12, padding: 16, marginBottom: 20 },
-  sidebarCreditsLabel: { color: '#ddd', fontSize: 12 },
-  sidebarCreditsValue: { color: '#fff', fontSize: 28, fontWeight: 'bold', marginVertical: 4 },
-  sidebarRechargeBtn: { backgroundColor: '#fff', borderRadius: 16, paddingVertical: 6, alignItems: 'center', marginTop: 8 },
-  sidebarRechargeText: { color: '#7c3aed', fontSize: 12, fontWeight: 'bold' },
-  sidebarSection: { marginBottom: 20 },
-  sidebarSectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#aaa', marginBottom: 12 },
-  sidebarHumanItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, gap: 8 },
-  sidebarHumanName: { flex: 1, color: '#fff', fontSize: 14 },
-  sidebarHumanStatus: { color: '#aaa', fontSize: 12 },
-  sidebarEmptyText: { color: '#666', fontSize: 12, textAlign: 'center', paddingVertical: 10 },
-  sidebarMenuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 12 },
-  sidebarMenuText: { color: '#fff', fontSize: 14 },
-  sidebarLogout: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#2d2d44' },
+  dropdownMenu: {
+  position: 'absolute',
+  top: 60,
+  right: 16,
+  width: 280,
+  backgroundColor: '#1e1e2e',
+  borderRadius: 16,
+  padding: 16,
+  zIndex: 1000,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.3,
+  shadowRadius: 8,
+  elevation: 5,
+},
+dropdownUserInfo: { alignItems: 'center', marginBottom: 16 },
+dropdownUserName: { fontSize: 16, fontWeight: 'bold', color: '#fff', marginTop: 8 },
+dropdownUserPhone: { color: '#aaa', fontSize: 12, marginTop: 4 },
+dropdownCredits: { backgroundColor: '#7c3aed', borderRadius: 12, padding: 12, marginBottom: 16 },
+dropdownCreditsLabel: { color: '#ddd', fontSize: 12 },
+dropdownCreditsValue: { color: '#fff', fontSize: 24, fontWeight: 'bold' },
+dropdownRechargeText: { color: '#fff', fontSize: 12, marginTop: 8 },
+dropdownMembership: { backgroundColor: '#2d2d44', borderRadius: 8, padding: 8, marginBottom: 16 },
+dropdownSectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#aaa', marginBottom: 8 },
+dropdownHumanItem: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
+  rechargeCard: { width: '90%', maxHeight: '80%', padding: 20 },
+  rechargeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  rechargeTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
+  rechargeItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#2d2d44' },
+  rechargeItemLeft: { flex: 1 },
+  rechargeItemName: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
+  rechargeItemCredits: { fontSize: 14, color: '#7c3aed', marginTop: 4 },
+  rechargeItemBonus: { fontSize: 12, color: '#10b981', marginTop: 2 },
+  rechargeItemRight: { alignItems: 'flex-end' },
+  rechargeItemPrice: { fontSize: 18, fontWeight: 'bold', color: '#7c3aed' },
+  membershipItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#2d2d44' },
+  membershipItemLeft: { flex: 1 },
+  membershipItemName: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
+  membershipItemPrice: { fontSize: 14, color: '#f59e0b', marginTop: 4 },
+  membershipItemCredits: { fontSize: 12, color: '#aaa', marginTop: 2 },
+  membershipItemRight: { alignItems: 'flex-end' },
+  membershipItemDiscount: { fontSize: 12, color: '#888', textDecorationLine: 'line-through' },
+  membershipItemTag: { backgroundColor: '#f59e0b', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 2, marginTop: 4 },
 });
