@@ -851,7 +851,7 @@ const [membershipPackages, setMembershipPackages] = useState([
             </Card>
           )}
           {activeTab === 'profile' && (
-            <>
+            <View style={{ position: 'relative', flex: 1 }}>
               {/* 顶部导航栏 */}
               <View style={styles.profileHeaderBar}>
                 <View style={{ width: 40 }} />
@@ -921,15 +921,16 @@ const [membershipPackages, setMembershipPackages] = useState([
                     </TouchableOpacity>
                   )}
                 </View>
-              )}
+              </>
+            )}
 
-              {/* 页面主要内容 */}
-              <View style={styles.profileContent}>
-                <Text style={styles.welcomeText}>欢迎使用灵境AI</Text>
-                <Text style={styles.welcomeSubText}>点击右上角菜单查看账户信息</Text>
-              </View>
-            </>
-          )}
+            {/* 页面主要内容 */}
+            <View style={styles.profileContent}>
+              <Text style={styles.welcomeText}>欢迎使用灵境AI</Text>
+              <Text style={styles.welcomeSubText}>点击右上角菜单查看账户信息</Text>
+            </View>
+          </View>
+        )}
 
           {activeTab === 'size' && (
             <Card style={styles.inputCard}>
