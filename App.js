@@ -861,15 +861,22 @@ const [membershipPackages, setMembershipPackages] = useState([
                 </TouchableOpacity>
               </View>
 
-              {/* 下拉菜单面板（在页面内部） */}
+              {/* 下拉菜单面板 */}
               {showSidebarMenu && (
-                <View style={styles.dropdownMenu}>
-                  {/* 用户信息 */}
-                  <View style={styles.dropdownUserInfo}>
-                    <Icon name="person-circle" size={50} color="#7c3aed" />
-                    <Text style={styles.dropdownUserName}>{isLoggedIn ? (loginPhone || '用户') : '未登录'}</Text>
-                    {isLoggedIn && <Text style={styles.dropdownUserPhone}>{loginPhone}</Text>}
-                  </View>
+                <>
+                  {/* 透明背景层，点击关闭菜单 */}
+                  <TouchableOpacity 
+                    style={styles.menuOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setShowSidebarMenu(false)}
+                  />
+                  <View style={styles.dropdownMenu}>
+                    {/* 用户信息 */}
+                    <View style={styles.dropdownUserInfo}>
+                      <Icon name="person-circle" size={50} color="#7c3aed" />
+                      <Text style={styles.dropdownUserName}>{isLoggedIn ? (loginPhone || '用户') : '未登录'}</Text>
+                      {isLoggedIn && <Text style={styles.dropdownUserPhone}>{loginPhone}</Text>}
+                    </View>
 
                   {/* 灵境点余额 */}
                   <View style={styles.dropdownCredits}>
@@ -1272,6 +1279,15 @@ const styles = StyleSheet.create({
   humanName: { color: '#fff', fontSize: 16 },
   humanStatus: { color: '#aaa', fontSize: 12, marginTop: 2 },
   emptyText: { color: '#666', fontSize: 14, textAlign: 'center', paddingVertical: 20 },
+  menuOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    zIndex: 999,
+  },
   dropdownMenu: {
   position: 'absolute',
   top: 60,
