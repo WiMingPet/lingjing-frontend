@@ -61,6 +61,7 @@ export default function App() {
   const [loginMode, setLoginMode] = useState('password'); // 'password' 或 'code'
   const [loginCode, setLoginCode] = useState('');
   const [digitalHumans, setDigitalHumans] = useState([]);
+  const [membershipLevel, setMembershipLevel] = useState('free');
   const [showSidebarMenu, setShowSidebarMenu] = useState(false);
   const [rechargePackages, setRechargePackages] = useState([
   { id: 1, name: '小试牛刀', credits: 100, price: 9.9, discount: 0 },
