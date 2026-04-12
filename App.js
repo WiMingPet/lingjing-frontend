@@ -882,30 +882,34 @@ const [membershipPackages, setMembershipPackages] = useState([
 
                   {/* 会员等级 */}
                   <View style={styles.dropdownMembership}>
-                    <Text>当前会员：{membershipLevel === 'free' ? '免费版' : membershipLevel === 'gold' ? '黄金会员' : membershipLevel === 'platinum' ? '铂金会员' : '钻石会员'}</Text>
+                    <Text style={{ color: '#fff' }}>
+                      当前会员：{membershipLevel === 'free' ? '免费版' : membershipLevel === 'gold' ? '黄金会员' : membershipLevel === 'platinum' ? '铂金会员' : '钻石会员'}
+                    </Text>
                   </View>
 
                   {/* 我的数字人 */}
-                  <Text style={styles.dropdownSectionTitle}>我的数字人</Text>
+                  <Text style={[styles.dropdownSectionTitle, { color: '#aaa' }]}>我的数字人</Text>
                   {digitalHumans.filter(d => !d.is_default).map(human => (
                     <View key={human.id} style={styles.dropdownHumanItem}>
-                      <Text>{human.name}</Text>
-                      <Text>{human.is_active ? '✅' : '⏳'}</Text>
+                      <Text style={{ color: '#fff' }}>{human.name}</Text>
+                      <Text style={{ color: '#aaa' }}>{human.is_active ? '✅' : '⏳'}</Text>
                     </View>
                   ))}
 
                   {/* 设置选项 */}
                   <TouchableOpacity onPress={() => showToast('账号安全开发中')}>
-                    <Text>账号安全</Text>
+                    <Text style={{ color: '#fff' }}>账号安全</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => showToast('消费记录开发中')}>
-                    <Text>消费记录</Text>
+                    <Text style={{ color: '#fff' }}>消费记录</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => showToast('关于我们开发中')}>
-                    <Text>关于我们</Text>
+                    <Text style={{ color: '#fff' }}>关于我们</Text>
                   </TouchableOpacity>
+                  
+                  {/* 退出登录 */}
                   {isLoggedIn && (
-                    <TouchableOpacity onPress={handleLogout}>
+                    <TouchableOpacity onPress={handleLogout} style={{ marginTop: 12 }}>
                       <Text style={{ color: '#ef4444' }}>退出登录</Text>
                     </TouchableOpacity>
                   )}
@@ -1239,6 +1243,20 @@ const styles = StyleSheet.create({
   loginPrompt: { alignItems: 'center', paddingVertical: 40 },
   loginPromptText: { color: '#aaa', fontSize: 16, marginTop: 16, marginBottom: 24 },
   loginButton: { backgroundColor: '#7c3aed', borderRadius: 30, paddingVertical: 12, paddingHorizontal: 40 },
+  // 顶部导航栏样式（新增）
+  profileHeaderBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#0a0a0a',
+  },
+  menuButton: { padding: 8 },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
+  profileContent: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  welcomeText: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
+  welcomeSubText: { fontSize: 14, color: '#aaa' },
   loginModeRow: { flexDirection: 'row', marginBottom: 16, borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#3b3b5c' },
   loginModeButton: { flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: '#2d2d44' },
   loginModeActive: { backgroundColor: '#7c3aed' },
