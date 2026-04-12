@@ -850,87 +850,6 @@ const [membershipPackages, setMembershipPackages] = useState([
               </View>
             </Card>
           )}
-          {activeTab === 'profile' && (
-            <View style={{ position: 'relative', flex: 1 }}>
-              {/* 顶部导航栏 */}
-              <View style={styles.profileHeaderBar}>
-                <View style={{ width: 40 }} />
-                <Text style={styles.headerTitle}>我的</Text>
-                <TouchableOpacity onPress={() => setShowSidebarMenu(!showSidebarMenu)} style={styles.menuButton}>
-                  <Icon name="menu-outline" size={24} color="#fff" />
-                </TouchableOpacity>
-              </View>
-
-              {/* 下拉菜单面板 */}
-              {showSidebarMenu && (
-                <>
-                  {/* 透明背景层，点击关闭菜单 */}
-                  <TouchableOpacity 
-                    style={styles.menuOverlay} 
-                    activeOpacity={1} 
-                    onPress={() => setShowSidebarMenu(false)}
-                  />
-                  <View style={styles.dropdownMenu}>
-                    {/* 用户信息 */}
-                    <View style={styles.dropdownUserInfo}>
-                      <Icon name="person-circle" size={50} color="#7c3aed" />
-                      <Text style={styles.dropdownUserName}>{isLoggedIn ? (loginPhone || '用户') : '未登录'}</Text>
-                      {isLoggedIn && <Text style={styles.dropdownUserPhone}>{loginPhone}</Text>}
-                    </View>
-
-                  {/* 灵境点余额 */}
-                  <View style={styles.dropdownCredits}>
-                    <Text style={styles.dropdownCreditsLabel}>灵境点余额</Text>
-                    <Text style={styles.dropdownCreditsValue}>{userCredits}</Text>
-                    <TouchableOpacity onPress={() => setShowRechargeModal(true)}>
-                      <Text style={styles.dropdownRechargeText}>充值</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* 会员等级 */}
-                  <View style={styles.dropdownMembership}>
-                    <Text style={{ color: '#fff' }}>
-                      当前会员：{membershipLevel === 'free' ? '免费版' : membershipLevel === 'gold' ? '黄金会员' : membershipLevel === 'platinum' ? '铂金会员' : '钻石会员'}
-                    </Text>
-                  </View>
-
-                  {/* 我的数字人 */}
-                  <Text style={[styles.dropdownSectionTitle, { color: '#aaa' }]}>我的数字人</Text>
-                  {digitalHumans.filter(d => !d.is_default).map(human => (
-                    <View key={human.id} style={styles.dropdownHumanItem}>
-                      <Text style={{ color: '#fff' }}>{human.name}</Text>
-                      <Text style={{ color: '#aaa' }}>{human.is_active ? '✅' : '⏳'}</Text>
-                    </View>
-                  ))}
-
-                  {/* 设置选项 */}
-                  <TouchableOpacity onPress={() => showToast('账号安全开发中')}>
-                    <Text style={{ color: '#fff' }}>账号安全</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => showToast('消费记录开发中')}>
-                    <Text style={{ color: '#fff' }}>消费记录</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => showToast('关于我们开发中')}>
-                    <Text style={{ color: '#fff' }}>关于我们</Text>
-                  </TouchableOpacity>
-                  
-                  {/* 退出登录 */}
-                  {isLoggedIn && (
-                    <TouchableOpacity onPress={handleLogout} style={{ marginTop: 12 }}>
-                      <Text style={{ color: '#ef4444' }}>退出登录</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </>
-            )}
-
-            {/* 页面主要内容 */}
-            <View style={styles.profileContent}>
-              <Text style={styles.welcomeText}>欢迎使用灵境AI</Text>
-              <Text style={styles.welcomeSubText}>点击右上角菜单查看账户信息</Text>
-            </View>
-          </View>
-        )}
 
           {activeTab === 'size' && (
             <Card style={styles.inputCard}>
@@ -1033,6 +952,87 @@ const [membershipPackages, setMembershipPackages] = useState([
             </Card>
           )}
         </ScrollView>
+          {activeTab === 'profile' && (
+            <View style={{ position: 'relative', flex: 1 }}>
+              {/* 顶部导航栏 */}
+              <View style={styles.profileHeaderBar}>
+                <View style={{ width: 40 }} />
+                <Text style={styles.headerTitle}>我的</Text>
+                <TouchableOpacity onPress={() => setShowSidebarMenu(!showSidebarMenu)} style={styles.menuButton}>
+                  <Icon name="menu-outline" size={24} color="#fff" />
+                </TouchableOpacity>
+              </View>
+
+              {/* 下拉菜单面板 */}
+              {showSidebarMenu && (
+                <>
+                  {/* 透明背景层，点击关闭菜单 */}
+                  <TouchableOpacity 
+                    style={styles.menuOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setShowSidebarMenu(false)}
+                  />
+                  <View style={styles.dropdownMenu}>
+                    {/* 用户信息 */}
+                    <View style={styles.dropdownUserInfo}>
+                      <Icon name="person-circle" size={50} color="#7c3aed" />
+                      <Text style={styles.dropdownUserName}>{isLoggedIn ? (loginPhone || '用户') : '未登录'}</Text>
+                      {isLoggedIn && <Text style={styles.dropdownUserPhone}>{loginPhone}</Text>}
+                    </View>
+
+                  {/* 灵境点余额 */}
+                  <View style={styles.dropdownCredits}>
+                    <Text style={styles.dropdownCreditsLabel}>灵境点余额</Text>
+                    <Text style={styles.dropdownCreditsValue}>{userCredits}</Text>
+                    <TouchableOpacity onPress={() => setShowRechargeModal(true)}>
+                      <Text style={styles.dropdownRechargeText}>充值</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* 会员等级 */}
+                  <View style={styles.dropdownMembership}>
+                    <Text style={{ color: '#fff' }}>
+                      当前会员：{membershipLevel === 'free' ? '免费版' : membershipLevel === 'gold' ? '黄金会员' : membershipLevel === 'platinum' ? '铂金会员' : '钻石会员'}
+                    </Text>
+                  </View>
+
+                  {/* 我的数字人 */}
+                  <Text style={[styles.dropdownSectionTitle, { color: '#aaa' }]}>我的数字人</Text>
+                  {digitalHumans.filter(d => !d.is_default).map(human => (
+                    <View key={human.id} style={styles.dropdownHumanItem}>
+                      <Text style={{ color: '#fff' }}>{human.name}</Text>
+                      <Text style={{ color: '#aaa' }}>{human.is_active ? '✅' : '⏳'}</Text>
+                    </View>
+                  ))}
+
+                  {/* 设置选项 */}
+                  <TouchableOpacity onPress={() => showToast('账号安全开发中')}>
+                    <Text style={{ color: '#fff' }}>账号安全</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => showToast('消费记录开发中')}>
+                    <Text style={{ color: '#fff' }}>消费记录</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => showToast('关于我们开发中')}>
+                    <Text style={{ color: '#fff' }}>关于我们</Text>
+                  </TouchableOpacity>
+                  
+                  {/* 退出登录 */}
+                  {isLoggedIn && (
+                    <TouchableOpacity onPress={handleLogout} style={{ marginTop: 12 }}>
+                      <Text style={{ color: '#ef4444' }}>退出登录</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </>
+            )}
+
+            {/* 页面主要内容 */}
+            <View style={styles.profileContent}>
+              <Text style={styles.welcomeText}>欢迎使用灵境AI</Text>
+              <Text style={styles.welcomeSubText}>点击右上角菜单查看账户信息</Text>
+            </View>
+          </View>
+        )}
 
         {/* 登录弹窗 */}
         <Modal visible={showLoginModal} transparent={true} animationType="slide">
@@ -1291,7 +1291,7 @@ const styles = StyleSheet.create({
   },
   dropdownMenu: {
   position: 'absolute',
-  top: 60,
+  top: 120,
   right: 16,
   width: 280,
   backgroundColor: '#1e1e2e',
