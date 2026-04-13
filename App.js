@@ -73,6 +73,13 @@ export default function App() {
     { id: 2, name: '铂金会员', price: 69, monthlyCredits: 1800, originalPrice: 138, features: ['高清模式', '优先队列', '首尾帧控制'] },
     { id: 3, name: '钻石会员', price: 129, monthlyCredits: 4500, originalPrice: 258, features: ['专业模式', '最高优先级', '视频延长', '商业授权'] },
   ]);
+  // 注册三步流程状态
+  const [registerStep, setRegisterStep] = useState('phone'); // 'phone', 'code', 'password'
+  const [registerPhone, setRegisterPhone] = useState('');
+  const [registerCode, setRegisterCode] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
+  const [registerUsername, setRegisterUsername] = useState('');
+  const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -160,6 +167,82 @@ export default function App() {
       setDigitalHumans(res.data.data.items || []);
     } catch (err) {
       console.log('获取数字人列表失败', err);
+    }
+  };
+    // 发送注册验证码
+  const sendRegisterCode = async () => {
+    if (!registerPhone.trim()) return showToast('请输入手机号');
+    if (registerPhone.length !== 11) return showToast('请输入11位手机号');
+    setLoading(true);
+    try {
+      await axios.post(`${API_URL}/auth/send_code`, { phone: registerPhone });
+      showToast('验证码已发送');
+      setCountdown(60);
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      showToast(err.response?.data?.detail || '发送失败', true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 验证验证码
+  const verifyCode = async () => {
+    if (!registerCode.trim()) return showToast('请输入验证码');
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API_URL}/auth/verify_code`, {
+        phone: registerPhone,
+        code: registerCode
+      });
+      if (res.data.code === 200) {
+        setRegisterStep('password');
+        showToast('验证成功，请设置密码');
+      }
+    } catch (err) {
+      showToast(err.response?.data?.detail || '验证码错误', true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 完成注册
+  const completeRegister = async () => {
+    if (!registerPassword.trim()) return showToast('请输入密码');
+    if (registerPassword.length < 6) return showToast('密码至少6位');
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API_URL}/auth/register`, {
+        phone: registerPhone,
+        code: registerCode,
+        password: registerPassword,
+        username: registerUsername || null
+      });
+      const token = res.data.data.access_token;
+      const credits = res.data.data.credits;
+      localStorage.setItem('access_token', token);
+      setAccessToken(token);
+      setUserCredits(credits);
+      setIsLoggedIn(true);
+      setShowRegisterModal(false);
+      setRegisterStep('phone');
+      setRegisterPhone('');
+      setRegisterCode('');
+      setRegisterPassword('');
+      setRegisterUsername('');
+      showToast('注册成功');
+    } catch (err) {
+      showToast(err.response?.data?.detail || '注册失败', true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1080,6 +1163,109 @@ export default function App() {
                   <Text style={styles.loginButtonText}>登录</Text>
                 </TouchableOpacity>
               </View>
+              {/* 去注册链接 */}
+              <View style={styles.registerLinkRow}>
+                <Text style={styles.registerLinkText}>还没有账号？</Text>
+                <TouchableOpacity onPress={() => {
+                  setShowLoginModal(false);
+                  setShowRegisterModal(true);
+                }}>
+                  <Text style={styles.registerLink}>立即注册</Text>
+                </TouchableOpacity>
+              </View>
+            </Card>
+          </View>
+        </Modal>
+       
+        {/* 注册弹窗 - 三步流程 */}
+        <Modal visible={showRegisterModal} transparent={true} animationType="slide">
+          <View style={styles.modalContainer}>
+            <Card style={styles.loginCard}>
+              <Text style={styles.cardTitle}>
+                {registerStep === 'phone' ? '注册' : registerStep === 'code' ? '验证手机号' : '设置密码'}
+              </Text>
+              
+              {/* 第一步：输入手机号 */}
+              {registerStep === 'phone' && (
+                <>
+                  <TextInput
+                    style={styles.loginInput}
+                    placeholder="手机号"
+                    placeholderTextColor="#888"
+                    value={registerPhone}
+                    onChangeText={setRegisterPhone}
+                    keyboardType="phone-pad"
+                  />
+                  <View style={styles.loginButtonRow}>
+                    <TouchableOpacity onPress={() => setShowRegisterModal(false)} style={styles.loginCancelButton}>
+                      <Text style={styles.loginButtonText}>取消</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setRegisterStep('code')} style={styles.loginConfirmButton}>
+                      <Text style={styles.loginButtonText}>下一步</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+              
+              {/* 第二步：输入验证码 */}
+              {registerStep === 'code' && (
+                <>
+                  <View style={styles.codeRow}>
+                    <TextInput
+                      style={styles.codeInput}
+                      placeholder="验证码"
+                      placeholderTextColor="#888"
+                      keyboardType="numeric"
+                      value={registerCode}
+                      onChangeText={setRegisterCode}
+                    />
+                    <TouchableOpacity 
+                      style={[styles.getCodeButton, countdown > 0 && { opacity: 0.5 }]} 
+                      onPress={sendRegisterCode}
+                      disabled={countdown > 0}
+                    >
+                      <Text style={styles.getCodeText}>{countdown > 0 ? `${countdown}秒后重试` : '获取验证码'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.loginButtonRow}>
+                    <TouchableOpacity onPress={() => setRegisterStep('phone')} style={styles.loginCancelButton}>
+                      <Text style={styles.loginButtonText}>上一步</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={verifyCode} style={styles.loginConfirmButton}>
+                      <Text style={styles.loginButtonText}>验证</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+              
+              {/* 第三步：设置密码 */}
+              {registerStep === 'password' && (
+                <>
+                  <TextInput
+                    style={styles.loginInput}
+                    placeholder="密码（至少6位）"
+                    placeholderTextColor="#888"
+                    secureTextEntry
+                    value={registerPassword}
+                    onChangeText={setRegisterPassword}
+                  />
+                  <TextInput
+                    style={styles.loginInput}
+                    placeholder="昵称（可选）"
+                    placeholderTextColor="#888"
+                    value={registerUsername}
+                    onChangeText={setRegisterUsername}
+                  />
+                  <View style={styles.loginButtonRow}>
+                    <TouchableOpacity onPress={() => setRegisterStep('code')} style={styles.loginCancelButton}>
+                      <Text style={styles.loginButtonText}>上一步</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={completeRegister} style={styles.loginConfirmButton}>
+                      <Text style={styles.loginButtonText}>完成注册</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
             </Card>
           </View>
         </Modal>
@@ -1213,6 +1399,21 @@ const styles = StyleSheet.create({
   loginCancelButton: { flex: 1, backgroundColor: '#3b3b5c', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
   loginConfirmButton: { flex: 1, backgroundColor: '#7c3aed', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
   loginButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  // 去注册链接样式
+  registerLinkRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  registerLinkText: {
+    color: '#aaa',
+    fontSize: 14,
+  },
+  registerLink: {
+    color: '#7c3aed',
+    fontSize: 14,
+    marginLeft: 4,
+  },
   profileCard: { alignItems: 'center' },
   profileHeader: { flexDirection: 'row', alignItems: 'center', width: '100%', marginBottom: 20 },
   profileInfo: { marginLeft: 15 },
