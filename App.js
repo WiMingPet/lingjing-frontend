@@ -205,6 +205,8 @@ export default function App() {
         code: registerCode
       });
       if (res.data.code === 200) {
+        // 将验证码保存到 localStorage
+        localStorage.setItem('temp_register_code', registerCode);
         setRegisterStep('password');
         showToast('验证成功，请设置密码');
       }
@@ -221,15 +223,20 @@ export default function App() {
     if (registerPassword.length < 6) return showToast('密码至少6位');
     setLoading(true);
     try {
+      // 从 localStorage 获取保存的验证码
+      const savedCode = localStorage.getItem('temp_register_code') || registerCode;
+    
       const res = await axios.post(`${API_URL}/auth/register`, {
         phone: registerPhone,
-        code: registerCode,
+        code: savedCode,  // 使用保存的验证码
         password: registerPassword,
         username: registerUsername || null
       });
       const token = res.data.data.access_token;
       const credits = res.data.data.credits;
       localStorage.setItem('access_token', token);
+      // 清除临时验证码
+      localStorage.removeItem('temp_register_code');
       setAccessToken(token);
       setUserCredits(credits);
       setIsLoggedIn(true);
