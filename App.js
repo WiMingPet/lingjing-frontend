@@ -181,7 +181,33 @@ export default function App() {
   };
 
   const handleRecharge = async (pkg) => {
-    showToast(`充值 ${pkg.credits} 灵境点，功能开发中`);
+    if (!accessToken) {
+      showToast('请先登录', true);
+      setShowRechargeModal(false);
+      setShowLoginModal(true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API_URL}/payment/create_order`, {
+        package_id: pkg.id,
+        amount: pkg.price,
+        credits: pkg.credits
+      }, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+    
+      const { pay_url } = res.data;
+    
+      // 跳转到支付宝支付页面
+      window.location.href = pay_url;
+    
+    } catch (err) {
+      showToast(err.response?.data?.detail || '创建订单失败', true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleMembership = async (pkg) => {
@@ -1359,6 +1385,8 @@ export default function App() {
           </View>
         </Modal>
 
+ 
+
         {toastVisible && (
           <View style={styles.toast}>
             <Text style={styles.toastText}>{toastMessage}</Text>
@@ -1556,4 +1584,20 @@ const styles = StyleSheet.create({
   membershipItemRight: { alignItems: 'flex-end' },
   membershipItemDiscount: { fontSize: 12, color: '#888', textDecorationLine: 'line-through' },
   membershipItemTag: { backgroundColor: '#f59e0b', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 2, marginTop: 4 },
+  paymentCard: {
+    width: '80%',
+    padding: 20,
+    alignItems: 'center',
+  },
+  closePaymentButton: {
+    marginTop: 20,
+    backgroundColor: '#7c3aed',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  closePaymentText: {
+    color: '#fff',
+    fontSize: 16,
+  },
 });
