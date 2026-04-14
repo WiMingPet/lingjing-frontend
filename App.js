@@ -136,7 +136,7 @@ export default function App() {
     if (!loginPhone.trim()) return showToast('请输入手机号');
     try {
       await axios.post(`${API_URL}/auth/send_code`, { phone: loginPhone });
-      showToast('验证码已发送（测试验证码：123456）');
+      showToast('验证码已发送');
     } catch (err) {
       showToast('发送失败', true);
     }
