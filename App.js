@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -81,6 +81,8 @@ export default function App() {
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerUsername, setRegisterUsername] = useState('');
   const [countdown, setCountdown] = useState(0);
+  // 新增：创建一个ref来稳定地保存验证码
+  const savedRegisterCode = useRef('');
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -205,8 +207,8 @@ export default function App() {
         code: registerCode
       });
       if (res.data.code === 200) {
-        // 将验证码保存到 localStorage
-        localStorage.setItem('temp_register_code', registerCode);
+        // 关键：将验证码同时保存到 ref 中
+        savedRegisterCode.current = registerCode;
         setRegisterStep('password');
         showToast('验证成功，请设置密码');
       }
@@ -223,31 +225,33 @@ export default function App() {
     if (registerPassword.length < 6) return showToast('密码至少6位');
     setLoading(true);
     try {
-      // 从 localStorage 获取保存的验证码
-      const savedCode = localStorage.getItem('temp_register_code') || registerCode;
+      // 关键：从 ref 中获取保存的验证码
+      const codeToUse = savedRegisterCode.current;
+      console.log('使用的验证码:', codeToUse);
     
       const res = await axios.post(`${API_URL}/auth/register`, {
         phone: registerPhone,
-        code: savedCode,  // 使用保存的验证码
+        code: codeToUse, // 使用 ref 中的验证码
         password: registerPassword,
         username: registerUsername || null
       });
       const token = res.data.data.access_token;
       const credits = res.data.data.credits;
       localStorage.setItem('access_token', token);
-      // 清除临时验证码
-      localStorage.removeItem('temp_register_code');
       setAccessToken(token);
       setUserCredits(credits);
       setIsLoggedIn(true);
       setShowRegisterModal(false);
+      // 重置所有注册相关的状态
       setRegisterStep('phone');
       setRegisterPhone('');
       setRegisterCode('');
       setRegisterPassword('');
       setRegisterUsername('');
+      savedRegisterCode.current = ''; // 清空 ref
       showToast('注册成功');
     } catch (err) {
+      console.log('注册错误:', err.response?.data);
       showToast(err.response?.data?.detail || '注册失败', true);
     } finally {
       setLoading(false);
