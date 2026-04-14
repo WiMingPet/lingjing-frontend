@@ -114,8 +114,10 @@ export default function App() {
     } else {
       payload.code = loginCode;
     }
+    console.log('发送登录请求:', payload);  // 添加日志
     try {
       const res = await axios.post(`${API_URL}/auth/login`, payload);
+      console.log('登录响应:', res.data);  // 添加日志
       const token = res.data.data.access_token;
       const credits = res.data.data.credits;
       localStorage.setItem('access_token', token);
@@ -126,6 +128,7 @@ export default function App() {
       fetchDigitalHumans();
       showToast('登录成功');
     } catch (err) {
+      console.error('登录错误:', err.response?.data);  // 添加日志
       showToast(err.response?.data?.detail || '登录失败', true);
     } finally {
       setLoading(false);
@@ -134,11 +137,21 @@ export default function App() {
 
   const sendVerificationCode = async () => {
     if (!loginPhone.trim()) return showToast('请输入手机号');
+    if (loginPhone.length !== 11) return showToast('请输入11位手机号');
+    setLoading(true);
     try {
-      await axios.post(`${API_URL}/auth/send_code`, { phone: loginPhone });
-      showToast('验证码已发送');
+      const response = await axios.post(`${API_URL}/auth/send_code`, { phone: loginPhone });
+      console.log('发送验证码响应:', response.data);
+      if (response.data.code === 200) {
+        showToast('验证码已发送');
+      } else {
+        showToast(response.data.message || '发送失败', true);
+      }
     } catch (err) {
-      showToast('发送失败', true);
+      console.error('发送验证码错误:', err);
+      showToast(err.response?.data?.detail || '发送失败', true);
+    } finally {
+      setLoading(false);
     }
   };
 
