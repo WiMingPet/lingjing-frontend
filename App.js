@@ -81,6 +81,8 @@ export default function App() {
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerUsername, setRegisterUsername] = useState('');
   const [countdown, setCountdown] = useState(0);
+  // 新增：登录验证码倒计时
+  const [loginCountdown, setLoginCountdown] = useState(0);
   // 新增：创建一个ref来稳定地保存验证码
   const savedRegisterCode = useRef('');
 
@@ -138,12 +140,25 @@ export default function App() {
   const sendVerificationCode = async () => {
     if (!loginPhone.trim()) return showToast('请输入手机号');
     if (loginPhone.length !== 11) return showToast('请输入11位手机号');
+    if (loginCountdown > 0) return showToast(`请等待${loginCountdown}秒后再试`);
+  
     setLoading(true);
     try {
       const response = await axios.post(`${API_URL}/auth/send_code`, { phone: loginPhone });
       console.log('发送验证码响应:', response.data);
       if (response.data.code === 200) {
         showToast('验证码已发送');
+        // 开始倒计时
+        setLoginCountdown(60);
+        const timer = setInterval(() => {
+          setLoginCountdown(prev => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
       } else {
         showToast(response.data.message || '发送失败', true);
       }
@@ -1175,8 +1190,14 @@ export default function App() {
                     value={loginCode}
                     onChangeText={setLoginCode}
                   />
-                  <TouchableOpacity style={styles.getCodeButton} onPress={sendVerificationCode}>
-                    <Text style={styles.getCodeText}>获取验证码</Text>
+                  <TouchableOpacity 
+                    style={[styles.getCodeButton, loginCountdown > 0 && { opacity: 0.5 }]} 
+                    onPress={sendVerificationCode}
+                    disabled={loginCountdown > 0}
+                  >
+                    <Text style={styles.getCodeText}>
+                      {loginCountdown > 0 ? `${loginCountdown}秒后重试` : '获取验证码'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               )}
