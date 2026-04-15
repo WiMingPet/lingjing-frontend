@@ -204,19 +204,6 @@ export default function App() {
     showToast('已退出登录');
   };
 
-  // 获取当前用户灵境点余额
-  const fetchUserCredits = async () => {
-    if (!accessToken) return;
-    try {
-      const res = await axios.get(`${API_URL}/auth/me`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      setUserCredits(res.data.data.credits);
-      console.log('余额刷新成功:', res.data.data.credits);
-    } catch (err) {
-      console.log('获取余额失败', err);
-    }
-  };
 
   // 支付宝支付 - 环境检测 + 链接跳转
   const doAlipayPay = (payUrl) => {
