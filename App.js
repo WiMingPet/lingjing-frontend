@@ -85,6 +85,19 @@ export default function App() {
   const [loginCountdown, setLoginCountdown] = useState(0);
   // 新增：创建一个ref来稳定地保存验证码
   const savedRegisterCode = useRef('');
+  // 获取当前用户灵境点余额
+  const fetchUserCredits = async () => {
+    if (!accessToken) return;
+    try {
+      const res = await axios.get(`${API_URL}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      setUserCredits(res.data.data.credits);
+      console.log('余额刷新成功:', res.data.data.credits);
+    } catch (err) {
+      console.log('获取余额失败', err);
+    }
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -104,6 +117,17 @@ export default function App() {
     setHeight('170');
     setResult(null);
   }, [activeTab]);
+
+  // 检查是否从支付宝支付页面返回，刷新余额
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment') === 'success') {
+      fetchUserCredits();
+      showToast('充值成功');
+      // 清除 URL 参数，避免刷新页面重复触发
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   const handleLogin = async () => {
     if (!loginPhone.trim()) return showToast('请输入手机号');
@@ -180,6 +204,20 @@ export default function App() {
     showToast('已退出登录');
   };
 
+  // 获取当前用户灵境点余额
+  const fetchUserCredits = async () => {
+    if (!accessToken) return;
+    try {
+      const res = await axios.get(`${API_URL}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      setUserCredits(res.data.data.credits);
+      console.log('余额刷新成功:', res.data.data.credits);
+    } catch (err) {
+      console.log('获取余额失败', err);
+    }
+  };
+
   // 支付宝支付 - 环境检测 + 链接跳转
   const doAlipayPay = (payUrl) => {
     // 判断是否在支付宝App内置浏览器中
@@ -192,6 +230,7 @@ export default function App() {
       }, (result) => {
         if (result.resultCode === "9000") {
           showToast('支付成功');
+          fetchUserCredits();
           window.location.reload();
         } else {
           showToast('支付失败或取消', true);
@@ -202,6 +241,7 @@ export default function App() {
       window.location.href = payUrl;
     }
   };
+
 
   const handleRecharge = async (pkg) => {
     if (!accessToken) {
@@ -341,6 +381,17 @@ export default function App() {
     setTimeout(() => setToastVisible(false), 2000);
   };
 
+  // 检查灵境点余额是否足够
+  const checkAndUseCredits = (cost, actionName, callback) => {
+    if (userCredits < cost) {
+      showToast(`${actionName}需要${cost}灵境点，余额不足，请充值`, true);
+      setShowRechargeModal(true);
+      return false;
+    }
+    if (callback) callback();
+    return true;
+  };
+
   const saveToHistory = (url, type) => {
     if (!url) return;
     const newItem = {
@@ -440,6 +491,7 @@ export default function App() {
   };
 
   const recommendSize = async () => {
+    if (!checkAndUseCredits(2, '尺码推荐', () => {})) return;
     if (!selectedImage) return showToast('请先选择一张照片');
     setLoading(true);
     const formData = new FormData();
@@ -465,6 +517,7 @@ export default function App() {
   };
 
   const generateImage = async () => {
+    if (!checkAndUseCredits(5, '图片生成', () => {})) return;
     if (!selectedImage) return showToast('请先选择一张参考图片');
     setLoading(true);
     const formData = new FormData();
@@ -494,6 +547,9 @@ export default function App() {
   };
 
   const generateVideo = async () => {
+    // ✅ 根据时长确定消耗
+    const cost = duration === 5 ? 10 : 15;
+    if (!checkAndUseCredits(cost, `${duration}秒视频生成`, () => {})) return;
     if (!selectedImage) return showToast('请先选择一张图片');
     setLoading(true);
     const formData = new FormData();
@@ -523,6 +579,7 @@ export default function App() {
   };
 
   const generateTryon = async () => {
+    if (!checkAndUseCredits(15, '虚拟试穿', () => {})) return;
     if (!modelImage) return showToast('请先选择模特图片');
     if (!garmentImage) return showToast('请先选择服装图片');
     setLoading(true);
@@ -552,6 +609,7 @@ export default function App() {
   };
 
   const generateDigitalHuman = async () => {
+    if (!checkAndUseCredits(20, '数字人分身', () => {})) return;
     if (!digitalImage) return showToast('请先上传照片');
     if (!digitalText.trim()) return showToast('请输入说话内容');
     setLoading(true);
@@ -582,6 +640,7 @@ export default function App() {
   };
 
   const generateDigitalHumanCustom = async () => {
+    if (!checkAndUseCredits(10, '定制数字人', () => {})) return;
     if (!customVideo) return showToast('请先上传训练视频');
     if (!customName.trim()) return showToast('请输入数字人名称');
     setLoading(true);
@@ -610,6 +669,7 @@ export default function App() {
   };
 
   const generateMultiAngle = async () => {
+    if (!checkAndUseCredits(15, '多角度试穿', () => {})) return;
     if (multiImages.length < 2) return showToast('请至少上传2张照片');
     setLoading(true);
     const formData = new FormData();
