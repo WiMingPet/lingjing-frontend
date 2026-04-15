@@ -180,6 +180,29 @@ export default function App() {
     showToast('已退出登录');
   };
 
+  // 支付宝支付 - 环境检测 + 链接跳转
+  const doAlipayPay = (payUrl) => {
+    // 判断是否在支付宝App内置浏览器中
+    const isAlipay = /AlipayClient/i.test(navigator.userAgent);
+  
+    if (isAlipay && window.AlipayJSBridge) {
+      // 在支付宝App内，使用 JSBridge 调起支付
+      AlipayJSBridge.call('tradePay', {
+        url: payUrl
+      }, (result) => {
+        if (result.resultCode === "9000") {
+          showToast('支付成功');
+          window.location.reload();
+        } else {
+          showToast('支付失败或取消', true);
+        }
+      });
+    } else {
+      // 普通浏览器，直接跳转链接（支付宝会自动唤起App）
+      window.location.href = payUrl;
+    }
+  };
+
   const handleRecharge = async (pkg) => {
     if (!accessToken) {
       showToast('请先登录', true);
@@ -197,12 +220,12 @@ export default function App() {
       }, {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
-    
+
       const { pay_url } = res.data;
     
-      // 跳转到支付宝支付页面
-      window.location.href = pay_url;
-    
+      // 调用支付方法
+      doAlipayPay(pay_url);
+
     } catch (err) {
       showToast(err.response?.data?.detail || '创建订单失败', true);
     } finally {
