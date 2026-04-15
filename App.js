@@ -218,17 +218,14 @@ export default function App() {
         if (result.resultCode === "9000") {
           showToast('支付成功');
           fetchUserCredits();
-          window.location.reload();
         } else {
           showToast('支付失败或取消', true);
         }
       });
     } else {
-      // 普通浏览器，直接跳转链接（支付宝会自动唤起App）
       window.location.href = payUrl;
     }
   };
-
 
   const handleRecharge = async (pkg) => {
     if (!accessToken) {
