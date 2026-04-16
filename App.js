@@ -63,6 +63,12 @@ export default function App() {
   const [digitalHumans, setDigitalHumans] = useState([]);
   const [membershipLevel, setMembershipLevel] = useState('free');
   const [showSidebarMenu, setShowSidebarMenu] = useState(false);
+  // 找回密码相关 state
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [resetPhone, setResetPhone] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetCountdown, setResetCountdown] = useState(0);
   const [rechargePackages, setRechargePackages] = useState([
     { id: 1, name: '小试牛刀', credits: 100, price: 9.9, discount: 0 },
     { id: 2, name: '进阶创作', credits: 350, price: 29.9, discount: 20, bonus: 20 },
@@ -230,6 +236,52 @@ export default function App() {
       });
     } else {
       window.location.href = payUrl;
+    }
+  };
+
+  // 发送找回密码验证码
+  const sendResetCode = async () => {
+    if (!resetPhone.trim()) return showToast('请输入手机号');
+    if (resetPhone.length !== 11) return showToast('请输入11位手机号');
+    if (resetCountdown > 0) return showToast(`请等待${resetCountdown}秒后再试`);
+  
+    try {
+      await axios.post(`${API_URL}/auth/send_code`, { phone: resetPhone });
+      showToast('验证码已发送');
+      setResetCountdown(60);
+      const timer = setInterval(() => {
+        setResetCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      showToast('发送失败', true);
+    }
+  };
+
+  // 确认重置密码
+  const handleResetPassword = async () => {
+    if (!resetPhone.trim()) return showToast('请输入手机号');
+    if (!resetCode.trim()) return showToast('请输入验证码');
+    if (!resetPassword.trim() || resetPassword.length < 6) return showToast('密码至少6位');
+  
+    try {
+      await axios.post(`${API_URL}/auth/reset_password`, {
+        phone: resetPhone,
+        code: resetCode,
+        new_password: resetPassword
+      });
+      showToast('密码重置成功，请登录');
+      setShowResetPasswordModal(false);
+      setResetPhone('');
+      setResetCode('');
+      setResetPassword('');
+    } catch (err) {
+      showToast(err.response?.data?.detail || '重置失败', true);
     }
   };
 
@@ -1318,6 +1370,15 @@ export default function App() {
                   <Text style={styles.registerLink}>立即注册</Text>
                 </TouchableOpacity>
               </View>
+              {/* 忘记密码链接 */}
+              <View style={styles.forgotPasswordRow}>
+                <TouchableOpacity onPress={() => {
+                  setShowLoginModal(false);
+                  setShowResetPasswordModal(true);
+                }}>
+                  <Text style={styles.forgotPasswordLink}>忘记密码？</Text>
+                </TouchableOpacity>
+              </View>
             </Card>
           </View>
         </Modal>
@@ -1411,6 +1472,62 @@ export default function App() {
                   </View>
                 </>
               )}
+            </Card>
+          </View>
+        </Modal>
+
+        {/* 找回密码弹窗 */}
+        <Modal visible={showResetPasswordModal} transparent={true} animationType="slide">
+          <View style={styles.modalContainer}>
+            <Card style={styles.loginCard}>
+              <Text style={styles.cardTitle}>找回密码</Text>
+      
+              <TextInput
+                style={styles.loginInput}
+                placeholder="手机号"
+                placeholderTextColor="#888"
+                value={resetPhone}
+                onChangeText={setResetPhone}
+                keyboardType="phone-pad"
+              />
+      
+              <View style={styles.codeRow}>
+                <TextInput
+                  style={styles.codeInput}
+                  placeholder="验证码"
+                  placeholderTextColor="#888"
+                  keyboardType="numeric"
+                  value={resetCode}
+                  onChangeText={setResetCode}
+                />
+                <TouchableOpacity 
+                  style={[styles.getCodeButton, resetCountdown > 0 && { opacity: 0.5 }]} 
+                  onPress={sendResetCode}
+                  disabled={resetCountdown > 0}
+                >
+                  <Text style={styles.getCodeText}>
+                    {resetCountdown > 0 ? `${resetCountdown}秒后重试` : '获取验证码'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+      
+              <TextInput
+                style={styles.loginInput}
+                placeholder="新密码（至少6位）"
+                placeholderTextColor="#888"
+                secureTextEntry
+                value={resetPassword}
+                onChangeText={setResetPassword}
+              />
+      
+              <View style={styles.loginButtonRow}>
+                <TouchableOpacity onPress={() => setShowResetPasswordModal(false)} style={styles.loginCancelButton}>
+                  <Text style={styles.loginButtonText}>取消</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleResetPassword} style={styles.loginConfirmButton}>
+                  <Text style={styles.loginButtonText}>确认重置</Text>
+                </TouchableOpacity>
+              </View>
             </Card>
           </View>
         </Modal>
@@ -1672,5 +1789,14 @@ const styles = StyleSheet.create({
   closePaymentText: {
     color: '#fff',
     fontSize: 16,
+  },
+  forgotPasswordRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  forgotPasswordLink: {
+    color: '#7c3aed',
+    fontSize: 14,
   },
 });
