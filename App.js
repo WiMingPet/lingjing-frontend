@@ -303,10 +303,18 @@ export default function App() {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
 
-      const { pay_url } = res.data;
-    
-      // 调用支付方法
-      doAlipayPay(pay_url);
+      const { pay_url, qr_code, type } = res.data;
+
+      if (type === 'wap' && pay_url) {
+        // 手机端：跳转支付宝支付
+        window.location.href = pay_url;
+      } else if (type === 'qr_code' && qr_code) {
+        // 电脑端：显示二维码
+        setPaymentQRCode(qr_code);
+        setShowPaymentModal(true);
+      } else {
+        showToast('支付链接获取失败', true);
+      }
 
     } catch (err) {
       showToast(err.response?.data?.detail || '创建订单失败', true);
@@ -314,7 +322,6 @@ export default function App() {
       setLoading(false);
     }
   };
-
   const handleMembership = async (pkg) => {
     showToast(`开通 ${pkg.name}，功能开发中`);
   };
