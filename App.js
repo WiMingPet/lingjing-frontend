@@ -85,15 +85,20 @@ export default function App() {
   const [loginCountdown, setLoginCountdown] = useState(0);
   // 新增：创建一个ref来稳定地保存验证码
   const savedRegisterCode = useRef('');
-  // 获取当前用户灵境点余额
+  // 获取当前用户灵境点余额（直接从 localStorage 读取 token）
   const fetchUserCredits = async () => {
-    if (!accessToken) return;
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      console.log('没有 token，无法获取余额');
+      return;
+    }
     try {
       const res = await axios.get(`${API_URL}/auth/me`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      setUserCredits(res.data.data.credits);
-      console.log('余额刷新成功:', res.data.data.credits);
+      const newCredits = res.data.data.credits;
+      setUserCredits(newCredits);
+      console.log('余额刷新成功:', newCredits);
     } catch (err) {
       console.log('获取余额失败', err);
     }
@@ -207,17 +212,18 @@ export default function App() {
 
   // 支付宝支付 - 环境检测 + 链接跳转
   const doAlipayPay = (payUrl) => {
-    // 判断是否在支付宝App内置浏览器中
     const isAlipay = /AlipayClient/i.test(navigator.userAgent);
-  
+
     if (isAlipay && window.AlipayJSBridge) {
-      // 在支付宝App内，使用 JSBridge 调起支付
       AlipayJSBridge.call('tradePay', {
         url: payUrl
       }, (result) => {
         if (result.resultCode === "9000") {
           showToast('支付成功');
-          fetchUserCredits();
+          // 延迟 2 秒，等待后端回调处理完成
+          setTimeout(() => {
+            fetchUserCredits();
+          }, 2000);
         } else {
           showToast('支付失败或取消', true);
         }
