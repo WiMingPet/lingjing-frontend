@@ -295,33 +295,10 @@ export default function App() {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/payment/create_order`, {
-        package_id: pkg.id,
-        amount: pkg.price,
-        credits: pkg.credits
-      }, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-
-      const { pay_url, qr_code } = res.data;
-
-      if (pay_url) {
-        // 使用动态创建链接的方式
-        const link = document.createElement('a');
-        link.href = pay_url;
-        link.target = '_blank';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else if (qr_code) {
-        setPaymentQRCode(qr_code);
-        setShowPaymentModal(true);
-      } else {
-        showToast('支付链接获取失败', true);
-      }
-
+      // 直接跳转到新的 HTML 支付页面
+      window.location.href = `${API_URL}/payment/create_order_html?package_id=${pkg.id}&amount=${pkg.price}&credits=${pkg.credits}`;
     } catch (err) {
-      showToast(err.response?.data?.detail || '创建订单失败', true);
+      showToast('创建订单失败', true);
     } finally {
       setLoading(false);
     }
