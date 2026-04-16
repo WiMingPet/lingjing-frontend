@@ -303,13 +303,17 @@ export default function App() {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
 
-      const { pay_url, qr_code, type } = res.data;
+      const { pay_url, qr_code } = res.data;
 
-      if (type === 'wap' && pay_url) {
-        // 手机端：跳转支付宝支付
-        window.location.href = pay_url;
-      } else if (type === 'qr_code' && qr_code) {
-        // 电脑端：显示二维码
+      if (pay_url) {
+        // 使用动态创建链接的方式
+        const link = document.createElement('a');
+        link.href = pay_url;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else if (qr_code) {
         setPaymentQRCode(qr_code);
         setShowPaymentModal(true);
       } else {
