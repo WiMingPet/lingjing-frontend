@@ -1653,10 +1653,12 @@ export default function App() {
               <Text style={styles.paymentHint}>
                 请使用支付宝扫码完成付款，支付完成后返回此页面刷新余额。
               </Text>
+              {/* ✅ 直接使用 img 标签，不用 getQRCodeImageUrl */}
               {!!paymentQRCode && (
-                <Image
-                  source={{ uri: getQRCodeImageUrl(paymentQRCode) }}
-                  style={styles.paymentQRCodeImage}
+                <img
+                  src={paymentQRCode}
+                  style={{ width: 280, height: 280, borderRadius: 16, marginBottom: 16 }}
+                  alt="支付宝支付二维码"
                 />
               )}
               {!!pendingOrderId && (
