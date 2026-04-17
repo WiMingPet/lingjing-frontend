@@ -1657,11 +1657,13 @@ export default function App() {
               {/* ✅ 直接使用 img 标签，不用 getQRCodeImageUrl */}
               {!!paymentQRCode && (
                 <img
-                  src={paymentQRCode}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(paymentQRCode)}`}
                   style={{ width: 280, height: 280, borderRadius: 16, marginBottom: 16 }}
                   alt="支付宝支付二维码"
-                  onError={(e) => console.log('图片加载失败，URL:', e.target.src)}
-                  onLoad={() => console.log('图片加载成功')}
+                  onError={(e) => {
+                    console.error('二维码生成失败，原始URL:', paymentQRCode);
+                    e.target.alt = '二维码加载失败，请刷新重试';
+                  }}
                 />
               )}
               {!!pendingOrderId && (
