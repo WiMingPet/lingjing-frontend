@@ -262,7 +262,7 @@ export default function App() {
           showToast('支付成功');
           setTimeout(() => {
             console.log('支付成功，开始刷新余额');
-            await fetchUserCredits();
+            fetchUserCredits();
             console.log('余额刷新完成，准备刷新页面');
             window.location.reload();
           }, 2000);
