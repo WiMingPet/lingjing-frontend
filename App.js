@@ -138,14 +138,13 @@ export default function App() {
   // 检查是否从支付宝支付页面返回，刷新余额
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    // 检测是否有 out_trade_no 参数（支付宝返回）
-    if (urlParams.get('out_trade_no')) {
-      console.log('检测到支付宝返回，刷新余额');
-      fetchUserCredits().finally(() => {
-        // 清除 URL 参数
-        window.history.replaceState({}, document.title, window.location.pathname);
-        window.location.reload();
-      });
+    const outTradeNo = urlParams.get('out_trade_no');
+    if (outTradeNo) {
+      console.log('检测到支付宝返回，订单号:', outTradeNo);
+      // 直接刷新页面，让页面重新加载所有数据
+      setTimeout(() => {
+        window.location.href = window.location.pathname;
+      }, 1000);
     }
   }, []);
 
