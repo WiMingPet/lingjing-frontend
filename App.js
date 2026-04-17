@@ -96,6 +96,7 @@ export default function App() {
   // 新增：创建一个ref来稳定地保存验证码
   const savedRegisterCode = useRef('');
   // 获取当前用户灵境点余额（直接从 localStorage 读取 token）
+
   const fetchUserCredits = async () => {
     const token = localStorage.getItem('access_token');
     if (!token) {
@@ -106,9 +107,10 @@ export default function App() {
       const res = await axios.get(`${API_URL}/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      console.log('fetchUserCredits 完整响应:', res.data);
       const newCredits = res.data.data.credits;
+      console.log('获取到的余额:', newCredits);
       setUserCredits(newCredits);
-      console.log('余额刷新成功:', newCredits);
     } catch (err) {
       console.log('获取余额失败', err);
     }
@@ -259,7 +261,10 @@ export default function App() {
         if (result?.resultCode === '9000') {
           showToast('支付成功');
           setTimeout(() => {
-            fetchUserCredits();
+            console.log('支付成功，开始刷新余额');
+            await fetchUserCredits();
+            console.log('余额刷新完成，准备刷新页面');
+            window.location.reload();
           }, 2000);
           return;
         }
