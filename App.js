@@ -126,6 +126,7 @@ export default function App() {
       setIsLoggedIn(true);
       setAccessToken(token);
       fetchDigitalHumans();
+      fetchUserCredits();  // ✅ 添加这一行
     }
   }, []);
 
