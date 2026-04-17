@@ -58,6 +58,10 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [userCredits, setUserCredits] = useState(0);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentQRCode, setPaymentQRCode] = useState('');
+  const [paymentLink, setPaymentLink] = useState('');
+  const [pendingOrderId, setPendingOrderId] = useState('');
   const [loginMode, setLoginMode] = useState('password');
   const [loginCode, setLoginCode] = useState('');
   const [digitalHumans, setDigitalHumans] = useState([]);
@@ -133,10 +137,10 @@ export default function App() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('payment') === 'success') {
-      fetchUserCredits();
-      showToast('充值成功');
-      // 清除 URL 参数，避免刷新页面重复触发
-      window.history.replaceState({}, document.title, window.location.pathname);
+      fetchUserCredits().finally(() => {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        window.location.reload();
+      });
     }
   }, []);
 
@@ -216,24 +220,62 @@ export default function App() {
   };
 
 
-  // 支付宝支付 - 环境检测 + 链接跳转
-  const doAlipayPay = (payUrl) => {
-    const isAlipay = /AlipayClient/i.test(navigator.userAgent);
+  const isWeb = Platform.OS === 'web';
+  const isMobileBrowser = isWeb && /Android|iPhone|iPad|iPod|Mobile/i.test(window.navigator.userAgent);
+  const isDesktopBrowser = isWeb && !isMobileBrowser;
+  const isInsideAlipay = isWeb && /AlipayClient/i.test(window.navigator.userAgent);
+  const getQRCodeImageUrl = (qrCodeValue) => {
+    if (!qrCodeValue) return '';
+    if (/^https?:\/\//i.test(qrCodeValue)) {
+      return qrCodeValue;
+    }
+    return `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(qrCodeValue)}`;
+  };
 
-    if (isAlipay && window.AlipayJSBridge) {
-      AlipayJSBridge.call('tradePay', {
-        url: payUrl
-      }, (result) => {
-        if (result.resultCode === "9000") {
+  // Expo Web 场景下，根据 channel 决定支付宝唤起方式。
+  const doAlipayPay = (payUrl, channel) => {
+    if (!isWeb || !payUrl) {
+      showToast('当前环境暂不支持支付宝网页唤起', true);
+      return;
+    }
+
+    if (channel === 'pc_qr') {
+      // 桌面端新开标签页，降低浏览器拦截概率。
+      window.open(payUrl, '_blank');
+      return;
+    }
+
+    if (channel === 'mobile_wap') {
+      window.location.href = payUrl;
+      return;
+    }
+
+    if (isInsideAlipay && window.AlipayJSBridge) {
+      const tradePayPayload = /^https?:\/\//i.test(payUrl)
+        ? { url: payUrl }
+        : { orderStr: payUrl };
+
+      window.AlipayJSBridge.call('tradePay', tradePayPayload, (result) => {
+        if (result?.resultCode === '9000') {
           showToast('支付成功');
-          // 延迟 2 秒，等待后端回调处理完成
           setTimeout(() => {
             fetchUserCredits();
           }, 2000);
-        } else {
-          showToast('支付失败或取消', true);
+          return;
         }
+
+        if (result?.resultCode === '6001') {
+          showToast('已取消支付', true);
+          return;
+        }
+
+        showToast('支付未完成，请稍后查询订单状态', true);
       });
+      return;
+    }
+
+    if (isDesktopBrowser) {
+      window.open(payUrl, '_blank');
     } else {
       window.location.href = payUrl;
     }
@@ -303,26 +345,37 @@ export default function App() {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
 
-      const { pay_url, qr_code, type } = res.data;
+      const {
+        pay_url,
+        qr_code,
+        channel,
+        out_trade_no,
+      } = res.data;
 
-      if (type === 'qr_code' && qr_code) {
-        // 电脑端：显示二维码
+      setShowRechargeModal(false);
+      setPendingOrderId(out_trade_no || '');
+      setPaymentLink(pay_url || '');
+      setPaymentQRCode('');
+      setShowPaymentModal(false);
+
+      // ✅ 关键修改：只要 qr_code 存在，就显示二维码
+      if (qr_code) {
+        console.log("收到二维码，显示支付弹窗");
         setPaymentQRCode(qr_code);
         setShowPaymentModal(true);
-      } else if (pay_url) {
-        // 手机端：使用 window.open 并尝试多种方式
-        const newWindow = window.open(pay_url, '_blank');
-        if (!newWindow) {
-          // 如果被拦截，提示用户
-          showToast('请允许弹出窗口，或点击链接手动打开', true);
-          // 备用方案：创建隐藏链接
-          const link = document.createElement('a');
-          link.href = pay_url;
-          link.target = '_blank';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
+        setShowRechargeModal(false);
+        return;
+      }
+
+      if (channel === 'mobile_wap' && pay_url) {
+        // 手机端 H5 支付：跳转支付宝页面。
+        doAlipayPay(pay_url, channel);
+        return;
+      }
+
+      // 兜底：桌面端尽量打开支付链接，移动端直接跳转。
+      if (pay_url) {
+        doAlipayPay(pay_url, isDesktopBrowser ? 'pc_qr' : 'mobile_wap');
       } else {
         showToast('支付链接获取失败', true);
       }
@@ -1593,6 +1646,46 @@ export default function App() {
           </View>
         </Modal>
 
+        <Modal visible={showPaymentModal} transparent={true} animationType="fade">
+          <View style={styles.modalContainer}>
+            <Card style={styles.paymentCard}>
+              <Text style={styles.rechargeTitle}>支付宝扫码支付</Text>
+              <Text style={styles.paymentHint}>
+                请使用支付宝扫码完成付款，支付完成后返回此页面刷新余额。
+              </Text>
+              {!!paymentQRCode && (
+                <Image
+                  source={{ uri: getQRCodeImageUrl(paymentQRCode) }}
+                  style={styles.paymentQRCodeImage}
+                />
+              )}
+              {!!pendingOrderId && (
+                <Text selectable style={styles.paymentOrderText}>
+                  订单号：{pendingOrderId}
+                </Text>
+              )}
+              {!!paymentLink && (
+                <TouchableOpacity
+                  style={styles.paymentLinkButton}
+                  onPress={() => doAlipayPay(paymentLink, 'pc_qr')}
+                >
+                  <Text style={styles.paymentLinkButtonText}>在新标签页打开支付</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={async () => {
+                  await fetchUserCredits();
+                  setShowPaymentModal(false);
+                  window.location.reload();
+                }}
+                style={styles.closePaymentButton}
+              >
+                <Text style={styles.closePaymentText}>我已完成支付</Text>
+              </TouchableOpacity>
+            </Card>
+          </View>
+        </Modal>
+
  
 
         {toastVisible && (
@@ -1796,6 +1889,36 @@ const styles = StyleSheet.create({
     width: '80%',
     padding: 20,
     alignItems: 'center',
+  },
+  paymentHint: {
+    color: '#aaa',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  paymentQRCodeImage: {
+    width: 280,
+    height: 280,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    marginBottom: 16,
+  },
+  paymentOrderText: {
+    color: '#aaa',
+    fontSize: 12,
+    marginBottom: 12,
+  },
+  paymentLinkButton: {
+    backgroundColor: '#1677ff',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  paymentLinkButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   closePaymentButton: {
     marginTop: 20,
