@@ -362,6 +362,7 @@ export default function App() {
       if (qr_code) {
         console.log("收到二维码，显示支付弹窗");
         setPaymentQRCode(qr_code);
+        console.log("qr_code的值:", qr_code);  // ✅ 添加这一行
         setShowPaymentModal(true);
         setShowRechargeModal(false);
         return;
@@ -1659,6 +1660,8 @@ export default function App() {
                   src={paymentQRCode}
                   style={{ width: 280, height: 280, borderRadius: 16, marginBottom: 16 }}
                   alt="支付宝支付二维码"
+                  onError={(e) => console.log('图片加载失败，URL:', e.target.src)}
+                  onLoad={() => console.log('图片加载成功')}
                 />
               )}
               {!!pendingOrderId && (
