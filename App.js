@@ -19,6 +19,9 @@ import {
 import * as ImagePicker from 'react-native-image-picker';
 import axios from 'axios';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { Video } from 'expo-av';
+import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system';
 
 const { width, height } = Dimensions.get('window');
 const API_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
@@ -528,6 +531,35 @@ export default function App() {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
     showToast(`${type} 已保存到历史记录`);
   };
+  // 保存文件到本地相册（移动端）或下载（Web）
+  const saveToGallery = async (url, type) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const filename = `${type}_${Date.now()}.${type === 'image' ? 'png' : 'mp4'}`;
+
+      if (Platform.OS === 'web') {
+        // Web端：触发下载
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+        showToast('文件已下载，请手动保存到相册');
+      } else {
+        // 移动端：保存到相册
+        const fileInfo = await FileSystem.downloadAsync(url, FileSystem.documentDirectory + filename);
+        const asset = await MediaLibrary.createAssetAsync(fileInfo.uri);
+        await MediaLibrary.saveToLibraryAsync(asset);
+        showToast('已保存到相册');
+      }
+    } catch (err) {
+      console.error('保存失败:', err);
+      showToast('保存失败，请重试', true);
+    }
+  };
 
   const pickImage = () => {
     ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
@@ -995,6 +1027,28 @@ export default function App() {
 
   const renderResult = () => {
     if (!result) return null;
+
+    // 下载函数（仅下载，不保存相册）
+    const downloadFile = async (url, filename) => {
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+        showToast('下载已开始');
+      } catch (err) {
+        console.error('下载失败:', err);
+        showToast('下载失败，请重试', true);
+      }
+    };
+
+    // 尺码推荐
     if (activeTab === 'size') {
       return (
         <Card style={styles.resultCard}>
@@ -1016,44 +1070,66 @@ export default function App() {
           <Text style={styles.recommendSize}>推荐尺码: {result.recommended_size}</Text>
         </Card>
       );
-    } else if ((activeTab === 'image' || activeTab === 'multi') && result && result.images) {
+    }
+
+    // 图片生成或多角度合成
+    if ((activeTab === 'image' || activeTab === 'multi') && result && result.images) {
       const originalUrl = result.images[0].url;
       const proxyUrl = `${API_URL.replace('/api', '')}/api/proxy/image?url=${encodeURIComponent(originalUrl)}`;
-      const copyToClipboard = () => {
-        navigator.clipboard.writeText(originalUrl);
-        showToast('URL已复制到剪贴板');
-      };
+      const filename = `${activeTab === 'image' ? 'image' : 'multiangle'}_${Date.now()}.png`;
       return (
         <Card style={styles.resultCard}>
           <Text style={styles.resultTitle}>{activeTab === 'image' ? '✨ 生成图片' : '🔄 多角度合成'}</Text>
           <TouchableOpacity onPress={() => { setPreviewUrl(proxyUrl); setModalVisible(true); }}>
             <Image source={{ uri: proxyUrl }} style={styles.resultImage} resizeMode="contain" />
           </TouchableOpacity>
-          <View style={styles.urlRow}>
-            <Text selectable style={styles.linkText} numberOfLines={1} ellipsizeMode="tail">{originalUrl}</Text>
-            <TouchableOpacity onPress={copyToClipboard} style={styles.copyButton}>
-              <Icon name="copy-outline" size={20} color="#7c3aed" />
+          <View style={styles.buttonGroup}>
+            <TouchableOpacity onPress={() => { navigator.clipboard.writeText(originalUrl); showToast('链接已复制'); }} style={styles.actionButton}>
+              <Icon name="copy-outline" size={18} color="#7c3aed" />
+              <Text style={styles.actionText}>复制链接</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => downloadFile(proxyUrl, filename)} style={styles.actionButton}>
+              <Icon name="download-outline" size={18} color="#10b981" />
+              <Text style={styles.actionText}>下载</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => saveToGallery(proxyUrl, 'image')} style={styles.actionButton}>
+              <Icon name="image-outline" size={18} color="#f59e0b" />
+              <Text style={styles.actionText}>保存相册</Text>
             </TouchableOpacity>
           </View>
+          <Text style={styles.hintText}>点击图片可放大预览</Text>
         </Card>
       );
-    } else if ((activeTab === 'video' || activeTab === 'tryon' || activeTab === 'digital') && result.video_url) {
+    }
+
+    // 视频生成、虚拟试穿、数字人分身
+    if ((activeTab === 'video' || activeTab === 'tryon' || activeTab === 'digital') && result.video_url) {
       const videoUrl = result.video_url;
-      const copyToClipboard = () => {
-        navigator.clipboard.writeText(videoUrl);
-        showToast('URL已复制到剪贴板');
-      };
-      let title = '';
-      if (activeTab === 'video') title = '🎬 生成视频';
-      else if (activeTab === 'tryon') title = '👗 试穿结果';
-      else title = '🤖 数字人视频';
+      const filename = `${activeTab === 'video' ? 'video' : activeTab === 'tryon' ? 'tryon' : 'digital'}_${Date.now()}.mp4`;
       return (
         <Card style={styles.resultCard}>
-          <Text style={styles.resultTitle}>{title}</Text>
-          <View style={styles.urlRow}>
-            <Text selectable style={styles.linkText} numberOfLines={1} ellipsizeMode="tail">{videoUrl}</Text>
-            <TouchableOpacity onPress={copyToClipboard} style={styles.copyButton}>
-              <Icon name="copy-outline" size={20} color="#7c3aed" />
+          <Text style={styles.resultTitle}>
+            {activeTab === 'video' ? '🎬 生成视频' : activeTab === 'tryon' ? '👗 试穿结果' : '🤖 数字人视频'}
+          </Text>
+          <Video
+            source={{ uri: videoUrl }}
+            style={styles.resultVideo}
+            useNativeControls
+            resizeMode="contain"
+            isLooping
+          />
+          <View style={styles.buttonGroup}>
+            <TouchableOpacity onPress={() => { navigator.clipboard.writeText(videoUrl); showToast('链接已复制'); }} style={styles.actionButton}>
+              <Icon name="copy-outline" size={18} color="#7c3aed" />
+              <Text style={styles.actionText}>复制链接</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => downloadFile(videoUrl, filename)} style={styles.actionButton}>
+              <Icon name="download-outline" size={18} color="#10b981" />
+              <Text style={styles.actionText}>下载</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => saveToGallery(videoUrl, 'video')} style={styles.actionButton}>
+              <Icon name="videocam-outline" size={18} color="#f59e0b" />
+              <Text style={styles.actionText}>保存相册</Text>
             </TouchableOpacity>
           </View>
         </Card>
@@ -2115,5 +2191,37 @@ const styles = StyleSheet.create({
   forgotPasswordLink: {
     color: '#7c3aed',
     fontSize: 14,
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2d2d44',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  actionText: {
+    color: '#ddd',
+    fontSize: 12,
+  },
+  hintText: {
+    color: '#aaa',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  resultVideo: {
+    width: width * 0.9,
+    height: width * 0.9 * 0.5625,
+    borderRadius: 16,
+    backgroundColor: '#000',
+    marginTop: 10,
   },
 });
