@@ -528,7 +528,7 @@ export default function App() {
     showToast(`${type} 已保存到历史记录`);
   };
 
-  // 通用图片选择和格式检测
+  // 通用图片选择和格式检测（仅相册）
   const pickImageWithValidation = (callback) => {
     ImagePicker.launchImageLibrary({ 
       mediaType: 'photo', 
@@ -539,21 +539,27 @@ export default function App() {
         const file = res.assets[0];
         const fileName = file.fileName || '';
         const ext = fileName.split('.').pop()?.toLowerCase();
-        
+      
+        // 如果没有扩展名，直接允许（可能是拍照或未知格式）
+        if (!ext) {
+          callback(file);
+          return;
+        }
+      
         // 支持的格式
         const supported = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
-        
+      
         if (!supported.includes(ext)) {
           showToast('图片格式不支持，请使用 JPG、PNG、WEBP 格式', true);
           return;
         }
-        
+      
         // 如果是不推荐的格式，提示但允许上传
         if (ext === 'heic' || ext === 'heif') {
           showToast('HEIC 格式可能较慢，建议转换为 JPG 格式', false);
         }
-        
-        callback(res.assets[0]);
+      
+        callback(file);
       }
     });
   };
