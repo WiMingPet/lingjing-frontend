@@ -1,3 +1,4 @@
+import 'formdata-polyfill';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
@@ -596,43 +597,62 @@ export default function App() {
   };
 
   const convertToFile = async (imageAsset) => {
+    // 如果已经是标准 File 对象，直接返回
     if (imageAsset && imageAsset.name && imageAsset.type && !imageAsset.uri) {
-      return imageAsset;
+      // 清理文件名，移除特殊字符
+      const safeName = imageAsset.name.replace(/[^a-zA-Z0-9.\u4e00-\u9fa5]/g, '_');
+      return new File([imageAsset], safeName, { type: imageAsset.type });
     }
+  
     const uri = imageAsset.uri;
     if (uri && uri.startsWith('data:')) {
       const response = await fetch(uri);
       const blob = await response.blob();
-      return new File([blob], imageAsset.fileName || 'photo.jpg', { type: blob.type });
+      const safeName = `image_${Date.now()}.jpg`;
+      return new File([blob], safeName, { type: blob.type });
     }
-    return {
-      uri: uri,
-      type: imageAsset.type || 'image/jpeg',
-      name: imageAsset.fileName || 'photo.jpg',
-    };
+  
+    // 如果是本地文件路径，使用 fetch 获取 blob
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    const originalName = imageAsset.fileName || 'photo.jpg';
+    const ext = originalName.split('.').pop() || 'jpg';
+    const safeName = `image_${Date.now()}.${ext}`;
+    return new File([blob], safeName, { type: blob.type || 'image/jpeg' });
   };
 
   const recommendSize = async () => {
     if (!checkAndUseCredits(2, '尺码推荐', () => {})) return;
     if (!selectedImage) return showToast('请先选择一张照片');
     setLoading(true);
+  
     const formData = new FormData();
     const file = await convertToFile(selectedImage);
-    formData.append('image', file);
+    const ext = file.name?.split('.').pop() || 'jpg';
+    const safeFile = new File([file], `size_${Date.now()}.${ext}`, { type: file.type });
+    formData.append('image', safeFile);
     formData.append('height', height);
+
     try {
       const token = localStorage.getItem('access_token');
-      const res = await axios.post(`${API_URL}/size/recommend`, formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data',
-          'Authorization': token ? `Bearer ${token}` : undefined
+      const response = await fetch(`${API_URL}/size/recommend`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : undefined,
         },
-        timeout: 30000,
+        body: formData,
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || '请求失败');
+      }
+
+      const res = await response.json();
       setResult(res.data.data.output_data);
       showToast('尺码推荐完成');
     } catch (err) {
-      showToast(err.response?.data?.detail || '请求失败', true);
+      showToast(err.message || '请求失败', true);
     } finally {
       setLoading(false);
     }
@@ -642,59 +662,81 @@ export default function App() {
     if (!checkAndUseCredits(5, '图片生成', () => {})) return;
     if (!selectedImage) return showToast('请先选择一张参考图片');
     setLoading(true);
+  
     const formData = new FormData();
     const file = await convertToFile(selectedImage);
-    formData.append('reference_image', file);
+    // 清理文件名，只保留英文名和扩展名
+    const ext = file.name?.split('.').pop() || 'jpg';
+    const safeFile = new File([file], `image_${Date.now()}.${ext}`, { type: file.type });
+    formData.append('reference_image', safeFile);
     formData.append('prompt', prompt || '生成一张高质量的图片');
     formData.append('width', '512');
     formData.append('height', '512');
+
     try {
       const token = localStorage.getItem('access_token');
-      const res = await axios.post(`${API_URL}/image/generate`, formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data',
-          'Authorization': token ? `Bearer ${token}` : undefined
+      const response = await fetch(`${API_URL}/image/generate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : undefined,
         },
-        timeout: 60000,
+        body: formData,
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || '生成失败');
+      }
+
+      const res = await response.json();
       const imgUrl = res.data.data.output_data.images[0].url;
       setResult(res.data.data.output_data);
       saveToHistory(imgUrl, '图片生成');
       showToast('图片生成成功');
     } catch (err) {
-      showToast(err.response?.data?.detail || '生成失败', true);
+      showToast(err.message || '生成失败', true);
     } finally {
       setLoading(false);
     }
   };
 
   const generateVideo = async () => {
-    // ✅ 根据时长确定消耗
     const cost = duration === 5 ? 10 : 15;
     if (!checkAndUseCredits(cost, `${duration}秒视频生成`, () => {})) return;
     if (!selectedImage) return showToast('请先选择一张图片');
     setLoading(true);
+  
     const formData = new FormData();
     const file = await convertToFile(selectedImage);
-    formData.append('image', file);
+    const ext = file.name?.split('.').pop() || 'jpg';
+    const safeFile = new File([file], `video_${Date.now()}.${ext}`, { type: file.type });
+    formData.append('image', safeFile);
     formData.append('prompt', prompt || '生成动态视频');
     formData.append('duration', duration.toString());
     formData.append('mode', 'std');
+
     try {
       const token = localStorage.getItem('access_token');
-      const res = await axios.post(`${API_URL}/video/generate`, formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data',
-          'Authorization': token ? `Bearer ${token}` : undefined
+      const response = await fetch(`${API_URL}/video/generate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : undefined,
         },
-        timeout: 120000,
+        body: formData,
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || '生成失败');
+      }
+
+      const res = await response.json();
       const videoUrl = res.data.data.output_data.video_url;
       setResult(res.data.data.output_data);
       saveToHistory(videoUrl, '视频生成');
       showToast('视频生成成功');
     } catch (err) {
-      showToast(err.response?.data?.detail || '生成失败', true);
+      showToast(err.message || '生成失败', true);
     } finally {
       setLoading(false);
     }
@@ -705,26 +747,41 @@ export default function App() {
     if (!modelImage) return showToast('请先选择模特图片');
     if (!garmentImage) return showToast('请先选择服装图片');
     setLoading(true);
+  
     const formData = new FormData();
+  
     const modelFile = await convertToFile(modelImage);
+    const modelExt = modelFile.name?.split('.').pop() || 'jpg';
+    const safeModel = new File([modelFile], `model_${Date.now()}.${modelExt}`, { type: modelFile.type });
+    formData.append('model_image', safeModel);
+  
     const garmentFile = await convertToFile(garmentImage);
-    formData.append('model_image', modelFile);
-    formData.append('garment_image', garmentFile);
+    const garmentExt = garmentFile.name?.split('.').pop() || 'jpg';
+    const safeGarment = new File([garmentFile], `garment_${Date.now()}.${garmentExt}`, { type: garmentFile.type });
+    formData.append('garment_image', safeGarment);
+
     try {
       const token = localStorage.getItem('access_token');
-      const res = await axios.post(`${API_URL}/tryon/generate`, formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data',
-          'Authorization': token ? `Bearer ${token}` : undefined
+      const response = await fetch(`${API_URL}/tryon/generate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : undefined,
         },
-        timeout: 120000,
+        body: formData,
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || '试穿失败');
+      }
+
+      const res = await response.json();
       const tryonUrl = res.data.data.output_data.video_url;
       setResult(res.data.data.output_data);
       saveToHistory(tryonUrl, '虚拟试穿');
       showToast('试穿视频生成成功');
     } catch (err) {
-      showToast(err.response?.data?.detail || '试穿失败', true);
+      showToast(err.message || '试穿失败', true);
     } finally {
       setLoading(false);
     }
@@ -735,27 +792,38 @@ export default function App() {
     if (!digitalImage) return showToast('请先上传照片');
     if (!digitalText.trim()) return showToast('请输入说话内容');
     setLoading(true);
+  
     const formData = new FormData();
     const imageFile = await convertToFile(digitalImage);
-    formData.append('image', imageFile);
+    const ext = imageFile.name?.split('.').pop() || 'jpg';
+    const safeImage = new File([imageFile], `digital_${Date.now()}.${ext}`, { type: imageFile.type });
+    formData.append('image', safeImage);
     formData.append('text', digitalText);
     formData.append('voice', digitalVoice);
     if (digitalName) formData.append('name', digitalName);
+
     try {
       const token = localStorage.getItem('access_token');
-      const res = await axios.post(`${API_URL}/digital-human/generate`, formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data',
-          'Authorization': token ? `Bearer ${token}` : undefined
+      const response = await fetch(`${API_URL}/digital-human/generate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : undefined,
         },
-        timeout: 180000,
+        body: formData,
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || '生成失败');
+      }
+
+      const res = await response.json();
       const videoUrl = res.data.data.video_url;
       setResult({ video_url: videoUrl });
       saveToHistory(videoUrl, '数字人分身');
       showToast('数字人视频生成成功');
     } catch (err) {
-      showToast(err.response?.data?.detail || '生成失败', true);
+      showToast(err.message || '生成失败', true);
     } finally {
       setLoading(false);
     }
@@ -766,25 +834,38 @@ export default function App() {
     if (!customVideo) return showToast('请先上传训练视频');
     if (!customName.trim()) return showToast('请输入数字人名称');
     setLoading(true);
+  
     const formData = new FormData();
-    formData.append('source_video', customVideo);
+  
+    // 清理视频文件名，移除特殊字符
+    const videoExt = customVideo.name?.split('.').pop() || 'mp4';
+    const safeVideoName = `video_${Date.now()}.${videoExt}`;
+    const safeVideo = new File([customVideo], safeVideoName, { type: customVideo.type || 'video/mp4' });
+    formData.append('source_video', safeVideo);
     formData.append('name', customName);
     if (customDesc) formData.append('description', customDesc);
-    const token = localStorage.getItem('access_token');
+
     try {
-      const res = await axios.post(`${API_URL}/digital-human/`, formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data',
-          'Authorization': token ? `Bearer ${token}` : undefined
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${API_URL}/digital-human/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : undefined,
         },
-        timeout: 120000,
+        body: formData,
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || '定制失败');
+      }
+
       showToast('数字人定制任务已提交');
       setCustomVideo(null);
       setCustomName('');
       setCustomDesc('');
     } catch (err) {
-      showToast(err.response?.data?.detail || '定制失败', true);
+      showToast(err.message || '定制失败', true);
     } finally {
       setLoading(false);
     }
@@ -794,27 +875,38 @@ export default function App() {
     if (!checkAndUseCredits(15, '多角度试穿', () => {})) return;
     if (multiImages.length < 2) return showToast('请至少上传2张照片');
     setLoading(true);
+  
     const formData = new FormData();
     for (let i = 0; i < multiImages.length; i++) {
       const file = await convertToFile(multiImages[i]);
-      formData.append('images', file);
+      const ext = file.name?.split('.').pop() || 'jpg';
+      const safeFile = new File([file], `multi_${Date.now()}_${i}.${ext}`, { type: file.type });
+      formData.append('images', safeFile);
     }
     formData.append('prompt', prompt || '合成统一角色，自然光线');
+
     try {
       const token = localStorage.getItem('access_token');
-      const res = await axios.post(`${API_URL}/multi-angle/tryon`, formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data',
-          'Authorization': token ? `Bearer ${token}` : undefined
+      const response = await fetch(`${API_URL}/multi-angle/tryon`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : undefined,
         },
-        timeout: 120000,
+        body: formData,
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || '合成失败');
+      }
+
+      const res = await response.json();
       const imageUrl = res.data.data.output_data.image_url;
       setResult({ images: [{ url: imageUrl }] });
       saveToHistory(imageUrl, '多角度试穿');
       showToast('多角度合成成功');
     } catch (err) {
-      showToast(err.response?.data?.detail || '合成失败', true);
+      showToast(err.message || '合成失败', true);
     } finally {
       setLoading(false);
     }
