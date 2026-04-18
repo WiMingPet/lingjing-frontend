@@ -528,12 +528,40 @@ export default function App() {
     showToast(`${type} 已保存到历史记录`);
   };
 
-  const pickImage = () => {
-    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
+  // 通用图片选择和格式检测
+  const pickImageWithValidation = (callback) => {
+    ImagePicker.launchImageLibrary({ 
+      mediaType: 'photo', 
+      quality: 0.8,
+      includeBase64: false
+    }, (res) => {
       if (res.assets && res.assets[0]) {
-        setSelectedImage(res.assets[0]);
-        setResult(null);
+        const file = res.assets[0];
+        const fileName = file.fileName || '';
+        const ext = fileName.split('.').pop()?.toLowerCase();
+        
+        // 支持的格式
+        const supported = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
+        
+        if (!supported.includes(ext)) {
+          showToast('图片格式不支持，请使用 JPG、PNG、WEBP 格式', true);
+          return;
+        }
+        
+        // 如果是不推荐的格式，提示但允许上传
+        if (ext === 'heic' || ext === 'heif') {
+          showToast('HEIC 格式可能较慢，建议转换为 JPG 格式', false);
+        }
+        
+        callback(res.assets[0]);
       }
+    });
+  };
+
+  const pickImage = () => {
+    pickImageWithValidation((asset) => {
+      setSelectedImage(asset);
+      setResult(null);
     });
   };
 
@@ -547,26 +575,20 @@ export default function App() {
   };
 
   const pickModelImage = () => {
-    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
-      if (res.assets && res.assets[0]) {
-        setModelImage(res.assets[0]);
-      }
+    pickImageWithValidation((asset) => {
+      setModelImage(asset);
     });
   };
 
   const pickGarmentImage = () => {
-    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
-      if (res.assets && res.assets[0]) {
-        setGarmentImage(res.assets[0]);
-      }
+    pickImageWithValidation((asset) => {
+      setGarmentImage(asset);
     });
   };
 
   const pickDigitalImage = () => {
-    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
-      if (res.assets && res.assets[0]) {
-        setDigitalImage(res.assets[0]);
-      }
+    pickImageWithValidation((asset) => {
+      setDigitalImage(asset);
     });
   };
 
@@ -588,10 +610,8 @@ export default function App() {
       showToast('最多上传4张照片', true);
       return;
     }
-    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8, selectionLimit: 1 }, (res) => {
-      if (res.assets && res.assets[0]) {
-        setMultiImages([...multiImages, res.assets[0]]);
-      }
+    pickImageWithValidation((asset) => {
+      setMultiImages([...multiImages, asset]);
     });
   };
 
