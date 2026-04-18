@@ -649,9 +649,21 @@ export default function App() {
       }
 
       const res = await response.json();
-      setResult(res.data.data.output_data);
+      console.log('尺码推荐响应:', res);
+    
+      // 提取尺码数据
+      const outputData = res.data?.data?.output_data || res.data?.output_data;
+    
+      if (!outputData) {
+        console.error('无法提取尺码数据:', res);
+        showToast('尺码推荐成功，但无法获取结果', true);
+        return;
+      }
+    
+      setResult(outputData);
       showToast('尺码推荐完成');
     } catch (err) {
+      console.error('尺码推荐错误:', err);
       showToast(err.message || '请求失败', true);
     } finally {
       setLoading(false);
@@ -665,7 +677,6 @@ export default function App() {
   
     const formData = new FormData();
     const file = await convertToFile(selectedImage);
-    // 清理文件名，只保留英文名和扩展名
     const ext = file.name?.split('.').pop() || 'jpg';
     const safeFile = new File([file], `image_${Date.now()}.${ext}`, { type: file.type });
     formData.append('reference_image', safeFile);
@@ -677,9 +688,7 @@ export default function App() {
       const token = localStorage.getItem('access_token');
       const response = await fetch(`${API_URL}/image/generate`, {
         method: 'POST',
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : undefined,
-        },
+        headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
         body: formData,
       });
 
@@ -689,11 +698,24 @@ export default function App() {
       }
 
       const res = await response.json();
-      const imgUrl = res.data.data.output_data.images[0].url;
-      setResult(res.data.data.output_data);
+      console.log('图片生成响应:', res);
+    
+      // 提取图片 URL
+      const imgUrl = res.data?.data?.output_data?.images?.[0]?.url ||
+                     res.data?.output_data?.images?.[0]?.url ||
+                     res.data?.images?.[0]?.url;
+    
+      if (!imgUrl) {
+        console.error('无法提取图片 URL:', res);
+        showToast('图片生成成功，但无法获取链接', true);
+        return;
+      }
+    
+      setResult(res.data?.data?.output_data || res.data?.output_data);
       saveToHistory(imgUrl, '图片生成');
       showToast('图片生成成功');
     } catch (err) {
+      console.error('图片生成错误:', err);
       showToast(err.message || '生成失败', true);
     } finally {
       setLoading(false);
@@ -778,9 +800,7 @@ export default function App() {
       const token = localStorage.getItem('access_token');
       const response = await fetch(`${API_URL}/tryon/generate`, {
         method: 'POST',
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : undefined,
-        },
+        headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
         body: formData,
       });
 
@@ -790,11 +810,23 @@ export default function App() {
       }
 
       const res = await response.json();
-      const tryonUrl = res.data.data.output_data.video_url;
-      setResult(res.data.data.output_data);
+      console.log('虚拟试穿响应:', res);
+    
+      const tryonUrl = res.data?.data?.output_data?.video_url ||
+                       res.data?.output_data?.video_url ||
+                       res.data?.video_url;
+    
+      if (!tryonUrl) {
+        console.error('无法提取视频 URL:', res);
+        showToast('试穿生成成功，但无法获取链接', true);
+        return;
+      }
+    
+      setResult(res.data?.data?.output_data || res.data?.output_data);
       saveToHistory(tryonUrl, '虚拟试穿');
       showToast('试穿视频生成成功');
     } catch (err) {
+      console.error('虚拟试穿错误:', err);
       showToast(err.message || '试穿失败', true);
     } finally {
       setLoading(false);
@@ -820,9 +852,7 @@ export default function App() {
       const token = localStorage.getItem('access_token');
       const response = await fetch(`${API_URL}/digital-human/generate`, {
         method: 'POST',
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : undefined,
-        },
+        headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
         body: formData,
       });
 
@@ -832,11 +862,21 @@ export default function App() {
       }
 
       const res = await response.json();
-      const videoUrl = res.data.data.video_url;
+      console.log('数字人分身响应:', res);
+    
+      const videoUrl = res.data?.video_url || res.video_url;
+    
+      if (!videoUrl) {
+        console.error('无法提取视频 URL:', res);
+        showToast('数字人视频生成成功，但无法获取链接', true);
+        return;
+      }
+    
       setResult({ video_url: videoUrl });
       saveToHistory(videoUrl, '数字人分身');
       showToast('数字人视频生成成功');
     } catch (err) {
+      console.error('数字人分身错误:', err);
       showToast(err.message || '生成失败', true);
     } finally {
       setLoading(false);
@@ -874,11 +914,16 @@ export default function App() {
         throw new Error(errorData.detail || '定制失败');
       }
 
+      const res = await response.json();
+      console.log('数字人定制响应:', res);
+    
+      // 定制数字人没有返回文件 URL，只是提交任务
       showToast('数字人定制任务已提交');
       setCustomVideo(null);
       setCustomName('');
       setCustomDesc('');
     } catch (err) {
+      console.error('数字人定制错误:', err);
       showToast(err.message || '定制失败', true);
     } finally {
       setLoading(false);
@@ -903,9 +948,7 @@ export default function App() {
       const token = localStorage.getItem('access_token');
       const response = await fetch(`${API_URL}/multi-angle/tryon`, {
         method: 'POST',
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : undefined,
-        },
+        headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
         body: formData,
       });
 
@@ -915,11 +958,23 @@ export default function App() {
       }
 
       const res = await response.json();
-      const imageUrl = res.data.data.output_data.image_url;
+      console.log('多角度合成响应:', res);
+    
+      const imageUrl = res.data?.data?.output_data?.image_url ||
+                       res.data?.output_data?.image_url ||
+                       res.data?.image_url;
+    
+      if (!imageUrl) {
+        console.error('无法提取图片 URL:', res);
+        showToast('多角度合成成功，但无法获取链接', true);
+        return;
+      }
+    
       setResult({ images: [{ url: imageUrl }] });
       saveToHistory(imageUrl, '多角度试穿');
       showToast('多角度合成成功');
     } catch (err) {
+      console.error('多角度合成错误:', err);
       showToast(err.message || '合成失败', true);
     } finally {
       setLoading(false);
