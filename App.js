@@ -731,11 +731,25 @@ export default function App() {
       }
 
       const res = await response.json();
-      const videoUrl = res.data.data.output_data.video_url;
-      setResult(res.data.data.output_data);
+      console.log('视频生成响应:', res);
+    
+      // 获取视频 URL（兼容不同的响应格式）
+      const videoUrl = res.data?.data?.output_data?.video_url || 
+                       res.data?.output_data?.video_url || 
+                       res.data?.video_url;
+    
+      if (!videoUrl) {
+        console.error('无法从响应中提取视频 URL:', res);
+        showToast('视频生成成功，但无法获取链接', true);
+        return;
+      }
+    
+      console.log('视频 URL:', videoUrl);
+      setResult({ video_url: videoUrl });
       saveToHistory(videoUrl, '视频生成');
       showToast('视频生成成功');
     } catch (err) {
+      console.error('视频生成错误:', err);
       showToast(err.message || '生成失败', true);
     } finally {
       setLoading(false);
