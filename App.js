@@ -19,7 +19,7 @@ import {
 import * as ImagePicker from 'react-native-image-picker';
 import axios from 'axios';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Video } from 'expo-video';
+import { Video } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 
