@@ -1135,6 +1135,9 @@ export default function App() {
       );
     }
 
+    return null;
+  };
+
   const tabs = [
     { key: 'size', icon: 'body-outline', label: '尺码', color: '#7c3aed' },
     { key: 'image', icon: 'image-outline', label: '图片', color: '#10b981' },
