@@ -1104,41 +1104,19 @@ export default function App() {
     if ((activeTab === 'video' || activeTab === 'tryon' || activeTab === 'digital') && result.video_url) {
       const videoUrl = result.video_url;
       const filename = `${activeTab === 'video' ? 'video' : activeTab === 'tryon' ? 'tryon' : 'digital'}_${Date.now()}.mp4`;
-    
-      // 使用 ref 控制视频播放（避免自动播放策略）
-      const videoRef = useRef(null);
-      const [isPlaying, setIsPlaying] = useState(false);
-    
-      const handlePlay = async () => {
-        if (videoRef.current) {
-          if (isPlaying) {
-            await videoRef.current.pauseAsync();
-            setIsPlaying(false);
-          } else {
-            await videoRef.current.playAsync();
-            setIsPlaying(true);
-          }
-        }
-      };
-    
+  
       return (
         <Card style={styles.resultCard}>
           <Text style={styles.resultTitle}>
             {activeTab === 'video' ? '🎬 生成视频' : activeTab === 'tryon' ? '👗 试穿结果' : '🤖 数字人视频'}
           </Text>
-          <TouchableOpacity onPress={handlePlay} activeOpacity={0.7}>
-            <Video
-              ref={videoRef}
-              source={{ uri: videoUrl }}
-              style={styles.resultVideo}
-              resizeMode="contain"
-              useNativeControls={false}
-              onError={(e) => console.log('视频播放错误', e)}
-            />
-            <View style={styles.playOverlay}>
-              <Icon name={isPlaying ? 'pause-circle' : 'play-circle'} size={50} color="rgba(255,255,255,0.8)" />
-            </View>
-          </TouchableOpacity>
+          <Video
+            source={{ uri: videoUrl }}
+            style={styles.resultVideo}
+            resizeMode="contain"
+            useNativeControls
+            onError={(e) => console.log('视频播放错误', e)}
+          />
           <View style={styles.buttonGroup}>
             <TouchableOpacity onPress={() => { navigator.clipboard.writeText(videoUrl); showToast('链接已复制'); }} style={styles.actionButton}>
               <Icon name="copy-outline" size={18} color="#7c3aed" />
@@ -1156,9 +1134,6 @@ export default function App() {
         </Card>
       );
     }
-
-    return null;
-  };
 
   const tabs = [
     { key: 'size', icon: 'body-outline', label: '尺码', color: '#7c3aed' },
@@ -2240,15 +2215,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     marginTop: 10,
   },
-  playOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 16,
-  },
+
 });
