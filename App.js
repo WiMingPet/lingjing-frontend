@@ -1115,6 +1115,7 @@ export default function App() {
             style={styles.resultVideo}
             resizeMode="contain"
             useNativeControls
+            isMuted={false}
             onError={(e) => console.log('视频播放错误', e)}
           />
           <View style={styles.buttonGroup}>
