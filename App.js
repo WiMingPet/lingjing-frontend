@@ -1028,7 +1028,7 @@ export default function App() {
   const renderResult = () => {
     if (!result) return null;
 
-    // 下载函数（仅下载，不保存相册）
+    // 通用下载函数
     const downloadFile = async (url, filename) => {
       try {
         const response = await fetch(url);
@@ -1072,52 +1072,73 @@ export default function App() {
       );
     }
 
-    // 图片生成或多角度合成
-    if ((activeTab === 'image' || activeTab === 'multi') && result && result.images) {
-      const originalUrl = result.images[0].url;
-      const proxyUrl = `${API_URL.replace('/api', '')}/api/proxy/image?url=${encodeURIComponent(originalUrl)}`;
+    // 图片或图片数组
+    if ((activeTab === 'image' || activeTab === 'multi') && result.images) {
+      const imageUrl = result.images[0].url;
       const filename = `${activeTab === 'image' ? 'image' : 'multiangle'}_${Date.now()}.png`;
       return (
         <Card style={styles.resultCard}>
           <Text style={styles.resultTitle}>{activeTab === 'image' ? '✨ 生成图片' : '🔄 多角度合成'}</Text>
-          <TouchableOpacity onPress={() => { setPreviewUrl(proxyUrl); setModalVisible(true); }}>
-            <Image source={{ uri: proxyUrl }} style={styles.resultImage} resizeMode="contain" />
+          <TouchableOpacity onPress={() => { setPreviewUrl(imageUrl); setModalVisible(true); }}>
+            <Image source={{ uri: imageUrl }} style={styles.resultImage} resizeMode="contain" />
           </TouchableOpacity>
           <View style={styles.buttonGroup}>
-            <TouchableOpacity onPress={() => { navigator.clipboard.writeText(originalUrl); showToast('链接已复制'); }} style={styles.actionButton}>
+            <TouchableOpacity onPress={() => { navigator.clipboard.writeText(imageUrl); showToast('链接已复制'); }} style={styles.actionButton}>
               <Icon name="copy-outline" size={18} color="#7c3aed" />
               <Text style={styles.actionText}>复制链接</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => downloadFile(proxyUrl, filename)} style={styles.actionButton}>
+            <TouchableOpacity onPress={() => downloadFile(imageUrl, filename)} style={styles.actionButton}>
               <Icon name="download-outline" size={18} color="#10b981" />
               <Text style={styles.actionText}>下载</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => saveToGallery(proxyUrl, 'image')} style={styles.actionButton}>
+            <TouchableOpacity onPress={() => saveToGallery(imageUrl, 'image')} style={styles.actionButton}>
               <Icon name="image-outline" size={18} color="#f59e0b" />
               <Text style={styles.actionText}>保存相册</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.hintText}>点击图片可放大预览</Text>
         </Card>
       );
     }
 
-    // 视频生成、虚拟试穿、数字人分身
+    // 视频（包括虚拟试穿、数字人分身等）
     if ((activeTab === 'video' || activeTab === 'tryon' || activeTab === 'digital') && result.video_url) {
       const videoUrl = result.video_url;
       const filename = `${activeTab === 'video' ? 'video' : activeTab === 'tryon' ? 'tryon' : 'digital'}_${Date.now()}.mp4`;
+    
+      // 使用 ref 控制视频播放（避免自动播放策略）
+      const videoRef = useRef(null);
+      const [isPlaying, setIsPlaying] = useState(false);
+    
+      const handlePlay = async () => {
+        if (videoRef.current) {
+          if (isPlaying) {
+            await videoRef.current.pauseAsync();
+            setIsPlaying(false);
+          } else {
+            await videoRef.current.playAsync();
+            setIsPlaying(true);
+          }
+        }
+      };
+    
       return (
         <Card style={styles.resultCard}>
           <Text style={styles.resultTitle}>
             {activeTab === 'video' ? '🎬 生成视频' : activeTab === 'tryon' ? '👗 试穿结果' : '🤖 数字人视频'}
           </Text>
-          <Video
-            source={{ uri: videoUrl }}
-            style={styles.resultVideo}
-            useNativeControls
-            resizeMode="contain"
-            isLooping
-          />
+          <TouchableOpacity onPress={handlePlay} activeOpacity={0.7}>
+            <Video
+              ref={videoRef}
+              source={{ uri: videoUrl }}
+              style={styles.resultVideo}
+              resizeMode="contain"
+              useNativeControls={false}
+              onError={(e) => console.log('视频播放错误', e)}
+            />
+            <View style={styles.playOverlay}>
+              <Icon name={isPlaying ? 'pause-circle' : 'play-circle'} size={50} color="rgba(255,255,255,0.8)" />
+            </View>
+          </TouchableOpacity>
           <View style={styles.buttonGroup}>
             <TouchableOpacity onPress={() => { navigator.clipboard.writeText(videoUrl); showToast('链接已复制'); }} style={styles.actionButton}>
               <Icon name="copy-outline" size={18} color="#7c3aed" />
@@ -1135,6 +1156,7 @@ export default function App() {
         </Card>
       );
     }
+
     return null;
   };
 
@@ -2211,17 +2233,22 @@ const styles = StyleSheet.create({
     color: '#ddd',
     fontSize: 12,
   },
-  hintText: {
-    color: '#aaa',
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 4,
-  },
   resultVideo: {
     width: width * 0.9,
     height: width * 0.9 * 0.5625,
     borderRadius: 16,
     backgroundColor: '#000',
     marginTop: 10,
+  },
+  playOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 16,
   },
 });
