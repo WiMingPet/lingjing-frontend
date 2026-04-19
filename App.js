@@ -989,7 +989,7 @@ export default function App() {
       let imageUrl = null;
       if (ecommerceImage) {
         const formData = new FormData();
-        formData.append('image', ecommerceImage);
+        formData.append('file', ecommerceImage);
         const uploadRes = await axios.post(`${API_URL}/upload`, formData, {
           headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${accessToken}` }
         });
