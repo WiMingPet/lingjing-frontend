@@ -2215,5 +2215,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     marginTop: 10,
   },
-
 });
