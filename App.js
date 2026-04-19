@@ -98,7 +98,11 @@ export default function App() {
   // 新增：登录验证码倒计时
   const [loginCountdown, setLoginCountdown] = useState(0);
   const [digitalSubTab, setDigitalSubTab] = useState('ecommerce');
+  const [ecommerceTitle, setEcommerceTitle] = useState('');
+  const [ecommercePrice, setEcommercePrice] = useState('');
+  const [ecommerceDescription, setEcommerceDescription] = useState('');
   const [ecommerceUrl, setEcommerceUrl] = useState('');
+  const [ecommerceImage, setEcommerceImage] = useState(null);
   const [ecommerceVideoUrl, setEcommerceVideoUrl] = useState('');
   // 新增：创建一个ref来稳定地保存验证码
   const savedRegisterCode = useRef('');
@@ -632,6 +636,15 @@ export default function App() {
     });
   };
 
+  // 商品图片选择（用于 AI 带货视频）
+  const pickEcommerceImage = () => {
+    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
+      if (res.assets && res.assets[0]) {
+        setEcommerceImage(res.assets[0]);
+      }
+    });
+  };
+
   const convertToFile = async (imageAsset) => {
     // 如果已经是标准 File 对象，直接返回
     if (imageAsset && imageAsset.name && imageAsset.type && !imageAsset.uri) {
@@ -967,27 +980,56 @@ export default function App() {
   };
 
   const generateEcommerceVideo = async () => {
-    if (!ecommerceUrl.trim()) {
-      showToast('请输入商品链接', true);
-      return;
-    }
+    if (!ecommerceTitle.trim()) return showToast('请输入商品标题', true);
+    if (!ecommercePrice.trim()) return showToast('请输入商品价格', true);
+    if (!ecommerceDescription.trim()) return showToast('请输入商品描述', true);
+  
     setLoading(true);
     try {
+      let imageUrl = null;
+      if (ecommerceImage) {
+        const formData = new FormData();
+        formData.append('image', ecommerceImage);
+        const uploadRes = await axios.post(`${API_URL}/upload`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${accessToken}` }
+        });
+        imageUrl = uploadRes.data.url;
+      }
+    
       const res = await axios.post(`${API_URL}/ecommerce/generate_video`, {
+        title: ecommerceTitle,
+        price: ecommercePrice,
+        description: ecommerceDescription,
         url: ecommerceUrl,
-        digital_human_id: null,
-      }, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
+        image_url: imageUrl,
+      }, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+    
       if (res.data.code === 200) {
         setEcommerceVideoUrl(res.data.data.video_url);
         showToast('视频生成成功');
-      } else {
-        showToast(res.data.message || '生成失败', true);
       }
     } catch (err) {
-      console.error('生成带货视频失败:', err);
       showToast(err.response?.data?.detail || '生成失败', true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchProductInfo = async () => {
+    if (!ecommerceUrl.trim()) return showToast('请输入商品链接', true);
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API_URL}/ecommerce/parse_url`, { url: ecommerceUrl }, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      if (res.data.code === 200) {
+        setEcommerceTitle(res.data.data.title);
+        setEcommercePrice(res.data.data.price);
+        setEcommerceDescription(res.data.data.description);
+        showToast('信息获取成功');
+      }
+    } catch (err) {
+      showToast('获取失败，请手动填写', true);
     } finally {
       setLoading(false);
     }
@@ -1550,27 +1592,68 @@ export default function App() {
                   {digitalSubTab === 'ecommerce' && (
                     <Card style={styles.card}>
                       <Text style={styles.cardTitle}>🚀 AI 带货视频</Text>
+    
+                      <Text style={styles.label}>商品标题 *</Text>
                       <TextInput
-                          style={styles.urlInput}
-                          placeholder="粘贴商品链接（淘宝、京东、抖音等）"
-                          placeholderTextColor="#888"
-                          value={ecommerceUrl}
-                          onChangeText={setEcommerceUrl}
-                        />
-                      <TouchableOpacity
-                        style={styles.generateButton}
-                        onPress={generateEcommerceVideo}
-                        disabled={loading}
-                      >
+                        style={styles.input}
+                        placeholder="例如：智能运动手环"
+                        placeholderTextColor="#888"
+                        value={ecommerceTitle}
+                        onChangeText={setEcommerceTitle}
+                      />
+    
+                      <Text style={styles.label}>商品价格 *</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="例如：199.00"
+                        placeholderTextColor="#888"
+                        value={ecommercePrice}
+                        onChangeText={setEcommercePrice}
+                        keyboardType="numeric"
+                      />
+    
+                      <Text style={styles.label}>商品描述 *</Text>
+                      <TextInput
+                        style={[styles.input, { minHeight: 80 }]}
+                        placeholder="描述商品的特点、卖点、适用场景..."
+                        placeholderTextColor="#888"
+                        value={ecommerceDescription}
+                        onChangeText={setEcommerceDescription}
+                        multiline
+                      />
+    
+                      <Text style={styles.label}>商品图片（可选）</Text>
+                      <TouchableOpacity onPress={pickEcommerceImage} style={styles.imagePicker}>
+                        {ecommerceImage ? (
+                          <Image source={{ uri: ecommerceImage.uri }} style={styles.previewImage} />
+                        ) : (
+                          <View style={styles.placeholder}>
+                            <Icon name="image-outline" size={48} color="#666" />
+                            <Text style={styles.placeholderText}>点击上传商品图片</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+    
+                      <Text style={styles.label}>商品链接（可选，用于自动填充）</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="粘贴商品链接"
+                        placeholderTextColor="#888"
+                        value={ecommerceUrl}
+                        onChangeText={setEcommerceUrl}
+                      />
+    
+                      <TouchableOpacity style={styles.secondaryButton} onPress={fetchProductInfo} disabled={loading}>
+                        <Text style={styles.secondaryButtonText}>从链接获取信息</Text>
+                      </TouchableOpacity>
+    
+                      <TouchableOpacity style={styles.generateButton} onPress={generateEcommerceVideo} disabled={loading}>
                         <Text style={styles.generateText}>生成带货视频</Text>
                       </TouchableOpacity>
+    
                       {ecommerceVideoUrl && (
                         <View style={{ marginTop: 16 }}>
-                          <Video
-                            source={{ uri: ecommerceVideoUrl }}
-                            style={styles.resultVideo}
-                            useNativeControls
-                          />
+                          <Video source={{ uri: ecommerceVideoUrl }} style={styles.resultVideo} useNativeControls />
                         </View>
                       )}
                     </Card>
@@ -2425,12 +2508,30 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-  urlInput: {
+  label: {
+    color: '#ddd',
+    fontSize: 14,
+    marginBottom: 8,
+    marginTop: 12,
+  },
+  input: {
     backgroundColor: '#2d2d44',
     borderRadius: 12,
     padding: 12,
     color: '#fff',
     fontSize: 14,
     marginBottom: 16,
+  },
+  secondaryButton: {
+    backgroundColor: '#3b3b5c',
+    borderRadius: 30,
+    paddingVertical: 12,
+    alignItems: 'center',
+  marginBottom: 16,
+  },
+  secondaryButtonText: {
+    color: '#7c3aed',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
