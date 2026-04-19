@@ -24,7 +24,8 @@
     "react-native-web": "^0.21.0",
     "expo-av": "~16.0.8",
     "expo-media-library": "~18.2.1",
-    "expo-file-system": "~19.0.21"
+    "expo-file-system": "~19.0.21",
+    "expo-video": "~3.0.16"
   },
   "devDependencies": {
     "expo-cli": "^6.3.10"
