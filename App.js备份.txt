@@ -97,13 +97,9 @@ export default function App() {
   const [countdown, setCountdown] = useState(0);
   // 新增：登录验证码倒计时
   const [loginCountdown, setLoginCountdown] = useState(0);
-  const [digitalSubTab, setDigitalSubTab] = useState('ecommerce');
-  const [ecommerceUrl, setEcommerceUrl] = useState('');
-  const [ecommerceVideoUrl, setEcommerceVideoUrl] = useState('');
   // 新增：创建一个ref来稳定地保存验证码
   const savedRegisterCode = useRef('');
   // 获取当前用户灵境点余额（直接从 localStorage 读取 token）
-  
 
   const fetchUserCredits = async () => {
     const token = localStorage.getItem('access_token');
@@ -966,33 +962,6 @@ export default function App() {
     }
   };
 
-  const generateEcommerceVideo = async () => {
-    if (!ecommerceUrl.trim()) {
-      showToast('请输入商品链接', true);
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await axios.post(`${API_URL}/ecommerce/generate_video`, {
-        url: ecommerceUrl,
-        digital_human_id: null,
-      }, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (res.data.code === 200) {
-        setEcommerceVideoUrl(res.data.data.video_url);
-        showToast('视频生成成功');
-      } else {
-        showToast(res.data.message || '生成失败', true);
-      }
-    } catch (err) {
-      console.error('生成带货视频失败:', err);
-      showToast(err.response?.data?.detail || '生成失败', true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const generateMultiAngle = async () => {
     if (!checkAndUseCredits(15, '多角度试穿', () => {})) return;
     if (multiImages.length < 2) return showToast('请至少上传2张照片');
@@ -1176,7 +1145,7 @@ export default function App() {
     { key: 'video', icon: 'videocam-outline', label: '视频', color: '#f59e0b' },
     { key: 'tryon', icon: 'shirt-outline', label: '试穿', color: '#ef4444' },
     { key: 'digital', icon: 'person-circle-outline', label: '数字人', color: '#06b6d4' },
-    { key: 'digital_custom', icon: 'videocam-outline', label: '定制视频', color: '#f97316' },
+    { key: 'digital_custom', icon: 'construct-outline', label: '定制', color: '#f97316' },
     { key: 'multi', icon: 'albums-outline', label: '多角度', color: '#8b5cf6' },
     { key: 'profile', icon: 'person-outline', label: '我的', color: '#7c3aed' },
   ];
@@ -1391,191 +1360,53 @@ export default function App() {
 
             {activeTab === 'digital_custom' && (
               <>
-                {/* 子标签栏 */}
-                <View style={styles.subTabContainer}>
-                  <TouchableOpacity
-                    style={[styles.subTab, digitalSubTab === 'avatar' && styles.activeSubTab]}
-                    onPress={() => setDigitalSubTab('avatar')}
-                  >
-                    <Text style={[styles.subTabText, digitalSubTab === 'avatar' && styles.activeSubTabText]}>数字人分身</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.subTab, digitalSubTab === 'custom' && styles.activeSubTab]}
-                    onPress={() => setDigitalSubTab('custom')}
-                  >
-                    <Text style={[styles.subTabText, digitalSubTab === 'custom' && styles.activeSubTabText]}>定制数字人</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.subTab, digitalSubTab === 'ecommerce' && styles.activeSubTab]}
-                    onPress={() => setDigitalSubTab('ecommerce')}
-                  >
-                    <Text style={[styles.subTabText, digitalSubTab === 'ecommerce' && styles.activeSubTabText]}>AI带货视频</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <ScrollView contentContainerStyle={styles.content}>
-                  {/* ========== 子标签1：数字人分身 ========== */}
-                  {digitalSubTab === 'avatar' && (
-                    <>
-                      <Card style={styles.imageCard}>
-                        <View style={styles.cardHeader}>
-                          <Text style={styles.cardTitle}>📸 上传照片</Text>
-                          {digitalImage && (
-                            <TouchableOpacity onPress={() => setDigitalImage(null)} style={styles.deleteButton}>
-                              <Icon name="close-circle-outline" size={24} color="#ef4444" />
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                        <TouchableOpacity onPress={pickDigitalImage} style={styles.imagePicker}>
-                          {digitalImage ? (
-                            <>
-                              <Image source={{ uri: digitalImage.uri }} style={styles.previewImage} />
-                              <View style={styles.imageOverlay}>
-                                <Text style={styles.overlayText}>点击更换</Text>
-                              </View>
-                            </>
-                          ) : (
-                            <View style={styles.placeholder}>
-                              <Icon name="person-outline" size={48} color="#666" />
-                              <Text style={styles.placeholderText}>点击上传照片</Text>
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      </Card>
-
-                      <Card style={styles.promptCard}>
-                        <Text style={styles.cardTitle}>💬 输入说话内容</Text>
-                        <TextInput
-                          style={styles.promptInput}
-                          value={digitalText}
-                          onChangeText={setDigitalText}
-                          placeholder="例如：大家好，我是灵境AI平台创造的数字人，很高兴认识大家！"
-                          placeholderTextColor="#888"
-                          multiline
-                        />
-                      </Card>
-
-                      <Card style={styles.inputCard}>
-                        <Text style={styles.cardTitle}>🎵 选择音色</Text>
-                        <View style={styles.voiceRow}>
-                          {['温柔女声', '沉稳男声', '可爱童声', '磁性男声'].map(voice => (
-                            <TouchableOpacity
-                              key={voice}
-                              style={[styles.voiceButton, digitalVoice === voice && styles.voiceButtonActive]}
-                              onPress={() => setDigitalVoice(voice)}
-                            >
-                              <Text style={[styles.voiceText, digitalVoice === voice && styles.voiceTextActive]}>{voice}</Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      </Card>
-
-                      <Card style={styles.inputCard}>
-                        <Text style={styles.cardTitle}>📛 数字人名称（可选）</Text>
-                        <TextInput
-                          style={styles.promptInput}
-                          value={digitalName}
-                          onChangeText={setDigitalName}
-                          placeholder="我的数字人"
-                          placeholderTextColor="#888"
-                        />
-                      </Card>
-
-                      <TouchableOpacity onPress={generateDigitalHuman} disabled={loading} style={styles.generateButton}>
-                        {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>生成数字人视频</Text>}
+                <Card style={styles.imageCard}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.cardTitle}>🎥 上传训练视频</Text>
+                    {customVideo && (
+                      <TouchableOpacity onPress={() => setCustomVideo(null)} style={styles.deleteButton}>
+                        <Icon name="close-circle-outline" size={24} color="#ef4444" />
                       </TouchableOpacity>
-                    </>
-                  )}
-
-                  {/* ========== 子标签2：定制数字人 ========== */}
-                  {digitalSubTab === 'custom' && (
-                    <>
-                      <Card style={styles.imageCard}>
-                        <View style={styles.cardHeader}>
-                          <Text style={styles.cardTitle}>🎥 上传训练视频</Text>
-                          {customVideo && (
-                            <TouchableOpacity onPress={() => setCustomVideo(null)} style={styles.deleteButton}>
-                              <Icon name="close-circle-outline" size={24} color="#ef4444" />
-                            </TouchableOpacity>
-                          )}
+                    )}
+                  </View>
+                  <TouchableOpacity onPress={pickCustomVideo} style={styles.imagePicker}>
+                    {customVideo ? (
+                      <View style={styles.placeholder}>
+                        <Icon name="videocam-outline" size={48} color="#666" />
+                        <Text style={styles.placeholderText}>{customVideo.name}</Text>
+                        <View style={styles.imageOverlay}>
+                          <Text style={styles.overlayText}>点击更换</Text>
                         </View>
-                        <TouchableOpacity onPress={pickCustomVideo} style={styles.imagePicker}>
-                          {customVideo ? (
-                            <View style={styles.placeholder}>
-                              <Icon name="videocam-outline" size={48} color="#666" />
-                              <Text style={styles.placeholderText}>{customVideo.name}</Text>
-                              <View style={styles.imageOverlay}>
-                                <Text style={styles.overlayText}>点击更换</Text>
-                              </View>
-                            </View>
-                          ) : (
-                            <View style={styles.placeholder}>
-                              <Icon name="videocam-outline" size={48} color="#666" />
-                              <Text style={styles.placeholderText}>点击上传视频（MP4）</Text>
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      </Card>
-
-                      <Card style={styles.inputCard}>
-                        <Text style={styles.cardTitle}>📛 数字人名称</Text>
-                        <TextInput
-                          style={styles.promptInput}
-                          value={customName}
-                          onChangeText={setCustomName}
-                          placeholder="例如：我的专属数字人"
-                          placeholderTextColor="#888"
-                        />
-                      </Card>
-
-                      <Card style={styles.promptCard}>
-                        <Text style={styles.cardTitle}>📝 描述（可选）</Text>
-                        <TextInput
-                          style={styles.promptInput}
-                          value={customDesc}
-                          onChangeText={setCustomDesc}
-                          placeholder="描述这个数字人的特点"
-                          placeholderTextColor="#888"
-                          multiline
-                        />
-                      </Card>
-
-                      <TouchableOpacity onPress={generateDigitalHumanCustom} disabled={loading} style={styles.generateButton}>
-                        {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>开始定制数字人</Text>}
-                      </TouchableOpacity>
-                    </>
-                  )}
-
-                  {/* ========== 子标签3：AI带货视频 ========== */}
-                  {digitalSubTab === 'ecommerce' && (
-                    <Card style={styles.card}>
-                      <Text style={styles.cardTitle}>🚀 AI 带货视频</Text>
-                      <TextInput
-                          style={styles.urlInput}
-                          placeholder="粘贴商品链接（淘宝、京东、抖音等）"
-                          placeholderTextColor="#888"
-                          value={ecommerceUrl}
-                          onChangeText={setEcommerceUrl}
-                        />
-                      <TouchableOpacity
-                        style={styles.generateButton}
-                        onPress={generateEcommerceVideo}
-                        disabled={loading}
-                      >
-                        <Text style={styles.generateText}>生成带货视频</Text>
-                      </TouchableOpacity>
-                      {ecommerceVideoUrl && (
-                        <View style={{ marginTop: 16 }}>
-                          <Video
-                            source={{ uri: ecommerceVideoUrl }}
-                            style={styles.resultVideo}
-                            useNativeControls
-                          />
-                        </View>
-                      )}
-                    </Card>
-                  )}
-                </ScrollView>
+                      </View>
+                    ) : (
+                      <View style={styles.placeholder}>
+                        <Icon name="videocam-outline" size={48} color="#666" />
+                        <Text style={styles.placeholderText}>点击上传视频（MP4）</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </Card>
+                <Card style={styles.inputCard}>
+                  <Text style={styles.cardTitle}>📛 数字人名称</Text>
+                  <TextInput
+                    style={styles.promptInput}
+                    value={customName}
+                    onChangeText={setCustomName}
+                    placeholder="例如：我的专属数字人"
+                    placeholderTextColor="#888"
+                  />
+                </Card>
+                <Card style={styles.promptCard}>
+                  <Text style={styles.cardTitle}>📝 描述（可选）</Text>
+                  <TextInput
+                    style={styles.promptInput}
+                    value={customDesc}
+                    onChangeText={setCustomDesc}
+                    placeholder="描述这个数字人的特点"
+                    placeholderTextColor="#888"
+                    multiline
+                  />
+                </Card>
               </>
             )}
 
@@ -2398,39 +2229,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.3)',
     borderRadius: 16,
-  },
-  subTabContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: '#1e1e2e',
-    borderRadius: 30,
-    marginHorizontal: 20,
-    marginVertical: 10,
-    padding: 4,
-  },
-  subTab: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 25,
-  },
-  activeSubTab: {
-    backgroundColor: '#7c3aed',
-  },
-  subTabText: {
-    color: '#aaa',
-    fontSize: 14,
-  },
-  activeSubTabText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  urlInput: {
-    backgroundColor: '#2d2d44',
-    borderRadius: 12,
-    padding: 12,
-    color: '#fff',
-    fontSize: 14,
-    marginBottom: 16,
   },
 });
