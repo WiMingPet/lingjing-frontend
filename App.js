@@ -98,12 +98,12 @@ export default function App() {
   // 新增：登录验证码倒计时
   const [loginCountdown, setLoginCountdown] = useState(0);
   const [digitalSubTab, setDigitalSubTab] = useState('ecommerce');
-  const [ecommerceTitle, setEcommerceTitle] = useState('');
-  const [ecommercePrice, setEcommercePrice] = useState('');
   const [ecommerceDescription, setEcommerceDescription] = useState('');
   const [ecommerceUrl, setEcommerceUrl] = useState('');
   const [ecommerceImage, setEcommerceImage] = useState(null);
+  const [ecommerceDigitalImage, setEcommerceDigitalImage] = useState(null);
   const [ecommerceVideoUrl, setEcommerceVideoUrl] = useState('');
+
   // 新增：创建一个ref来稳定地保存验证码
   const savedRegisterCode = useRef('');
   // 获取当前用户灵境点余额（直接从 localStorage 读取 token）
@@ -636,11 +636,18 @@ export default function App() {
     });
   };
 
-  // 商品图片选择（用于 AI 带货视频）
   const pickEcommerceImage = () => {
     ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
       if (res.assets && res.assets[0]) {
         setEcommerceImage(res.assets[0]);
+      }
+    });
+  };
+
+  const pickEcommerceDigitalImage = () => {
+    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
+      if (res.assets && res.assets[0]) {
+        setEcommerceDigitalImage(res.assets[0]);
       }
     });
   };
@@ -980,35 +987,49 @@ export default function App() {
   };
 
   const generateEcommerceVideo = async () => {
-    if (!ecommerceTitle.trim()) return showToast('请输入商品标题', true);
-    if (!ecommercePrice.trim()) return showToast('请输入商品价格', true);
-    if (!ecommerceDescription.trim()) return showToast('请输入商品描述', true);
-  
+    // 至少提供一种信息
+    if (!ecommerceUrl.trim() && !ecommerceImage && !ecommerceDescription.trim() && !ecommerceDigitalImage) {
+      showToast('请提供商品链接、图片、描述或数字人照片', true);
+      return;
+    }
+    
     setLoading(true);
     try {
-      let imageUrl = null;
+      let productImageUrl = null;
       if (ecommerceImage) {
         const formData = new FormData();
         formData.append('file', ecommerceImage);
         const uploadRes = await axios.post(`${API_URL}/upload`, formData, {
           headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${accessToken}` }
         });
-        imageUrl = uploadRes.data.url;
+        productImageUrl = uploadRes.data.url;
       }
-    
+      
+      let digitalImageUrl = null;
+      if (ecommerceDigitalImage) {
+        const formData = new FormData();
+        formData.append('file', ecommerceDigitalImage);
+        const uploadRes = await axios.post(`${API_URL}/upload`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${accessToken}` }
+        });
+        digitalImageUrl = uploadRes.data.url;
+      }
+      
       const res = await axios.post(`${API_URL}/ecommerce/generate_video`, {
-        title: ecommerceTitle,
-        price: ecommercePrice,
-        description: ecommerceDescription,
         url: ecommerceUrl,
-        image_url: imageUrl,
+        description: ecommerceDescription,
+        image_url: productImageUrl,
+        digital_image_url: digitalImageUrl,
       }, { headers: { 'Authorization': `Bearer ${accessToken}` } });
-    
+      
       if (res.data.code === 200) {
         setEcommerceVideoUrl(res.data.data.video_url);
         showToast('视频生成成功');
+      } else {
+        showToast(res.data.message || '生成失败', true);
       }
     } catch (err) {
+      console.error('生成带货视频失败:', err);
       showToast(err.response?.data?.detail || '生成失败', true);
     } finally {
       setLoading(false);
@@ -1592,36 +1613,18 @@ export default function App() {
                   {digitalSubTab === 'ecommerce' && (
                     <Card style={styles.card}>
                       <Text style={styles.cardTitle}>🚀 AI 带货视频</Text>
-    
-                      <Text style={styles.label}>商品标题 *</Text>
+                      
+                      {/* 商品链接（可选） */}
+                      <Text style={styles.label}>商品链接（可选）</Text>
                       <TextInput
                         style={styles.input}
-                        placeholder="例如：智能运动手环"
+                        placeholder="粘贴淘宝、京东、抖音等商品链接"
                         placeholderTextColor="#888"
-                        value={ecommerceTitle}
-                        onChangeText={setEcommerceTitle}
+                        value={ecommerceUrl}
+                        onChangeText={setEcommerceUrl}
                       />
-    
-                      <Text style={styles.label}>商品价格 *</Text>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="例如：199.00"
-                        placeholderTextColor="#888"
-                        value={ecommercePrice}
-                        onChangeText={setEcommercePrice}
-                        keyboardType="numeric"
-                      />
-    
-                      <Text style={styles.label}>商品描述 *</Text>
-                      <TextInput
-                        style={[styles.input, { minHeight: 80 }]}
-                        placeholder="描述商品的特点、卖点、适用场景..."
-                        placeholderTextColor="#888"
-                        value={ecommerceDescription}
-                        onChangeText={setEcommerceDescription}
-                        multiline
-                      />
-    
+                      
+                      {/* 商品图片（可选） */}
                       <Text style={styles.label}>商品图片（可选）</Text>
                       <TouchableOpacity onPress={pickEcommerceImage} style={styles.imagePicker}>
                         {ecommerceImage ? (
@@ -1633,27 +1636,48 @@ export default function App() {
                           </View>
                         )}
                       </TouchableOpacity>
-    
-                      <Text style={styles.label}>商品链接（可选，用于自动填充）</Text>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="粘贴商品链接"
-                        placeholderTextColor="#888"
-                        value={ecommerceUrl}
-                        onChangeText={setEcommerceUrl}
-                      />
-    
-                      <TouchableOpacity style={styles.secondaryButton} onPress={fetchProductInfo} disabled={loading}>
-                        <Text style={styles.secondaryButtonText}>从链接获取信息</Text>
+                      
+                      {/* 数字人照片（可选） */}
+                      <Text style={styles.label}>数字人照片（可选）</Text>
+                      <TouchableOpacity onPress={pickEcommerceDigitalImage} style={styles.imagePicker}>
+                        {ecommerceDigitalImage ? (
+                          <Image source={{ uri: ecommerceDigitalImage.uri }} style={styles.previewImage} />
+                        ) : (
+                          <View style={styles.placeholder}>
+                            <Icon name="person-outline" size={48} color="#666" />
+                            <Text style={styles.placeholderText}>点击上传数字人照片</Text>
+                          </View>
+                        )}
                       </TouchableOpacity>
-    
-                      <TouchableOpacity style={styles.generateButton} onPress={generateEcommerceVideo} disabled={loading}>
+                      
+                      {/* 商品描述（可选） */}
+                      <Text style={styles.label}>商品描述（可选）</Text>
+                      <TextInput
+                        style={[styles.input, { minHeight: 80 }]}
+                        placeholder="描述商品特点、卖点、适用场景..."
+                        placeholderTextColor="#888"
+                        value={ecommerceDescription}
+                        onChangeText={setEcommerceDescription}
+                        multiline
+                      />
+                      
+                      {/* 生成按钮 */}
+                      <TouchableOpacity
+                        style={styles.generateButton}
+                        onPress={generateEcommerceVideo}
+                        disabled={loading}
+                      >
                         <Text style={styles.generateText}>生成带货视频</Text>
                       </TouchableOpacity>
-    
+                      
+                      {/* 视频结果 */}
                       {ecommerceVideoUrl && (
                         <View style={{ marginTop: 16 }}>
-                          <Video source={{ uri: ecommerceVideoUrl }} style={styles.resultVideo} useNativeControls />
+                          <Video
+                            source={{ uri: ecommerceVideoUrl }}
+                            style={styles.resultVideo}
+                            useNativeControls
+                          />
                         </View>
                       )}
                     </Card>
