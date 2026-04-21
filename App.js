@@ -1003,14 +1003,16 @@ export default function App() {
         return;
       }
 
-      // 关键：参数放在请求体中，作为 JSON 对象
+      // 硬编码正确的后端地址
+      const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
+
       const res = await axios.post(
-        `${API_URL}/ecommerce/parse_url`,
-        { url: ecommerceUrl },  // ← 参数放在这里，作为 JSON body
+        `${BACKEND_URL}/ecommerce/parse_url`,
+        { url: ecommerceUrl },
         {
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'  // 确保 Content-Type 正确
+            'Content-Type': 'application/json'
           }
         }
       );
@@ -1037,6 +1039,9 @@ export default function App() {
 
   // 生成带货视频（修正版）
   const generateEcommerceVideo = async () => {
+    // 硬编码正确的后端地址（临时方案）
+    const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
+    
     // 检查必要信息
     if (!ecommerceImage) {
       showToast('请先上传商品主图', true);
@@ -1051,7 +1056,7 @@ export default function App() {
     setLoading(true);
     
     try {
-      // 1. 上传商品图片（使用 'file' 字段名）
+      // 1. 上传商品图片
       let productImageUrl = null;
       if (ecommerceImage) {
         const formData = new FormData();
@@ -1061,7 +1066,8 @@ export default function App() {
           name: ecommerceImage.fileName || 'product.jpg'
         });
         
-        const uploadRes = await axios.post(`${API_URL}/upload`, formData, {
+        // 使用 BACKEND_URL 而不是 API_URL
+        const uploadRes = await axios.post(`${BACKEND_URL}/upload`, formData, {
           headers: { 
             'Content-Type': 'multipart/form-data',
             'Authorization': `Bearer ${accessToken}`
@@ -1070,7 +1076,7 @@ export default function App() {
         productImageUrl = uploadRes.data.url;
       }
       
-      // 2. 上传数字人照片（如果有，也使用 'file' 字段名）
+      // 2. 上传数字人照片
       let digitalImageUrl = null;
       if (ecommerceDigitalImage) {
         const formData = new FormData();
@@ -1080,7 +1086,7 @@ export default function App() {
           name: ecommerceDigitalImage.fileName || 'digital.jpg'
         });
         
-        const uploadRes = await axios.post(`${API_URL}/upload`, formData, {
+        const uploadRes = await axios.post(`${BACKEND_URL}/upload`, formData, {
           headers: { 
             'Content-Type': 'multipart/form-data',
             'Authorization': `Bearer ${accessToken}`
@@ -1090,7 +1096,7 @@ export default function App() {
       }
       
       // 3. 调用生成视频接口
-      const res = await axios.post(`${API_URL}/ecommerce/generate_video`, {
+      const res = await axios.post(`${BACKEND_URL}/ecommerce/generate_video`, {
         url: ecommerceUrl || undefined,
         description: ecommerceDescription,
         image_url: productImageUrl,
