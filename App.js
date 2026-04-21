@@ -1039,8 +1039,11 @@ export default function App() {
 
   // 生成带货视频（修正版）
   const generateEcommerceVideo = async () => {
-    // 硬编码正确的后端地址（临时方案）
-    const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
+  console.log('API_URL 原始值:', API_URL);
+  // 强制重置为正确的地址
+  const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
+  console.log('使用地址:', BACKEND_URL);
+  // ... 后面代码中用 BACKEND_URL 代替 API_URL
     
     // 检查必要信息
     if (!ecommerceImage) {
