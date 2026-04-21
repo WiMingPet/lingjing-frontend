@@ -1003,9 +1003,7 @@ export default function App() {
         return;
       }
 
-      // 直接硬编码正确的后端地址
       const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
-      console.log('[解析链接] 使用后端地址:', BACKEND_URL);
 
       const res = await axios.post(
         `${BACKEND_URL}/ecommerce/parse_url`,
@@ -1018,11 +1016,22 @@ export default function App() {
         }
       );
       
-      console.log('[解析链接] 响应:', res.data);
-      
       if (res.data.code === 200) {
         const productData = res.data.data;
+        
+        // 自动填充商品描述
         setEcommerceDescription(productData.description || productData.title);
+        
+        // ✅ 关键：如果后端返回了图片，自动设置商品图片（存为对象格式，标记为 URL）
+        if (productData.images && productData.images.length > 0) {
+          // 存储为特殊对象，表示这是一个 URL 而不是本地文件
+          setEcommerceImage({ uri: productData.images[0], isUrl: true });
+          showToast(`解析成功，已自动获取商品图片`);
+        } else {
+          setEcommerceImage(null);
+          showToast(`解析成功，请手动上传商品图片`);
+        }
+        
         Alert.alert(
           '解析成功',
           `商品：${productData.title}\n价格：${productData.price}元`,
@@ -1032,7 +1041,7 @@ export default function App() {
         showToast(res.data.message || '解析失败', true);
       }
     } catch (err) {
-      console.error('[解析链接失败]', err);
+      console.error('解析失败:', err);
       const errorMsg = err.response?.data?.detail || err.response?.data?.message || '解析失败，请手动填写';
       showToast(errorMsg, true);
     } finally {
@@ -1042,18 +1051,7 @@ export default function App() {
 
   // 生成带货视频 - 终极硬编码版本
   const generateEcommerceVideo = async () => {
-    // 1. 全局重置 axios 的 baseURL，清除任何可能的干扰配置
-    delete axios.defaults.baseURL;
-    
-    // 2. 直接硬编码正确的后端地址
     const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
-    console.log('[终极修复] 使用后端地址:', BACKEND_URL);
-
-    // 检查必要信息
-    if (!ecommerceImage) {
-      showToast('请先上传商品主图', true);
-      return;
-    }
     
     if (!ecommerceDescription.trim()) {
       showToast('请填写商品描述或先点击解析链接', true);
@@ -1063,48 +1061,57 @@ export default function App() {
     setLoading(true);
     
     try {
-      // 3. 上传商品图片 - 使用硬编码地址
       let productImageUrl = null;
+      
+      // 判断商品图片是 URL 还是本地文件
       if (ecommerceImage) {
-        const formData = new FormData();
-        formData.append('file', {
-          uri: ecommerceImage.uri,
-          type: ecommerceImage.type || 'image/jpeg',
-          name: ecommerceImage.fileName || 'product.jpg'
-        });
-        
-        const uploadRes = await axios.post(`${BACKEND_URL}/upload`, formData, {
-          headers: { 
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
-        productImageUrl = uploadRes.data.url;
-        console.log('[上传成功] 商品图片 URL:', productImageUrl);
+        if (ecommerceImage.isUrl || ecommerceImage.uri?.startsWith('http')) {
+          // 已经是 URL，直接使用
+          productImageUrl = ecommerceImage.uri;
+          console.log('[使用已有图片URL]', productImageUrl);
+        } else if (ecommerceImage.uri) {
+          // 本地文件，需要上传
+          const formData = new FormData();
+          const file = await convertToFile(ecommerceImage);
+          formData.append('file', file);
+          
+          const uploadRes = await axios.post(`${BACKEND_URL}/upload`, formData, {
+            headers: { 
+              'Content-Type': 'multipart/form-data',
+              'Authorization': `Bearer ${accessToken}`
+            }
+          });
+          productImageUrl = uploadRes.data.url;
+          console.log('[上传图片成功]', productImageUrl);
+        }
       }
       
-      // 4. 上传数字人照片 - 使用硬编码地址
+      // 如果没有商品图片，使用描述生成（不强制要求图片）
+      if (!productImageUrl) {
+        console.log('[无商品图片，仅使用描述生成视频]');
+      }
+      
+      // 处理数字人照片（类似逻辑）
       let digitalImageUrl = null;
       if (ecommerceDigitalImage) {
-        const formData = new FormData();
-        formData.append('file', {
-          uri: ecommerceDigitalImage.uri,
-          type: ecommerceDigitalImage.type || 'image/jpeg',
-          name: ecommerceDigitalImage.fileName || 'digital.jpg'
-        });
-        
-        const uploadRes = await axios.post(`${BACKEND_URL}/upload`, formData, {
-          headers: { 
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
-        digitalImageUrl = uploadRes.data.url;
-        console.log('[上传成功] 数字人图片 URL:', digitalImageUrl);
+        if (ecommerceDigitalImage.uri?.startsWith('http')) {
+          digitalImageUrl = ecommerceDigitalImage.uri;
+        } else if (ecommerceDigitalImage.uri) {
+          const formData = new FormData();
+          const file = await convertToFile(ecommerceDigitalImage);
+          formData.append('file', file);
+          
+          const uploadRes = await axios.post(`${BACKEND_URL}/upload`, formData, {
+            headers: { 
+              'Content-Type': 'multipart/form-data',
+              'Authorization': `Bearer ${accessToken}`
+            }
+          });
+          digitalImageUrl = uploadRes.data.url;
+        }
       }
       
-      // 5. 调用生成视频接口 - 使用硬编码地址
-      console.log('[生成视频] 请求参数:', { ecommerceUrl, ecommerceDescription, productImageUrl, digitalImageUrl });
+      // 调用生成视频接口
       const res = await axios.post(`${BACKEND_URL}/ecommerce/generate_video`, {
         url: ecommerceUrl || undefined,
         description: ecommerceDescription,
@@ -1114,14 +1121,11 @@ export default function App() {
         headers: { 'Authorization': `Bearer ${accessToken}` } 
       });
       
-      console.log('[生成视频] 响应:', res.data);
-      
       if (res.data.code === 200) {
         const videoUrl = res.data.data?.video_url;
         if (videoUrl) {
           setEcommerceVideoUrl(videoUrl);
           showToast('视频生成成功');
-          console.log('[成功] 视频地址:', videoUrl);
         } else {
           showToast('视频生成中，请稍后查看', false);
         }
@@ -1129,17 +1133,37 @@ export default function App() {
         showToast(res.data.message || '生成失败', true);
       }
     } catch (err) {
-      console.error('[生成视频失败] 错误详情:', err);
-      // 打印更详细的错误信息
-      if (err.response) {
-        console.error('[错误响应]', err.response.data);
-        showToast(err.response.data?.detail || '生成失败', true);
-      } else if (err.request) {
-        console.error('[无响应]', err.request);
-        showToast('网络错误，请检查后端服务是否正常', true);
+      console.error('生成带货视频失败:', err);
+      showToast(err.response?.data?.detail || '生成失败', true);
+    } finally {
+      setLoading(false);
+    }
+  };
+      
+      // 调用生成视频接口
+      const res = await axios.post(`${BACKEND_URL}/ecommerce/generate_video`, {
+        url: ecommerceUrl || undefined,
+        description: ecommerceDescription,
+        image_url: productImageUrl,
+        digital_image_url: digitalImageUrl,
+      }, { 
+        headers: { 'Authorization': `Bearer ${accessToken}` } 
+      });
+      
+      if (res.data.code === 200) {
+        const videoUrl = res.data.data?.video_url;
+        if (videoUrl) {
+          setEcommerceVideoUrl(videoUrl);
+          showToast('视频生成成功');
+        } else {
+          showToast('视频生成中，请稍后查看', false);
+        }
       } else {
-        showToast(err.message || '生成失败', true);
+        showToast(res.data.message || '生成失败', true);
       }
+    } catch (err) {
+      console.error('生成带货视频失败:', err);
+      showToast(err.response?.data?.detail || '生成失败', true);
     } finally {
       setLoading(false);
     }
@@ -1755,18 +1779,30 @@ export default function App() {
                       
                       <View style={styles.divider} />
                       
-                      {/* 商品图片（必填） */}
-                      <Text style={styles.label}>商品主图 *</Text>
-                      <TouchableOpacity onPress={pickEcommerceImage} style={styles.imagePicker}>
-                        {ecommerceImage ? (
-                          <Image source={{ uri: ecommerceImage.uri }} style={styles.previewImage} />
-                        ) : (
-                          <View style={styles.placeholder}>
-                            <Icon name="image-outline" size={48} color="#666" />
-                            <Text style={styles.placeholderText}>点击上传商品图片</Text>
-                          </View>
-                        )}
-                      </TouchableOpacity>
+                      {/* ========== 修改：只在没有自动获取图片时显示上传区域 ========== */}
+                      {(!ecommerceImage || (typeof ecommerceImage === 'object' && !ecommerceImage.uri?.startsWith('http'))) && (
+                        <>
+                          <Text style={styles.label}>商品主图 *</Text>
+                          <TouchableOpacity onPress={pickEcommerceImage} style={styles.imagePicker}>
+                            {ecommerceImage ? (
+                              <Image source={{ uri: ecommerceImage.uri }} style={styles.previewImage} />
+                            ) : (
+                              <View style={styles.placeholder}>
+                                <Icon name="image-outline" size={48} color="#666" />
+                                <Text style={styles.placeholderText}>点击上传商品图片</Text>
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        </>
+                      )}
+                      
+                      {/* ========== 修改：显示自动获取的图片（如果有） ========== */}
+                      {ecommerceImage && typeof ecommerceImage === 'object' && ecommerceImage.uri?.startsWith('http') && (
+                        <View style={styles.autoImageContainer}>
+                          <Text style={styles.label}>✓ 已自动获取商品图片</Text>
+                          <Image source={{ uri: ecommerceImage.uri }} style={styles.autoPreviewImage} />
+                        </View>
+                      )}
                       
                       {/* 数字人照片（可选，有默认值） */}
                       <Text style={styles.label}>数字人照片（可选）</Text>
@@ -1793,11 +1829,11 @@ export default function App() {
                         multiline
                       />
                       
-                      {/* 生成按钮 - 调用 generateEcommerceVideo */}
+                      {/* 生成按钮 - 只要有商品图片或描述就启用 */}
                       <TouchableOpacity
-                        style={[styles.generateButton, (!ecommerceImage) && styles.disabledButton]}
+                        style={[styles.generateButton, (!ecommerceImage && !ecommerceDescription) && styles.disabledButton]}
                         onPress={generateEcommerceVideo}
-                        disabled={loading || !ecommerceImage}
+                        disabled={loading || (!ecommerceImage && !ecommerceDescription)}
                       >
                         {loading ? (
                           <ActivityIndicator color="#fff" size="small" />
@@ -2737,5 +2773,16 @@ const styles = StyleSheet.create({
   saveVideoButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  autoImageContainer: {
+  marginBottom: 16,
+  alignItems: 'center',
+  },
+  autoPreviewImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 12,
+    marginTop: 8,
+    backgroundColor: '#2d2d44',
   },
 });
