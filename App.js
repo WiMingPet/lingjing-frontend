@@ -1139,35 +1139,7 @@ export default function App() {
       setLoading(false);
     }
   };
-      
-      // 调用生成视频接口
-      const res = await axios.post(`${BACKEND_URL}/ecommerce/generate_video`, {
-        url: ecommerceUrl || undefined,
-        description: ecommerceDescription,
-        image_url: productImageUrl,
-        digital_image_url: digitalImageUrl,
-      }, { 
-        headers: { 'Authorization': `Bearer ${accessToken}` } 
-      });
-      
-      if (res.data.code === 200) {
-        const videoUrl = res.data.data?.video_url;
-        if (videoUrl) {
-          setEcommerceVideoUrl(videoUrl);
-          showToast('视频生成成功');
-        } else {
-          showToast('视频生成中，请稍后查看', false);
-        }
-      } else {
-        showToast(res.data.message || '生成失败', true);
-      }
-    } catch (err) {
-      console.error('生成带货视频失败:', err);
-      showToast(err.response?.data?.detail || '生成失败', true);
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   // 保存视频到相册（新增）
   const handleSaveEcommerceVideo = async () => {
