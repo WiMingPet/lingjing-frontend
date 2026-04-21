@@ -995,21 +995,28 @@ export default function App() {
       return;
     }
     
+    // 检查是否已登录且有 token
+    if (!accessToken) {
+      showToast('请先登录', true);
+      return;
+    }
+
     setLoading(true);
     try {
-      // 改为 POST 请求
       const res = await axios.post(`${API_URL}/ecommerce/parse_url`, {
-        params: { url: ecommerceUrl },
-        headers: { 'Authorization': `Bearer ${accessToken}` }
+        url: ecommerceUrl
+      }, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
       });
       
       if (res.data.code === 200) {
         const productData = res.data.data;
-        
-        // 自动填充商品信息
-        setEcommerceDescription(productData.description || productData.title);
-        
-        // 显示解析结果
+        // 自动填充商品描述
+        if (productData.description) {
+          setEcommerceDescription(productData.description);
+        }
         Alert.alert(
           '解析成功',
           `商品：${productData.title}\n价格：${productData.price}元`,
@@ -1029,7 +1036,8 @@ export default function App() {
       }
     } catch (err) {
       console.error('解析失败:', err);
-      showToast(err.response?.data?.detail || '解析失败，请手动填写', true);
+      const errorMsg = err.response?.data?.detail || '解析失败，请手动填写';
+      showToast(errorMsg, true);
     } finally {
       setLoading(false);
     }
