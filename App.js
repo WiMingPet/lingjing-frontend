@@ -997,8 +997,8 @@ export default function App() {
     
     setLoading(true);
     try {
-      // 注意：后端接口是 GET，参数是 url（不是 body）
-      const res = await axios.get(`${API_URL}/ecommerce/parse_url`, {
+      // 改为 POST 请求
+      const res = await axios.post(`${API_URL}/ecommerce/parse_url`, {
         params: { url: ecommerceUrl },
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
