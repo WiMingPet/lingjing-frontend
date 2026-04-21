@@ -995,48 +995,40 @@ export default function App() {
       return;
     }
     
-    // 检查是否已登录且有 token
-    if (!accessToken) {
-      showToast('请先登录', true);
-      return;
-    }
-
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/ecommerce/parse_url`, {
-        url: ecommerceUrl
-      }, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
+      const token = accessToken;
+      if (!token) {
+        showToast('请先登录', true);
+        return;
+      }
+
+      // 关键：参数放在请求体中，作为 JSON 对象
+      const res = await axios.post(
+        `${API_URL}/ecommerce/parse_url`,
+        { url: ecommerceUrl },  // ← 参数放在这里，作为 JSON body
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'  // 确保 Content-Type 正确
+          }
         }
-      });
+      );
       
       if (res.data.code === 200) {
         const productData = res.data.data;
-        // 自动填充商品描述
-        if (productData.description) {
-          setEcommerceDescription(productData.description);
-        }
+        setEcommerceDescription(productData.description || productData.title);
         Alert.alert(
           '解析成功',
           `商品：${productData.title}\n价格：${productData.price}元`,
-          [
-            {
-              text: '确定',
-              onPress: () => {
-                if (productData.need_image) {
-                  Alert.alert('提示', '请上传商品主图');
-                }
-              }
-            }
-          ]
+          [{ text: '确定' }]
         );
       } else {
         showToast(res.data.message || '解析失败', true);
       }
     } catch (err) {
       console.error('解析失败:', err);
-      const errorMsg = err.response?.data?.detail || '解析失败，请手动填写';
+      const errorMsg = err.response?.data?.detail || err.response?.data?.message || '解析失败，请手动填写';
       showToast(errorMsg, true);
     } finally {
       setLoading(false);
