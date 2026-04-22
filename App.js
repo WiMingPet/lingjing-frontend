@@ -33,8 +33,9 @@ import * as FileSystem from 'expo-file-system';
       <TouchableOpacity 
         onPress={() => onPress && onPress(uri)}
         activeOpacity={0.9}
-        style={[styles.scrollableImageContainer, style]}
+        style={[styles.scrollableImageContainer, style, { backgroundColor: 'red' }]}
       >
+        <Text style={{ color: 'white', padding: 10, textAlign: 'center' }}>图片区域 {uri ? '有图片' : '无图片'}</Text>
         <ScrollView 
           horizontal={true}
           showsHorizontalScrollIndicator={true}
@@ -44,7 +45,7 @@ import * as FileSystem from 'expo-file-system';
             source={{ uri }} 
             style={{ 
               height: imageHeight,
-              width: 'auto',
+              width: 200,
               resizeMode: 'contain' 
             }} 
           />
