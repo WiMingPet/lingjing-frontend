@@ -23,6 +23,43 @@ import { Video } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 
+  // 可滚动的图片预览组件（在 App 函数外部定义）
+  const ScrollableImage = ({ uri, style }) => {
+    const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+    
+    useEffect(() => {
+      if (uri) {
+        Image.getSize(uri, (width, height) => {
+          setImageSize({ width, height });
+        }, (error) => {
+          console.log('获取图片尺寸失败:', error);
+        });
+      }
+    }, [uri]);
+    
+    // 计算图片显示尺寸（保持比例）
+    const containerWidth = style?.width || 300;
+    const displayHeight = imageSize.height * (containerWidth / imageSize.width);
+    
+    return (
+      <ScrollView 
+        horizontal={true}
+        showsHorizontalScrollIndicator={true}
+        style={[styles.scrollableImageContainer, style]}
+        contentContainerStyle={styles.scrollableImageContent}
+      >
+        <Image 
+          source={{ uri }} 
+          style={{ 
+            width: containerWidth, 
+            height: Math.max(displayHeight, 200),
+            resizeMode: 'contain' 
+          }} 
+        />
+      </ScrollView>
+    );
+  };
+
 const { width, height } = Dimensions.get('window');
 const API_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
 const HISTORY_KEY = 'lingjing_image_history';
@@ -106,9 +143,8 @@ export default function App() {
 
   // 新增：创建一个ref来稳定地保存验证码
   const savedRegisterCode = useRef('');
-  // 获取当前用户灵境点余额（直接从 localStorage 读取 token）
-  
 
+  // 获取当前用户灵境点余额（直接从 localStorage 读取 token）
   const fetchUserCredits = async () => {
     const token = localStorage.getItem('access_token');
     if (!token) {
@@ -1399,7 +1435,7 @@ export default function App() {
                 <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
                   {selectedImage ? (
                     <>
-                      <Image source={{ uri: selectedImage.uri }} style={styles.previewImage} />
+                      <ScrollableImage uri={selectedImage.uri} style={{ width: '100%', maxHeight: 200 }} />
                       <View style={styles.imageOverlay}>
                         <Text style={styles.overlayText}>点击更换</Text>
                       </View>
@@ -1438,7 +1474,7 @@ export default function App() {
                   <TouchableOpacity onPress={pickModelImage} style={styles.imagePicker}>
                     {modelImage ? (
                       <>
-                        <Image source={{ uri: modelImage.uri }} style={styles.previewImage} />
+                        <ScrollableImage uri={modelImage.uri} style={{ width: '100%', maxHeight: 200 }} />
                         <View style={styles.imageOverlay}>
                           <Text style={styles.overlayText}>点击更换</Text>
                         </View>
@@ -1473,7 +1509,7 @@ export default function App() {
                   <TouchableOpacity onPress={pickGarmentImage} style={styles.imagePicker}>
                     {garmentImage ? (
                       <>
-                        <Image source={{ uri: garmentImage.uri }} style={styles.previewImage} />
+                        <ScrollableImage uri={garmentImage.uri} style={{ width: '100%', maxHeight: 200 }} />
                         <View style={styles.imageOverlay}>
                           <Text style={styles.overlayText}>点击更换</Text>
                         </View>
@@ -1513,7 +1549,7 @@ export default function App() {
                   <TouchableOpacity onPress={pickDigitalImage} style={styles.imagePicker}>
                     {digitalImage ? (
                       <>
-                        <Image source={{ uri: digitalImage.uri }} style={styles.previewImage} />
+                        <ScrollableImage uri={digitalImage.uri} style={{ width: '100%', maxHeight: 200 }} />
                         <View style={styles.imageOverlay}>
                           <Text style={styles.overlayText}>点击更换</Text>
                         </View>
@@ -1604,7 +1640,7 @@ export default function App() {
                         <TouchableOpacity onPress={pickDigitalImage} style={styles.imagePicker}>
                           {digitalImage ? (
                             <>
-                              <Image source={{ uri: digitalImage.uri }} style={styles.previewImage} />
+                              <ScrollableImage uri={digitalImage.uri} style={{ width: '100%', maxHeight: 200 }} />
                               <View style={styles.imageOverlay}>
                                 <Text style={styles.overlayText}>点击更换</Text>
                               </View>
@@ -1757,7 +1793,7 @@ export default function App() {
                           <Text style={styles.label}>商品主图 *</Text>
                           <TouchableOpacity onPress={pickEcommerceImage} style={styles.imagePicker}>
                             {ecommerceImage ? (
-                              <Image source={{ uri: ecommerceImage.uri }} style={styles.previewImage} />
+                              <ScrollableImage uri={ecommerceImage.uri} style={{ width: '100%', maxHeight: 200 }} />
                             ) : (
                               <View style={styles.placeholder}>
                                 <Icon name="image-outline" size={48} color="#666" />
@@ -1772,7 +1808,7 @@ export default function App() {
                       {ecommerceImage && typeof ecommerceImage === 'object' && ecommerceImage.uri?.startsWith('http') && (
                         <View style={styles.autoImageContainer}>
                           <Text style={styles.label}>✓ 已自动获取商品图片</Text>
-                          <Image source={{ uri: ecommerceImage.uri }} style={styles.autoPreviewImage} />
+                          <ScrollableImage uri={ecommerceImage.uri} style={{ width: '100%', maxHeight: 200 }} />
                         </View>
                       )}
                       
@@ -1780,7 +1816,7 @@ export default function App() {
                       <Text style={styles.label}>数字人照片（可选）</Text>
                       <TouchableOpacity onPress={pickEcommerceDigitalImage} style={styles.imagePicker}>
                         {ecommerceDigitalImage ? (
-                          <Image source={{ uri: ecommerceDigitalImage.uri }} style={styles.previewImage} />
+                          <ScrollableImage uri={ecommerceDigitalImage.uri} style={{ width: '100%', maxHeight: 200 }} />
                         ) : (
                           <View style={styles.placeholder}>
                             <Icon name="person-outline" size={48} color="#666" />
@@ -1843,7 +1879,7 @@ export default function App() {
                 <View style={styles.multiImageRow}>
                   {multiImages.map((img, idx) => (
                     <View key={idx} style={styles.multiImageItem}>
-                      <Image source={{ uri: img.uri }} style={styles.multiPreview} />
+                      <ScrollableImage uri={img.uri} style={{ width: 80, height: 80 }} />
                       <TouchableOpacity onPress={() => setMultiImages(multiImages.filter((_, i) => i !== idx))} style={styles.removeMultiImage}>
                         <Icon name="close-circle" size={24} color="#ef4444" />
                       </TouchableOpacity>
@@ -2378,6 +2414,7 @@ export default function App() {
   );
 }
 
+
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0a0a0a' },
   container: { flex: 1, backgroundColor: '#0a0a0a' },
@@ -2756,5 +2793,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 8,
     backgroundColor: '#2d2d44',
+  },
+  scrollableImageContainer: {
+  width: '100%',
+  maxHeight: 300,
+  backgroundColor: '#2d2d44',
+  borderRadius: 16,
+  },
+  scrollableImageContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: '100%',
+  },
+  imagePreviewWrapper: {   // ← 添加这个
+    marginBottom: 16,
+    width: '100%',
   },
 });
