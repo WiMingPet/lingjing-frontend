@@ -23,23 +23,12 @@ import { Video } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 
-  // 可滚动的图片预览组件（在 App 函数外部定义）
+  // 可滚动的图片预览组件（修复版）
   const ScrollableImage = ({ uri, style }) => {
-    const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+    if (!uri) return null;
     
-    useEffect(() => {
-      if (uri) {
-        Image.getSize(uri, (width, height) => {
-          setImageSize({ width, height });
-        }, (error) => {
-          console.log('获取图片尺寸失败:', error);
-        });
-      }
-    }, [uri]);
-    
-    // 计算图片显示尺寸（保持比例）
-    const containerWidth = style?.width || 300;
-    const displayHeight = imageSize.height * (containerWidth / imageSize.width);
+    // 从 style 中获取高度，默认 200
+    const imageHeight = style?.height || 200;
     
     return (
       <ScrollView 
@@ -51,8 +40,8 @@ import * as FileSystem from 'expo-file-system';
         <Image 
           source={{ uri }} 
           style={{ 
-            width: containerWidth, 
-            height: Math.max(displayHeight, 200),
+            height: imageHeight,
+            aspectRatio: 1,
             resizeMode: 'contain' 
           }} 
         />
