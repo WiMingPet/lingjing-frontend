@@ -23,29 +23,33 @@ import { Video } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 
-  // 可滚动的图片预览组件（修复版）
-  const ScrollableImage = ({ uri, style }) => {
+  // 可滚动的图片预览组件（支持点击全屏）
+  const ScrollableImage = ({ uri, style, onPress }) => {
     if (!uri) return null;
     
-    // 从 style 中获取高度，默认 200
     const imageHeight = style?.height || 200;
     
     return (
-      <ScrollView 
-        horizontal={true}
-        showsHorizontalScrollIndicator={true}
+      <TouchableOpacity 
+        onPress={() => onPress && onPress(uri)}
+        activeOpacity={0.9}
         style={[styles.scrollableImageContainer, style]}
-        contentContainerStyle={styles.scrollableImageContent}
       >
-        <Image 
-          source={{ uri }} 
-          style={{ 
-            height: imageHeight,
-            aspectRatio: 1,
-            resizeMode: 'contain' 
-          }} 
-        />
-      </ScrollView>
+        <ScrollView 
+          horizontal={true}
+          showsHorizontalScrollIndicator={true}
+          contentContainerStyle={styles.scrollableImageContent}
+        >
+          <Image 
+            source={{ uri }} 
+            style={{ 
+              height: imageHeight,
+              width: 'auto',
+              resizeMode: 'contain' 
+            }} 
+          />
+        </ScrollView>
+      </TouchableOpacity>
     );
   };
 
@@ -1629,7 +1633,11 @@ export default function App() {
                         <TouchableOpacity onPress={pickDigitalImage} style={styles.imagePicker}>
                           {digitalImage ? (
                             <>
-                              <ScrollableImage uri={digitalImage.uri} style={{ width: '100%', maxHeight: 200 }} />
+                              <ScrollableImage 
+                                uri={digitalImage.uri} 
+                                style={{ width: '100%', maxHeight: 200 }} 
+                                onPress={(uri) => { setPreviewUrl(uri); setModalVisible(true); }}
+                              />
                               <View style={styles.imageOverlay}>
                                 <Text style={styles.overlayText}>点击更换</Text>
                               </View>
@@ -1782,7 +1790,11 @@ export default function App() {
                           <Text style={styles.label}>商品主图 *</Text>
                           <TouchableOpacity onPress={pickEcommerceImage} style={styles.imagePicker}>
                             {ecommerceImage ? (
-                              <ScrollableImage uri={ecommerceImage.uri} style={{ width: '100%', maxHeight: 200 }} />
+                              <ScrollableImage 
+                                uri={ecommerceImage.uri} 
+                                style={{ width: '100%', maxHeight: 200 }} 
+                                onPress={(uri) => { setPreviewUrl(uri); setModalVisible(true); }}
+                              />
                             ) : (
                               <View style={styles.placeholder}>
                                 <Icon name="image-outline" size={48} color="#666" />
@@ -1797,7 +1809,11 @@ export default function App() {
                       {ecommerceImage && typeof ecommerceImage === 'object' && ecommerceImage.uri?.startsWith('http') && (
                         <View style={styles.autoImageContainer}>
                           <Text style={styles.label}>✓ 已自动获取商品图片</Text>
-                          <ScrollableImage uri={ecommerceImage.uri} style={{ width: '100%', maxHeight: 200 }} />
+                          <ScrollableImage 
+                            uri={ecommerceImage.uri} 
+                            style={{ width: '100%', maxHeight: 200 }} 
+                            onPress={(uri) => { setPreviewUrl(uri); setModalVisible(true); }}
+                          />
                         </View>
                       )}
                       
@@ -1805,7 +1821,11 @@ export default function App() {
                       <Text style={styles.label}>数字人照片（可选）</Text>
                       <TouchableOpacity onPress={pickEcommerceDigitalImage} style={styles.imagePicker}>
                         {ecommerceDigitalImage ? (
-                          <ScrollableImage uri={ecommerceDigitalImage.uri} style={{ width: '100%', maxHeight: 200 }} />
+                          <ScrollableImage 
+                            uri={ecommerceDigitalImage.uri} 
+                            style={{ width: '100%', maxHeight: 200 }} 
+                            onPress={(uri) => { setPreviewUrl(uri); setModalVisible(true); }}
+                          />
                         ) : (
                           <View style={styles.placeholder}>
                             <Icon name="person-outline" size={48} color="#666" />
@@ -1868,7 +1888,11 @@ export default function App() {
                 <View style={styles.multiImageRow}>
                   {multiImages.map((img, idx) => (
                     <View key={idx} style={styles.multiImageItem}>
-                      <ScrollableImage uri={img.uri} style={{ width: 80, height: 80 }} />
+                      <ScrollableImage 
+                        uri={img.uri} 
+                        style={{ width: 80, height: 80 }} 
+                        onPress={(uri) => { setPreviewUrl(uri); setModalVisible(true); }}
+                      />
                       <TouchableOpacity onPress={() => setMultiImages(multiImages.filter((_, i) => i !== idx))} style={styles.removeMultiImage}>
                         <Icon name="close-circle" size={24} color="#ef4444" />
                       </TouchableOpacity>
@@ -2390,10 +2414,25 @@ export default function App() {
             </Card>
           </View>
         </Modal>
-
- 
-
-        {toastVisible && (
+        {/* 图片全屏预览 Modal */}
+        <Modal visible={modalVisible} transparent={true} animationType="fade">
+          <View style={styles.modalContainer}>
+            <TouchableOpacity 
+              style={styles.modalClose} 
+              onPress={() => setModalVisible(false)}
+            >
+              <Icon name="close-circle-outline" size={40} color="#fff" />
+            </TouchableOpacity>
+            {previewUrl && (
+              <Image 
+                source={{ uri: previewUrl }} 
+                style={styles.modalImage} 
+                resizeMode="contain"
+              />
+            )}
+          </View>
+        </Modal>
+         {toastVisible && (
           <View style={styles.toast}>
             <Text style={styles.toastText}>{toastMessage}</Text>
           </View>
@@ -2810,5 +2849,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 8,
     backgroundColor: '#2d2d44',
+  },
+  modalContainer: {
+  flex: 1,
+  backgroundColor: 'rgba(0,0,0,0.95)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  },
+  modalClose: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 10,
+  },
+  modalImage: {
+    width: width * 0.9,
+    height: height * 0.7,
+    resizeMode: 'contain',
   },
 });
