@@ -1548,9 +1548,10 @@ export default function App() {
                             setModalVisible(true);
                           }}
                         >
-                          <Image 
-                            source={{ uri: digitalImage.uri }} 
-                            style={{ width: '100%', height: 200, resizeMode: 'contain' }} 
+                          <img 
+                            src={digitalImage.uri} 
+                            style={{ width: '100%', height: 200, objectFit: 'contain' }} 
+                            alt="预览"
                           />
                         </TouchableOpacity>
                         <View style={styles.imageOverlay}>
@@ -2464,10 +2465,10 @@ export default function App() {
               <Icon name="close-circle-outline" size={40} color="#fff" />
             </TouchableOpacity>
             {previewUrl && (
-              <Image 
-                source={{ uri: previewUrl }} 
-                style={styles.modalImage} 
-                resizeMode="contain"
+              <img 
+                src={previewUrl} 
+                style={{ width: '90%', height: '70%', objectFit: 'contain' }} 
+                alt="全屏预览"
               />
             )}
           </View>
@@ -2481,7 +2482,6 @@ export default function App() {
     </SafeAreaView>
   );
 }
-
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0a0a0a' },
