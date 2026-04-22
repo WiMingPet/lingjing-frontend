@@ -1404,9 +1404,10 @@ export default function App() {
                           setModalVisible(true);
                         }}
                       >
-                        <Image 
-                          source={{ uri: selectedImage.uri }} 
-                          style={{ width: '100%', height: 200, resizeMode: 'contain' }} 
+                        <img 
+                          src={selectedImage.uri} 
+                          style={{ width: '100%', height: 200, objectFit: 'contain' }} 
+                          alt="预览"
                         />
                       </TouchableOpacity>
                       <View style={styles.imageOverlay}>
@@ -1453,9 +1454,10 @@ export default function App() {
                             setModalVisible(true);
                           }}
                         >
-                          <Image 
-                            source={{ uri: modelImage.uri }} 
-                            style={{ width: '100%', height: 200, resizeMode: 'contain' }} 
+                          <img 
+                            src={modelImage.uri} 
+                            style={{ width: '100%', height: 200, objectFit: 'contain' }} 
+                            alt="预览"
                           />
                         </TouchableOpacity>
                         <View style={styles.imageOverlay}>
@@ -1498,9 +1500,10 @@ export default function App() {
                             setModalVisible(true);
                           }}
                         >
-                          <Image 
-                            source={{ uri: garmentImage.uri }} 
-                            style={{ width: '100%', height: 200, resizeMode: 'contain' }} 
+                          <img 
+                            src={garmentImage.uri} 
+                            style={{ width: '100%', height: 200, objectFit: 'contain' }} 
+                            alt="预览"
                           />
                         </TouchableOpacity>
                         <View style={styles.imageOverlay}>
@@ -1650,9 +1653,10 @@ export default function App() {
                                   setModalVisible(true);
                                 }}
                               >
-                                <Image 
-                                  source={{ uri: digitalImage.uri }} 
-                                  style={{ width: '100%', height: 200, resizeMode: 'contain' }} 
+                                <img 
+                                  src={digitalImage.uri} 
+                                  style={{ width: '100%', height: 200, objectFit: 'contain' }} 
+                                  alt="预览"
                                 />
                               </TouchableOpacity>
                               <View style={styles.imageOverlay}>
@@ -1813,9 +1817,10 @@ export default function App() {
                                   setModalVisible(true);
                                 }}
                               >
-                                <Image 
-                                  source={{ uri: ecommerceImage.uri }} 
-                                  style={{ width: '100%', height: 200, resizeMode: 'contain' }} 
+                                <img 
+                                  src={ecommerceImage.uri} 
+                                  style={{ width: '100%', height: 200, objectFit: 'contain' }} 
+                                  alt="预览"
                                 />
                               </TouchableOpacity>
                             ) : (
@@ -1838,9 +1843,10 @@ export default function App() {
                               setModalVisible(true);
                             }}
                           >
-                            <Image 
-                              source={{ uri: ecommerceImage.uri }} 
-                              style={{ width: '100%', height: 200, resizeMode: 'contain' }} 
+                            <img 
+                              src={ecommerceImage.uri} 
+                              style={{ width: '100%', height: 200, objectFit: 'contain' }} 
+                              alt="预览"
                             />
                           </TouchableOpacity>
                         </View>
@@ -1856,9 +1862,10 @@ export default function App() {
                               setModalVisible(true);
                             }}
                           >
-                            <Image 
-                              source={{ uri: ecommerceDigitalImage.uri }} 
-                              style={{ width: '100%', height: 200, resizeMode: 'contain' }} 
+                            <img 
+                              src={ecommerceDigitalImage.uri} 
+                              style={{ width: '100%', height: 200, objectFit: 'contain' }} 
+                              alt="预览"
                             />
                           </TouchableOpacity>
                         ) : (
@@ -1929,9 +1936,10 @@ export default function App() {
                           setModalVisible(true);
                         }}
                       >
-                        <Image 
-                          source={{ uri: img.uri }} 
-                          style={{ width: 80, height: 80, resizeMode: 'contain' }} 
+                        <img 
+                          src={img.uri} 
+                          style={{ width: 80, height: 80, objectFit: 'contain' }} 
+                          alt="预览"
                         />
                       </TouchableOpacity>
                       <TouchableOpacity onPress={() => setMultiImages(multiImages.filter((_, i) => i !== idx))} style={styles.removeMultiImage}>
@@ -2041,7 +2049,7 @@ export default function App() {
                       }}
                       style={styles.historyItem}
                     >
-                      <Image source={{ uri: item.url }} style={styles.historyImage} />
+                      <img src={item.url} style={styles.historyImage} alt="历史记录" />
                       <Text style={styles.historyText}>{item.type}</Text>
                       <Text style={styles.historyTime}>{item.timestamp}</Text>
                     </TouchableOpacity>
