@@ -2795,18 +2795,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#2d2d44',
   },
   scrollableImageContainer: {
-  width: '100%',
-  maxHeight: 300,
-  backgroundColor: '#2d2d44',
-  borderRadius: 16,
+    width: '100%',
+    height: 200,
+    backgroundColor: '#2d2d44',
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   scrollableImageContent: {
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: '100%',
+    height: 200,
   },
-  imagePreviewWrapper: {   // ← 添加这个
+  imagePreviewWrapper: {
     marginBottom: 16,
     width: '100%',
+  },
+  autoImageContainer: {
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  autoPreviewImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 12,
+    marginTop: 8,
+    backgroundColor: '#2d2d44',
   },
 });
