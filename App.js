@@ -2067,6 +2067,8 @@ export default function App() {
                 </ScrollView>
               </Card>
             )}
+          </ScrollView>
+        )}
 
         {/* 我的页面 - 单独放在外面 */}
         {activeTab === 'profile' && (
