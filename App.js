@@ -2034,37 +2034,39 @@ export default function App() {
 
             {renderResult()}
 
-            {history.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                onPress={() => {
-                  // 判断是否为视频类型
-                  if (item.type === '视频生成' || item.type === '虚拟试穿' || item.type === '数字人分身' || item.type === 'AI带货视频') {
-                    // 视频类型：打开全屏播放 Modal
-                    setCurrentVideoUrl(item.url);
-                    setVideoModalVisible(true);
-                  } else if (item.type === '图片生成' || item.type === '多角度试穿') {
-                    // 图片类型
-                    setResult({ images: [{ url: item.url }] });
-                    setActiveTab(item.type === '图片生成' ? 'image' : 'multi');
-                  } else {
-                    // 其他视频类型（兜底）
-                    setCurrentVideoUrl(item.url);
-                    setVideoModalVisible(true);
-                  }
-                }}
-                style={styles.historyItem}
-              >
-                <img src={item.url} style={styles.historyImage} alt="历史记录" />
-                <Text style={styles.historyText}>{item.type}</Text>
-                <Text style={styles.historyTime}>{item.timestamp}</Text>
-              </TouchableOpacity>
-            ))}
+            {history.length > 0 && (
+              <Card style={styles.historyCard}>
+                <Text style={styles.cardTitle}>📜 历史记录</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {history.map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      onPress={() => {
+                        // 判断是否为视频类型
+                        if (item.type === '视频生成' || item.type === '虚拟试穿' || item.type === '数字人分身' || item.type === 'AI带货视频') {
+                          // 视频类型：打开全屏播放 Modal
+                          setCurrentVideoUrl(item.url);
+                          setVideoModalVisible(true);
+                        } else if (item.type === '图片生成' || item.type === '多角度试穿') {
+                          // 图片类型
+                          setResult({ images: [{ url: item.url }] });
+                          setActiveTab(item.type === '图片生成' ? 'image' : 'multi');
+                        } else {
+                          // 其他视频类型（兜底）
+                          setCurrentVideoUrl(item.url);
+                          setVideoModalVisible(true);
+                        }
+                      }}
+                      style={styles.historyItem}
+                    >
+                      <img src={item.url} style={styles.historyImage} alt="历史记录" />
+                      <Text style={styles.historyText}>{item.type}</Text>
+                      <Text style={styles.historyTime}>{item.timestamp}</Text>
+                    </TouchableOpacity>
+                  ))}
                 </ScrollView>
               </Card>
             )}
-          </ScrollView>
-        )}
 
         {/* 我的页面 - 单独放在外面 */}
         {activeTab === 'profile' && (
