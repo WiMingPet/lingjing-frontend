@@ -32,6 +32,9 @@ const Card = ({ children, style }) => (
 );
 
 export default function App() {
+  const [videoModalVisible, setVideoModalVisible] = useState(false);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState('');
+  const fullscreenVideoRef = useRef(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [height, setHeight] = useState('170');
   const [loading, setLoading] = useState(false);
@@ -2031,29 +2034,32 @@ export default function App() {
 
             {renderResult()}
 
-            {history.length > 0 && (
-              <Card style={styles.historyCard}>
-                <Text style={styles.cardTitle}>📜 历史记录</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {history.map((item) => (
-                    <TouchableOpacity
-                      key={item.id}
-                      onPress={() => {
-                        if (item.type === '图片生成' || item.type === '多角度试穿') {
-                          setResult({ images: [{ url: item.url }] });
-                          setActiveTab(item.type === '图片生成' ? 'image' : 'multi');
-                        } else {
-                          setResult({ video_url: item.url });
-                          setActiveTab(item.type === '视频生成' ? 'video' : (item.type === '虚拟试穿' ? 'tryon' : 'digital'));
-                        }
-                      }}
-                      style={styles.historyItem}
-                    >
-                      <img src={item.url} style={styles.historyImage} alt="历史记录" />
-                      <Text style={styles.historyText}>{item.type}</Text>
-                      <Text style={styles.historyTime}>{item.timestamp}</Text>
-                    </TouchableOpacity>
-                  ))}
+            {history.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                onPress={() => {
+                  // 判断是否为视频类型
+                  if (item.type === '视频生成' || item.type === '虚拟试穿' || item.type === '数字人分身' || item.type === 'AI带货视频') {
+                    // 视频类型：打开全屏播放 Modal
+                    setCurrentVideoUrl(item.url);
+                    setVideoModalVisible(true);
+                  } else if (item.type === '图片生成' || item.type === '多角度试穿') {
+                    // 图片类型
+                    setResult({ images: [{ url: item.url }] });
+                    setActiveTab(item.type === '图片生成' ? 'image' : 'multi');
+                  } else {
+                    // 其他视频类型（兜底）
+                    setCurrentVideoUrl(item.url);
+                    setVideoModalVisible(true);
+                  }
+                }}
+                style={styles.historyItem}
+              >
+                <img src={item.url} style={styles.historyImage} alt="历史记录" />
+                <Text style={styles.historyText}>{item.type}</Text>
+                <Text style={styles.historyTime}>{item.timestamp}</Text>
+              </TouchableOpacity>
+            ))}
                 </ScrollView>
               </Card>
             )}
@@ -2491,6 +2497,33 @@ export default function App() {
   );
 }
 
+        {/* 全屏视频播放 Modal */}
+        <Modal
+          visible={videoModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setVideoModalVisible(false)}
+        >
+          <View style={styles.videoModalContainer}>
+            <TouchableOpacity
+              style={styles.videoModalClose}
+              onPress={() => setVideoModalVisible(false)}
+            >
+              <Icon name="close-circle-outline" size={40} color="#fff" />
+            </TouchableOpacity>
+
+            <Video
+              ref={fullscreenVideoRef}
+              source={{ uri: currentVideoUrl }}
+              style={styles.fullscreenVideo}
+              resizeMode="contain"
+              useNativeControls={true}
+              shouldPlay={true}
+              onError={(e) => console.log('视频播放错误', e)}
+            />
+          </View>
+        </Modal>
+
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0a0a0a' },
   container: { flex: 1, backgroundColor: '#0a0a0a' },
@@ -2905,5 +2938,22 @@ const styles = StyleSheet.create({
     width: width * 0.9,
     height: height * 0.7,
     resizeMode: 'contain',
+  },
+  videoModalContainer: {
+  flex: 1,
+  backgroundColor: '#000',
+  justifyContent: 'center',
+  alignItems: 'center',
+  },
+  videoModalClose: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 10,
+  },
+  fullscreenVideo: {
+    width: '100%',
+    height: '100%',
   },
 });
