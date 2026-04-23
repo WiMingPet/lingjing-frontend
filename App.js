@@ -2471,6 +2471,33 @@ export default function App() {
             </Card>
           </View>
         </Modal>
+        {/* 全屏视频播放 Modal */}
+        <Modal
+          visible={videoModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setVideoModalVisible(false)}
+        >
+          <View style={styles.videoModalContainer}>
+            <TouchableOpacity
+              style={styles.videoModalClose}
+              onPress={() => setVideoModalVisible(false)}
+            >
+              <Icon name="close-circle-outline" size={40} color="#fff" />
+            </TouchableOpacity>
+
+            <Video
+              ref={fullscreenVideoRef}
+              source={{ uri: currentVideoUrl }}
+              style={styles.fullscreenVideo}
+              resizeMode="contain"
+              useNativeControls={true}
+              shouldPlay={true}
+              onError={(e) => console.log('视频播放错误', e)}
+            />
+          </View>
+        </Modal>
+
         {/* 图片全屏预览 Modal */}
         <Modal visible={modalVisible} transparent={true} animationType="fade">
           <View style={styles.modalContainer}>
@@ -2498,33 +2525,6 @@ export default function App() {
     </SafeAreaView>
   );
 }
-
-        {/* 全屏视频播放 Modal */}
-        <Modal
-          visible={videoModalVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setVideoModalVisible(false)}
-        >
-          <View style={styles.videoModalContainer}>
-            <TouchableOpacity
-              style={styles.videoModalClose}
-              onPress={() => setVideoModalVisible(false)}
-            >
-              <Icon name="close-circle-outline" size={40} color="#fff" />
-            </TouchableOpacity>
-
-            <Video
-              ref={fullscreenVideoRef}
-              source={{ uri: currentVideoUrl }}
-              style={styles.fullscreenVideo}
-              resizeMode="contain"
-              useNativeControls={true}
-              shouldPlay={true}
-              onError={(e) => console.log('视频播放错误', e)}
-            />
-          </View>
-        </Modal>
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0a0a0a' },
