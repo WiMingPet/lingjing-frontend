@@ -2895,8 +2895,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   autoImageContainer: {
-  marginBottom: 16,
-  alignItems: 'center',
+    marginBottom: 16,
+    alignItems: 'center',
   },
   autoPreviewImage: {
     width: '100%',
@@ -2912,22 +2912,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
   },
-  autoImageContainer: {
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  autoPreviewImage: {
-    width: '100%',
-    height: 150,
-    borderRadius: 12,
-    marginTop: 8,
-    backgroundColor: '#2d2d44',
-  },
+  // 图片全屏预览 Modal 样式
   modalContainer: {
-  flex: 1,
-  backgroundColor: 'rgba(0,0,0,0.95)',
-  justifyContent: 'center',
-  alignItems: 'center',
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalClose: {
     position: 'absolute',
@@ -2941,11 +2931,12 @@ const styles = StyleSheet.create({
     height: height * 0.7,
     resizeMode: 'contain',
   },
+  // 视频全屏播放 Modal 样式
   videoModalContainer: {
-  flex: 1,
-  backgroundColor: '#000',
-  justifyContent: 'center',
-  alignItems: 'center',
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   videoModalClose: {
     position: 'absolute',
