@@ -50,6 +50,10 @@ export default function App() {
   const [garmentImage, setGarmentImage] = useState(null);
   const [duration, setDuration] = useState(5);
   const [digitalImage, setDigitalImage] = useState(null);
+    // 预设形象相关状态
+  const [presetAvatars, setPresetAvatars] = useState([]);
+  const [selectedAvatarId, setSelectedAvatarId] = useState(null);
+  const [avatarCategory, setAvatarCategory] = useState('all');
   const [digitalText, setDigitalText] = useState('');
   const [digitalVoice, setDigitalVoice] = useState('温柔女声');
   const [digitalName, setDigitalName] = useState('');
@@ -74,6 +78,10 @@ export default function App() {
   const [digitalHumans, setDigitalHumans] = useState([]);
   const [membershipLevel, setMembershipLevel] = useState('free');
   const [showSidebarMenu, setShowSidebarMenu] = useState(false);
+    // 音色选择器相关状态
+  const [ttsVoices, setTtsVoices] = useState([]);
+  const [selectedVoiceId, setSelectedVoiceId] = useState(null);
+  const [playingVoiceId, setPlayingVoiceId] = useState(null);
   // 找回密码相关 state
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [resetPhone, setResetPhone] = useState('');
@@ -141,6 +149,8 @@ export default function App() {
       setAccessToken(token);
       fetchDigitalHumans();
       fetchUserCredits();  // ✅ 添加这一行
+      fetchPresetAvatars();
+      fetchTtsVoices();
     }
   }, []);
 
@@ -423,6 +433,36 @@ export default function App() {
       setDigitalHumans(res.data.data.items || []);
     } catch (err) {
       console.log('获取数字人列表失败', err);
+    }
+  };
+    // 获取预设形象列表
+  const fetchPresetAvatars = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/digital-human/preset-avatars`);
+      if (response.data) {
+        setPresetAvatars(response.data);
+      }
+    } catch (error) {
+      console.error('获取预设形象失败:', error);
+    }
+  };
+    // 获取音色列表
+  const fetchTtsVoices = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await axios.get(`${API_URL}/tts/voices`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.data) {
+        setTtsVoices(response.data);
+        // 默认选中第一个音色
+        if (response.data.length > 0 && !selectedVoiceId) {
+          setSelectedVoiceId(response.data[0].id);
+          setDigitalVoice(response.data[0].voice_name || response.data[0].name);
+        }
+      }
+    } catch (error) {
+      console.error('获取音色列表失败:', error);
     }
   };
     // 发送注册验证码
@@ -1536,6 +1576,46 @@ export default function App() {
 
             {activeTab === 'digital' && (
               <>
+                {/* ========== 新增：形象分类筛选 ========== */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+                  <TouchableOpacity 
+                    style={[styles.categoryChip, avatarCategory === 'all' && styles.categoryChipActive]}
+                    onPress={() => setAvatarCategory('all')}
+                  >
+                    <Text style={[styles.categoryChipText, avatarCategory === 'all' && styles.categoryChipTextActive]}>全部</Text>
+                  </TouchableOpacity>
+                  {[...new Set(presetAvatars.map(a => a.category))].map(cat => (
+                    <TouchableOpacity 
+                      key={cat}
+                      style={[styles.categoryChip, avatarCategory === cat && styles.categoryChipActive]}
+                      onPress={() => setAvatarCategory(cat)}
+                    >
+                      <Text style={[styles.categoryChipText, avatarCategory === cat && styles.categoryChipTextActive]}>{cat}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                {/* ========== 新增：预设形象横向滚动列表 ========== */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarScroll}>
+                  {presetAvatars
+                    .filter(avatar => avatarCategory === 'all' || avatar.category === avatarCategory)
+                    .map(avatar => (
+                      <TouchableOpacity
+                        key={avatar.id}
+                        style={[styles.avatarCard, selectedAvatarId === avatar.id && styles.avatarCardActive]}
+                        onPress={() => {
+                          setSelectedAvatarId(avatar.id);
+                          // 将选中的形象图片设置为数字人照片
+                          setDigitalImage({ uri: avatar.model_image, isUrl: true });
+                        }}
+                      >
+                        <img src={avatar.preview_image} style={styles.avatarImage} alt={avatar.name} />
+                        <Text style={styles.avatarName}>{avatar.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                </ScrollView>
+
+                {/* 原有的上传照片卡片 */}
                 <Card style={styles.imageCard}>
                   <View style={styles.cardHeader}>
                     <Text style={styles.cardTitle}>📸 上传照片</Text>
@@ -1572,6 +1652,8 @@ export default function App() {
                     )}
                   </TouchableOpacity>
                 </Card>
+
+                {/* 输入说话内容 */}
                 <Card style={styles.promptCard}>
                   <Text style={styles.cardTitle}>💬 输入说话内容</Text>
                   <TextInput
@@ -1583,20 +1665,43 @@ export default function App() {
                     multiline
                   />
                 </Card>
+
+                {/* 选择音色 */}
                 <Card style={styles.inputCard}>
                   <Text style={styles.cardTitle}>🎵 选择音色</Text>
-                  <View style={styles.voiceRow}>
-                    {['温柔女声', '沉稳男声', '可爱童声', '磁性男声'].map(voice => (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {ttsVoices.map(voice => (
                       <TouchableOpacity
-                        key={voice}
-                        style={[styles.voiceButton, digitalVoice === voice && styles.voiceButtonActive]}
-                        onPress={() => setDigitalVoice(voice)}
+                        key={voice.id}
+                        style={[styles.voiceChip, selectedVoiceId === voice.id && styles.voiceChipActive]}
+                        onPress={async () => {
+                          setSelectedVoiceId(voice.id);
+                          setDigitalVoice(voice.voice_name || voice.name);
+                          // 试听音色
+                          if (voice.sample_audio_url) {
+                            if (playingVoiceId) {
+                              // 停止当前播放
+                            }
+                            setPlayingVoiceId(voice.id);
+                            // 播放试听音频
+                            const audio = new Audio(voice.sample_audio_url);
+                            audio.play();
+                            audio.onended = () => setPlayingVoiceId(null);
+                          }
+                        }}
                       >
-                        <Text style={[styles.voiceText, digitalVoice === voice && styles.voiceTextActive]}>{voice}</Text>
+                        <Text style={[styles.voiceChipText, selectedVoiceId === voice.id && styles.voiceChipTextActive]}>
+                          {voice.voice_name || voice.name}
+                        </Text>
+                        {playingVoiceId === voice.id && (
+                          <ActivityIndicator size="small" color="#7c3aed" style={{ marginLeft: 8 }} />
+                        )}
                       </TouchableOpacity>
                     ))}
-                  </View>
+                  </ScrollView>
                 </Card>
+
+                {/* 数字人名称（可选） */}
                 <Card style={styles.inputCard}>
                   <Text style={styles.cardTitle}>📛 数字人名称（可选）</Text>
                   <TextInput
@@ -1607,6 +1712,11 @@ export default function App() {
                     placeholderTextColor="#888"
                   />
                 </Card>
+
+                {/* 生成按钮 */}
+                <TouchableOpacity onPress={generateDigitalHuman} disabled={loading} style={styles.generateButton}>
+                  {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>生成数字人视频</Text>}
+                </TouchableOpacity>
               </>
             )}
 
@@ -1718,6 +1828,7 @@ export default function App() {
                       </TouchableOpacity>
                     </>
                   )}
+
 
                   {/* ========== 子标签2：定制数字人 ========== */}
                   {digitalSubTab === 'custom' && (
@@ -2950,5 +3061,73 @@ const styles = StyleSheet.create({
   fullscreenVideo: {
     width: '100%',
     height: '100%',
+  },
+  // ========== 形象选择器样式 ==========
+  categoryScroll: {
+    marginBottom: 12,
+  },
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#2d2d44',
+    marginRight: 10,
+  },
+  categoryChipActive: {
+    backgroundColor: '#7c3aed',
+  },
+  categoryChipText: {
+    color: '#aaa',
+    fontSize: 14,
+  },
+  categoryChipTextActive: {
+    color: '#fff',
+  },
+  avatarScroll: {
+    marginBottom: 16,
+  },
+  avatarCard: {
+    width: 100,
+    marginRight: 12,
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: '#2d2d44',
+  },
+  avatarCardActive: {
+    borderWidth: 2,
+    borderColor: '#7c3aed',
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    objectFit: 'cover',
+  },
+  avatarName: {
+    color: '#fff',
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  // 音色选择器样式
+  voiceChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#2d2d44',
+    marginRight: 10,
+  },
+  voiceChipActive: {
+    backgroundColor: '#7c3aed',
+  },
+  voiceChipText: {
+    color: '#aaa',
+    fontSize: 14,
+  },
+  voiceChipTextActive: {
+    color: '#fff',
   },
 });
