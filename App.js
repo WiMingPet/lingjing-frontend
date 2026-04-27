@@ -438,7 +438,10 @@ export default function App() {
     // 获取预设形象列表
   const fetchPresetAvatars = async () => {
     try {
-      const response = await axios.get(`${API_URL}/digital-human/preset-avatars`);
+      const token = localStorage.getItem('access_token');
+      const response = await axios.get(`${API_URL}/digital-human/preset-avatars`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (response.data) {
         setPresetAvatars(response.data);
       }
@@ -455,7 +458,6 @@ export default function App() {
       });
       if (response.data) {
         setTtsVoices(response.data);
-        // 默认选中第一个音色
         if (response.data.length > 0 && !selectedVoiceId) {
           setSelectedVoiceId(response.data[0].id);
           setDigitalVoice(response.data[0].voice_name || response.data[0].name);
