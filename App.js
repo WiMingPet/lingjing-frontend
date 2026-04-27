@@ -439,7 +439,7 @@ export default function App() {
   const fetchPresetAvatars = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await axios.get(`${API_URL}/digital-human/preset-avatars`, {
+      const response = await axios.get(`${API_URL}/preset-avatars`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.data) {
