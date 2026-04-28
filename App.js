@@ -35,6 +35,9 @@ export default function App() {
   const [videoModalVisible, setVideoModalVisible] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
   const fullscreenVideoRef = useRef(null);
+  // 形象预览视频 Modal 状态
+  const [previewVideoVisible, setPreviewVideoVisible] = useState(false);
+  const [currentPreviewVideoUrl, setCurrentPreviewVideoUrl] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   const [height, setHeight] = useState('170');
   const [loading, setLoading] = useState(false);
@@ -1606,9 +1609,15 @@ export default function App() {
                         key={avatar.id}
                         style={[styles.avatarCard, selectedAvatarId === avatar.id && styles.avatarCardActive]}
                         onPress={() => {
-                          setSelectedAvatarId(avatar.id);
-                          // 将选中的形象图片设置为数字人照片
-                          setDigitalImage({ uri: avatar.model_image, isUrl: true });
+                          // 如果有预览视频，先播放视频预览
+                          if (avatar.preview_video_url) {
+                            setCurrentPreviewVideoUrl(avatar.preview_video_url);
+                            setPreviewVideoVisible(true);
+                          } else {
+                            // 没有视频则直接选中形象
+                            setSelectedAvatarId(avatar.id);
+                            setDigitalImage({ uri: avatar.model_image, isUrl: true });
+                          }
                         }}
                       >
                         <img src={avatar.preview_image} style={styles.avatarImage} alt={avatar.name} />
@@ -2631,12 +2640,51 @@ export default function App() {
             )}
           </View>
         </Modal>
-         {toastVisible && (
+        {/* 形象预览视频 Modal */}
+        <Modal
+          visible={previewVideoVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setPreviewVideoVisible(false)}
+        >
+          <View style={styles.videoPreviewModalContainer}>
+            <TouchableOpacity
+              style={styles.videoPreviewClose}
+              onPress={() => setPreviewVideoVisible(false)}
+            >
+              <Icon name="close-circle-outline" size={40} color="#fff" />
+            </TouchableOpacity>
+            <Video
+              source={{ uri: currentPreviewVideoUrl }}
+              style={styles.videoPreviewPlayer}
+              resizeMode="contain"
+              useNativeControls
+              shouldPlay={true}
+              onError={(e) => console.log('预览视频播放错误', e)}
+            />
+            <TouchableOpacity
+              style={styles.useThisAvatarButton}
+              onPress={() => {
+                const currentAvatar = presetAvatars.find(a => a.preview_video_url === currentPreviewVideoUrl);
+                if (currentAvatar) {
+                  setSelectedAvatarId(currentAvatar.id);
+                  setDigitalImage({ uri: currentAvatar.model_image, isUrl: true });
+                }
+                setPreviewVideoVisible(false);
+              }}
+            >
+              <Text style={styles.useThisAvatarButtonText}>使用此形象</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+
+        {toastVisible && (
           <View style={styles.toast}>
             <Text style={styles.toastText}>{toastMessage}</Text>
           </View>
         )}
-      </View>
+
+      </View>   {/* 关闭 container */}
     </SafeAreaView>
   );
 }
@@ -3131,5 +3179,35 @@ const styles = StyleSheet.create({
   },
   voiceChipTextActive: {
     color: '#fff',
+  },
+    // 形象预览视频 Modal 样式
+  videoPreviewModalContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoPreviewClose: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 10,
+  },
+  videoPreviewPlayer: {
+    width: '90%',
+    height: '60%',
+  },
+  useThisAvatarButton: {
+    marginTop: 30,
+    backgroundColor: '#7c3aed',
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 30,
+  },
+  useThisAvatarButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
