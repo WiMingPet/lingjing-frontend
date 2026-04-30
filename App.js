@@ -59,6 +59,10 @@ export default function App() {
   const [avatarCategory, setAvatarCategory] = useState('all');
   const [digitalText, setDigitalText] = useState('');
   const [digitalVoice, setDigitalVoice] = useState('温柔女声');
+    // ========== 新增：音色选择器相关状态 ==========
+  const [ttsVoices, setTtsVoices] = useState([]);      // 存储从后端获取的音色列表
+  const [selectedVoiceId, setSelectedVoiceId] = useState(null); // 当前选中的音色ID
+  const [playingVoiceId, setPlayingVoiceId] = useState(null);    // 正在试听的音色ID
   const [digitalName, setDigitalName] = useState('');
   const [multiImages, setMultiImages] = useState([]);
   const [customVideo, setCustomVideo] = useState(null);
@@ -155,6 +159,13 @@ export default function App() {
       fetchPresetAvatars();
       fetchTtsVoices();
     }
+    
+    // 组件卸载时清理音频资源
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -470,6 +481,52 @@ export default function App() {
       console.error('获取音色列表失败:', error);
     }
   };
+    // 试听音色
+  const playVoicePreview = async (voiceId, previewUrl) => {
+    if (!previewUrl) {
+      console.log('无预览链接');
+      return;
+    }
+    
+    // 如果正在播放同一个音色，则停止
+    if (playingVoiceId === voiceId) {
+      if (soundRef.current) {
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+      setPlayingVoiceId(null);
+      return;
+    }
+    
+    // 停止当前播放的
+    if (soundRef.current) {
+      await soundRef.current.stopAsync();
+      await soundRef.current.unloadAsync();
+      soundRef.current = null;
+    }
+    
+    // 播放新的
+    try {
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: previewUrl },
+        { shouldPlay: true }
+      );
+      soundRef.current = sound;
+      setPlayingVoiceId(voiceId);
+      
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.didJustFinish) {
+          setPlayingVoiceId(null);
+          sound.unloadAsync();
+          soundRef.current = null;
+        }
+      });
+    } catch (error) {
+      console.error('播放失败:', error);
+    }
+  };
+
     // 发送注册验证码
   const sendRegisterCode = async () => {
     if (!registerPhone.trim()) return showToast('请输入手机号');
@@ -1681,34 +1738,40 @@ export default function App() {
                 <Card style={styles.inputCard}>
                   <Text style={styles.cardTitle}>🎵 选择音色</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    {ttsVoices.map(voice => (
-                      <TouchableOpacity
-                        key={voice.id}
-                        style={[styles.voiceChip, selectedVoiceId === voice.id && styles.voiceChipActive]}
-                        onPress={async () => {
-                          setSelectedVoiceId(voice.id);
-                          setDigitalVoice(voice.voice_name || voice.name);
-                          // 试听音色
-                          if (voice.sample_audio_url) {
-                            if (playingVoiceId) {
-                              // 停止当前播放
-                            }
-                            setPlayingVoiceId(voice.id);
-                            // 播放试听音频
-                            const audio = new Audio(voice.sample_audio_url);
-                            audio.play();
-                            audio.onended = () => setPlayingVoiceId(null);
-                          }
-                        }}
-                      >
-                        <Text style={[styles.voiceChipText, selectedVoiceId === voice.id && styles.voiceChipTextActive]}>
-                          {voice.voice_name || voice.name}
-                        </Text>
-                        {playingVoiceId === voice.id && (
-                          <ActivityIndicator size="small" color="#7c3aed" style={{ marginLeft: 8 }} />
-                        )}
-                      </TouchableOpacity>
-                    ))}
+                    {ttsVoices.length > 0 ? (
+                      ttsVoices.map(voice => (
+                        <View key={voice.id} style={styles.voiceItemWrapper}>
+                          <TouchableOpacity
+                            style={[styles.voiceItem, selectedVoiceId === voice.id && styles.voiceItemActive]}
+                            onPress={() => {
+                              setSelectedVoiceId(voice.id);
+                              setDigitalVoice(voice.name);
+                            }}
+                          >
+                            <Text style={[styles.voiceItemText, selectedVoiceId === voice.id && styles.voiceItemTextActive]}>
+                              {voice.name}
+                            </Text>
+                            {voice.preview_url && (
+                              <TouchableOpacity
+                                onPress={() => playVoicePreview(voice.id, voice.preview_url)}
+                                style={styles.voicePlayButton}
+                              >
+                                <Icon 
+                                  name={playingVoiceId === voice.id ? "pause-circle" : "play-circle"} 
+                                  size={20} 
+                                  color={selectedVoiceId === voice.id ? "#fff" : "#aaa"} 
+                                />
+                              </TouchableOpacity>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      ))
+                    ) : (
+                      <View style={styles.loadingVoices}>
+                        <ActivityIndicator size="small" color="#7c3aed" />
+                        <Text style={styles.loadingVoicesText}>加载音色中...</Text>
+                      </View>
+                    )}
                   </ScrollView>
                 </Card>
 
@@ -3174,24 +3237,40 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   // 音色选择器样式
-  voiceChip: {
+  voiceItemWrapper: {
+    marginRight: 12,
+  },
+  voiceItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
     backgroundColor: '#2d2d44',
-    marginRight: 10,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    gap: 8,
   },
-  voiceChipActive: {
+  voiceItemActive: {
     backgroundColor: '#7c3aed',
   },
-  voiceChipText: {
+  voiceItemText: {
     color: '#aaa',
     fontSize: 14,
   },
-  voiceChipTextActive: {
+  voiceItemTextActive: {
     color: '#fff',
+  },
+  voicePlayButton: {
+    padding: 2,
+  },
+  loadingVoices: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  loadingVoicesText: {
+    color: '#aaa',
+    marginLeft: 8,
   },
     // 形象预览视频 Modal 样式
   videoPreviewModalContainer: {
