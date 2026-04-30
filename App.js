@@ -63,6 +63,7 @@ export default function App() {
   const [ttsVoices, setTtsVoices] = useState([]);      // 存储从后端获取的音色列表
   const [selectedVoiceId, setSelectedVoiceId] = useState(null); // 当前选中的音色ID
   const [playingVoiceId, setPlayingVoiceId] = useState(null);    // 正在试听的音色ID
+  const soundRef = useRef(null)
   const [digitalName, setDigitalName] = useState('');
   const [multiImages, setMultiImages] = useState([]);
   const [customVideo, setCustomVideo] = useState(null);
@@ -85,9 +86,7 @@ export default function App() {
   const [digitalHumans, setDigitalHumans] = useState([]);
   const [membershipLevel, setMembershipLevel] = useState('free');
   const [showSidebarMenu, setShowSidebarMenu] = useState(false);
-    // 音色选择器相关状态
-  const [selectedVoiceId, setSelectedVoiceId] = useState(null);
-  const [playingVoiceId, setPlayingVoiceId] = useState(null);
+  
   // 找回密码相关 state
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [resetPhone, setResetPhone] = useState('');
