@@ -19,7 +19,7 @@ import {
 import * as ImagePicker from 'react-native-image-picker';
 import axios from 'axios';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Video } from 'expo-av';
+import { Audio, Video } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 
@@ -144,6 +144,14 @@ export default function App() {
   };
 
   useEffect(() => {
+    // 初始化音频模式
+    Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      staysActiveInBackground: false,
+      playsInSilentModeIOS: true,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false,
+    });
     const saved = localStorage.getItem(HISTORY_KEY);
     if (saved) {
       setHistory(JSON.parse(saved));
@@ -486,11 +494,20 @@ export default function App() {
       return;
     }
     
+    if (!Audio || !Audio.Sound) {
+      console.error('Audio 模块未正确加载');
+      return;
+    }
+    
     // 如果正在播放同一个音色，则停止
     if (playingVoiceId === voiceId) {
       if (soundRef.current) {
-        await soundRef.current.stopAsync();
-        await soundRef.current.unloadAsync();
+        try {
+          await soundRef.current.stopAsync();
+          await soundRef.current.unloadAsync();
+        } catch (e) {
+          console.log('停止播放出错:', e);
+        }
         soundRef.current = null;
       }
       setPlayingVoiceId(null);
@@ -499,8 +516,12 @@ export default function App() {
     
     // 停止当前播放的
     if (soundRef.current) {
-      await soundRef.current.stopAsync();
-      await soundRef.current.unloadAsync();
+      try {
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+      } catch (e) {
+        console.log('停止播放出错:', e);
+      }
       soundRef.current = null;
     }
     
@@ -1740,34 +1761,33 @@ export default function App() {
                       ttsVoices.map(voice => (
                         <View key={voice.id} style={styles.voiceItemWrapper}>
                           <TouchableOpacity
-                            style={[styles.voiceItem, selectedVoiceId === voice.id && styles.voiceItemActive]}
+                            style={styles.voiceItem}
                             onPress={() => {
                               setSelectedVoiceId(voice.id);
                               setDigitalVoice(voice.name);
                             }}
+                            activeOpacity={0.7}
                           >
                             <Text style={[styles.voiceItemText, selectedVoiceId === voice.id && styles.voiceItemTextActive]}>
                               {voice.name}
                             </Text>
-                            {/* 自定义音色标签 */}
-                            {voice.type === 'custom' && (
-                              <View style={styles.customBadge}>
-                                <Text style={styles.customBadgeText}>我的</Text>
-                              </View>
-                            )}
-                            {voice.preview_url && (
-                              <TouchableOpacity
-                                onPress={() => playVoicePreview(voice.id, voice.preview_url)}
-                                style={styles.voicePlayButton}
-                              >
-                                <Icon 
-                                  name={playingVoiceId === voice.id ? "pause-circle" : "play-circle"} 
-                                  size={20} 
-                                  color={selectedVoiceId === voice.id ? "#fff" : "#aaa"} 
-                                />
-                              </TouchableOpacity>
-                            )}
                           </TouchableOpacity>
+                          {voice.preview_url && (
+                            <TouchableOpacity
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                playVoicePreview(voice.id, voice.preview_url);
+                              }}
+                              style={styles.voicePlayButton}
+                              activeOpacity={0.7}
+                            >
+                              <Icon 
+                                name={playingVoiceId === voice.id ? "pause-circle" : "play-circle"} 
+                                size={24} 
+                                color="#7c3aed" 
+                              />
+                            </TouchableOpacity>
+                          )}
                         </View>
                       ))
                     ) : (
@@ -3264,7 +3284,8 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   voicePlayButton: {
-    padding: 2,
+    padding: 6,  // ← 只改这里
+    marginLeft: 4,
   },
   loadingVoices: {
     flexDirection: 'row',
