@@ -2683,6 +2683,19 @@ export default function App() {
             <Text style={styles.toastText}>{toastMessage}</Text>
           </View>
         )}
+                {/* 备案号 */}
+        <View style={styles.beianContainer}>
+          <Text style={styles.beianText}>
+            <a 
+              href="https://beian.miit.gov.cn" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ color: '#666', textDecoration: 'none' }}
+            >
+              粤ICP备2026044431号
+            </a>
+          </Text>
+        </View>
 
       </View>   {/* 关闭 container */}
     </SafeAreaView>
@@ -3209,5 +3222,18 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+    beianContainer: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0a0a0a',
+    borderTopWidth: 0.5,
+    borderTopColor: '#2d2d44',
+  },
+  beianText: {
+    fontSize: 11,
+    color: '#666',
+    textAlign: 'center',
   },
 });
