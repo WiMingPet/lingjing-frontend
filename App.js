@@ -86,7 +86,6 @@ export default function App() {
   const [membershipLevel, setMembershipLevel] = useState('free');
   const [showSidebarMenu, setShowSidebarMenu] = useState(false);
     // 音色选择器相关状态
-  const [ttsVoices, setTtsVoices] = useState([]);
   const [selectedVoiceId, setSelectedVoiceId] = useState(null);
   const [playingVoiceId, setPlayingVoiceId] = useState(null);
   // 找回密码相关 state
