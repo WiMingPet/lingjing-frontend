@@ -1749,6 +1749,12 @@ export default function App() {
                             <Text style={[styles.voiceItemText, selectedVoiceId === voice.id && styles.voiceItemTextActive]}>
                               {voice.name}
                             </Text>
+                            {/* 自定义音色标签 */}
+                            {voice.type === 'custom' && (
+                              <View style={styles.customBadge}>
+                                <Text style={styles.customBadgeText}>我的</Text>
+                              </View>
+                            )}
                             {voice.preview_url && (
                               <TouchableOpacity
                                 onPress={() => playVoicePreview(voice.id, voice.preview_url)}
@@ -3269,6 +3275,17 @@ const styles = StyleSheet.create({
   loadingVoicesText: {
     color: '#aaa',
     marginLeft: 8,
+  },
+    customBadge: {
+    backgroundColor: '#f59e0b',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 6,
+  },
+  customBadgeText: {
+    color: '#fff',
+    fontSize: 10,
   },
     // 形象预览视频 Modal 样式
   videoPreviewModalContainer: {
