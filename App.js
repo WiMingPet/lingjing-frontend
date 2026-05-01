@@ -1027,6 +1027,7 @@ export default function App() {
 
       if (isUrl) {
         // 形象库图片：用 FormData 发送 URL
+        const imageUrl = digitalImage.uri;
         const formData = new FormData();
         formData.append('image_url', imageUrl);
         formData.append('text', digitalText);
