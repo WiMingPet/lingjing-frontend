@@ -1026,20 +1026,17 @@ export default function App() {
       const isUrl = typeof digitalImage === 'string' || digitalImage.isUrl || (digitalImage.uri && digitalImage.uri.startsWith('http'));
 
       if (isUrl) {
-        // 形象库图片：直接传 URL（JSON 格式）
-        const imageUrl = typeof digitalImage === 'string' ? digitalImage : digitalImage.uri;
+        // 形象库图片：用 FormData 发送 URL
+        const formData = new FormData();
+        formData.append('image_url', imageUrl);
+        formData.append('text', digitalText);
+        formData.append('voice', digitalVoice);
+        if (digitalName) formData.append('name', digitalName);
+
         response = await fetch(`${API_URL}/digital-human/generate`, {
           method: 'POST',
-          headers: {
-            'Authorization': token ? `Bearer ${token}` : undefined,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            image_url: imageUrl,
-            text: digitalText,
-            voice: digitalVoice,
-            name: digitalName || undefined
-          })
+          headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
+          body: formData
         });
       } else {
         // 手动上传的图片：使用 FormData
