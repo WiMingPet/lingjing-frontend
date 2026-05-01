@@ -1017,23 +1017,47 @@ export default function App() {
     if (!digitalImage) return showToast('请先上传照片');
     if (!digitalText.trim()) return showToast('请输入说话内容');
     setLoading(true);
-  
-    const formData = new FormData();
-    const imageFile = await convertToFile(digitalImage);
-    const ext = imageFile.name?.split('.').pop() || 'jpg';
-    const safeImage = new File([imageFile], `digital_${Date.now()}.${ext}`, { type: imageFile.type });
-    formData.append('image', safeImage);
-    formData.append('text', digitalText);
-    formData.append('voice', digitalVoice);
-    if (digitalName) formData.append('name', digitalName);
 
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`${API_URL}/digital-human/generate`, {
-        method: 'POST',
-        headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
-        body: formData,
-      });
+      let response;
+
+      // 判断 digitalImage 是 URL 还是本地文件
+      const isUrl = typeof digitalImage === 'string' || digitalImage.isUrl || (digitalImage.uri && digitalImage.uri.startsWith('http'));
+
+      if (isUrl) {
+        // 形象库图片：直接传 URL（JSON 格式）
+        const imageUrl = typeof digitalImage === 'string' ? digitalImage : digitalImage.uri;
+        response = await fetch(`${API_URL}/digital-human/generate`, {
+          method: 'POST',
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : undefined,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            image_url: imageUrl,
+            text: digitalText,
+            voice: digitalVoice,
+            name: digitalName || undefined
+          })
+        });
+      } else {
+        // 手动上传的图片：使用 FormData
+        const formData = new FormData();
+        const imageFile = await convertToFile(digitalImage);
+        const ext = imageFile.name?.split('.').pop() || 'jpg';
+        const safeImage = new File([imageFile], `digital_${Date.now()}.${ext}`, { type: imageFile.type });
+        formData.append('image', safeImage);
+        formData.append('text', digitalText);
+        formData.append('voice', digitalVoice);
+        if (digitalName) formData.append('name', digitalName);
+
+        response = await fetch(`${API_URL}/digital-human/generate`, {
+          method: 'POST',
+          headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
+          body: formData,
+        });
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
