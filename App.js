@@ -776,20 +776,36 @@ export default function App() {
   };
 
   const convertToFile = async (imageAsset) => {
-    // 如果已经是标准 File 对象，直接返回
-    if (imageAsset && imageAsset.name && imageAsset.type && !imageAsset.uri) {
-      // 清理文件名，移除特殊字符
-      const safeName = imageAsset.name.replace(/[^a-zA-Z0-9.\u4e00-\u9fa5]/g, '_');
-      return new File([imageAsset], safeName, { type: imageAsset.type });
-    }
-  
-    const uri = imageAsset.uri;
-    if (uri && uri.startsWith('data:')) {
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const safeName = `image_${Date.now()}.jpg`;
-      return new File([blob], safeName, { type: blob.type });
-    }
+      // 如果已经是标准 File 对象，直接返回
+      if (imageAsset && imageAsset.name && imageAsset.type && !imageAsset.uri) {
+        const safeName = imageAsset.name.replace(/[^a-zA-Z0-9.\u4e00-\u9fa5]/g, '_');
+        return new File([imageAsset], safeName, { type: imageAsset.type });
+      }
+    
+      const uri = imageAsset.uri;
+      
+      // 处理 base64 图片
+      if (uri && uri.startsWith('data:')) {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        const safeName = `image_${Date.now()}.jpg`;
+        return new File([blob], safeName, { type: blob.type });
+      }
+      
+      // ========== 新增：处理网络 URL 图片 ==========
+      if (uri && (uri.startsWith('http://') || uri.startsWith('https://'))) {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        // 从 URL 中提取文件名
+        let fileName = 'image.jpg';
+        const urlParts = uri.split('/');
+        const lastPart = urlParts[urlParts.length - 1];
+        if (lastPart.includes('.')) {
+          fileName = lastPart.split('?')[0]; // 去掉查询参数
+        }
+        const safeName = fileName.replace(/[^a-zA-Z0-9.\u4e00-\u9fa5]/g, '_');
+        return new File([blob], safeName, { type: blob.type || 'image/jpeg' });
+      }
   
     // 如果是本地文件路径，使用 fetch 获取 blob
     const response = await fetch(uri);
@@ -2751,11 +2767,23 @@ export default function App() {
             />
             <TouchableOpacity
               style={styles.useThisAvatarButton}
-              onPress={() => {
+              onPress={async () => {
                 const currentAvatar = presetAvatars.find(a => a.preview_video_url === currentPreviewVideoUrl);
                 if (currentAvatar) {
-                  setSelectedAvatarId(currentAvatar.id);
-                  setDigitalImage({ uri: currentAvatar.model_image, isUrl: true });
+                  const imageUrl = currentAvatar.model_image;
+                  try {
+                    // 下载图片并转换为 File 对象
+                    const response = await fetch(imageUrl);
+                    const blob = await response.blob();
+                    const imageFile = new File([blob], `${currentAvatar.name}.jpg`, { type: 'image/jpeg' });
+                    setDigitalImage(imageFile);
+                    setSelectedAvatarId(currentAvatar.id);
+                  } catch (error) {
+                    console.error('转换图片失败:', error);
+                    // 降级：如果转换失败，使用原来的 URL 方式
+                    setDigitalImage({ uri: currentAvatar.model_image, isUrl: true });
+                    setSelectedAvatarId(currentAvatar.id);
+                  }
                 }
                 setPreviewVideoVisible(false);
               }}
