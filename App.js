@@ -2751,23 +2751,11 @@ export default function App() {
             />
             <TouchableOpacity
               style={styles.useThisAvatarButton}
-              onPress={async () => {
+              onPress={() => {
                 const currentAvatar = presetAvatars.find(a => a.preview_video_url === currentPreviewVideoUrl);
                 if (currentAvatar) {
-                  const imageUrl = currentAvatar.model_image;
-                  try {
-                    // 下载图片并转换为 File 对象
-                    const response = await fetch(imageUrl);
-                    const blob = await response.blob();
-                    const imageFile = new File([blob], `${currentAvatar.name}.jpg`, { type: 'image/jpeg' });
-                    setDigitalImage(imageFile);
-                    setSelectedAvatarId(currentAvatar.id);
-                  } catch (error) {
-                    console.error('转换图片失败:', error);
-                    // 降级：如果转换失败，使用原来的 URL 方式
-                    setDigitalImage({ uri: currentAvatar.model_image, isUrl: true });
-                    setSelectedAvatarId(currentAvatar.id);
-                  }
+                  setSelectedAvatarId(currentAvatar.id);
+                  setDigitalImage({ uri: currentAvatar.model_image, isUrl: true });
                 }
                 setPreviewVideoVisible(false);
               }}
