@@ -476,27 +476,32 @@ export default function App() {
       const token = localStorage.getItem('access_token');
       if (!token) return;
 
-      // 获取后端已有的官方音色
+      // 1. 获取官方音色
       const officialResponse = await axios.get(`${API_URL}/tts/voices`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const officialVoices = officialResponse.data || [];
 
-      // 你手动克隆的 5 个音色
+      // 2. 手动音色（5个）
       const manualVoices = MANUAL_VOICES;
 
-      // 合并两个列表
-      const allVoices = [...officialVoices, ...manualVoices];
+      // 3. 合并时按名称去重：保留手动音色，去除官方音色中同名的
+      const manualVoiceNames = new Set(manualVoices.map(v => v.name));
+      const filteredOfficial = officialVoices.filter(v => !manualVoiceNames.has(v.name));
+      
+      // 4. 最终音色列表 = 手动音色 + 去重后的官方音色
+      const allVoices = [...manualVoices, ...filteredOfficial];
+      
       setTtsVoices(allVoices);
 
-      // 默认选中第一个音色
+      // 5. 默认选中第一个音色（手动音色的第一个）
       if (allVoices.length > 0 && !selectedVoiceId) {
         setSelectedVoiceId(allVoices[0].id);
         setDigitalVoice(allVoices[0].name);
       }
     } catch (error) {
       console.error('获取音色列表失败:', error);
-      // 降级：只显示手动音色
+      // API 失败时仍然能显示手动音色
       setTtsVoices(MANUAL_VOICES);
     }
   };
