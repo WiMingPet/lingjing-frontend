@@ -1,5 +1,6 @@
 import 'formdata-polyfill';
 import React, { useState, useEffect, useRef } from 'react';
+import { MANUAL_VOICES } from './src/data/manualVoices.js';
 import {
   StyleSheet,
   Text,
@@ -473,18 +474,30 @@ export default function App() {
   const fetchTtsVoices = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await axios.get(`${API_URL}/tts/voices`, {
+      if (!token) return;
+
+      // 获取后端已有的官方音色
+      const officialResponse = await axios.get(`${API_URL}/tts/voices`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (response.data) {
-        setTtsVoices(response.data);
-        if (response.data.length > 0 && !selectedVoiceId) {
-          setSelectedVoiceId(response.data[0].id);
-          setDigitalVoice(response.data[0].voice_name || response.data[0].name);
-        }
+      const officialVoices = officialResponse.data || [];
+
+      // 你手动克隆的 5 个音色
+      const manualVoices = MANUAL_VOICES;
+
+      // 合并两个列表
+      const allVoices = [...officialVoices, ...manualVoices];
+      setTtsVoices(allVoices);
+
+      // 默认选中第一个音色
+      if (allVoices.length > 0 && !selectedVoiceId) {
+        setSelectedVoiceId(allVoices[0].id);
+        setDigitalVoice(allVoices[0].name);
       }
     } catch (error) {
       console.error('获取音色列表失败:', error);
+      // 降级：只显示手动音色
+      setTtsVoices(MANUAL_VOICES);
     }
   };
     // 试听音色
