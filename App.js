@@ -26,7 +26,7 @@ import * as FileSystem from 'expo-file-system';
 
 const { width, height } = Dimensions.get('window');
 const API_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
-const HISTORY_KEY = 'lingjing_image_history';
+
 
 const Card = ({ children, style }) => (
   <View style={[styles.card, style]}>{children}</View>
@@ -153,10 +153,7 @@ export default function App() {
       shouldDuckAndroid: true,
       playThroughEarpieceAndroid: false,
     });
-    const saved = localStorage.getItem(HISTORY_KEY);
-    if (saved) {
-      setHistory(JSON.parse(saved));
-    }
+
     const token = localStorage.getItem('access_token');
     if (token) {
       setIsLoggedIn(true);
@@ -165,6 +162,7 @@ export default function App() {
       fetchUserCredits();  // ✅ 添加这一行
       fetchPresetAvatars();
       fetchTtsVoices();
+      loadHistory();
     }
     
     // 组件卸载时清理音频资源
@@ -217,6 +215,7 @@ export default function App() {
       setIsLoggedIn(true);
       setShowLoginModal(false);
       fetchDigitalHumans();
+      await loadHistory();
       showToast('登录成功');
     } catch (err) {
       console.error('登录错误:', err.response?.data);  // 添加日志
@@ -667,18 +666,34 @@ export default function App() {
     return true;
   };
 
-  const saveToHistory = (url, type) => {
+  // 保存历史记录（改为调用后端API）
+  const saveToHistory = async (url, type) => {
     if (!url) return;
-    const newItem = {
-      id: Date.now(),
-      url: url,
-      type: type,
-      timestamp: new Date().toLocaleString(),
-    };
-    const newHistory = [newItem, ...history].slice(0, 20);
-    setHistory(newHistory);
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
-    showToast(`${type} 已保存到历史记录`);
+    
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      showToast('请先登录', true);
+      return;
+    }
+    
+    try {
+      // 调用后端API保存历史记录
+      await axios.post(`${API_URL}/history/save`, {
+        url: url,
+        type: type,
+        thumbnail: null  // 暂时没有封面图，后续可以添加
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      // 刷新历史记录列表（从后端重新获取）
+      await loadHistory();
+      
+      showToast(`${type} 已保存到历史记录`);
+    } catch (error) {
+      console.error('保存历史记录失败:', error);
+      showToast('保存失败', true);
+    }
   };
   // 保存文件到本地相册（移动端）或下载（Web）
   const saveToGallery = async (url, type) => {
@@ -707,6 +722,33 @@ export default function App() {
     } catch (err) {
       console.error('保存失败:', err);
       showToast('保存失败，请重试', true);
+    }
+  };
+  // 从后端加载历史记录
+  const loadHistory = async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      setHistory([]);
+      return;
+    }
+    
+    try {
+      const response = await axios.get(`${API_URL}/history/list`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.data.code === 200) {
+        const items = response.data.data.map(item => ({
+          id: item.id,
+          url: item.url,
+          type: item.type,
+          thumbnail: item.thumbnail || item.url,
+          timestamp: new Date(item.timestamp).toLocaleString()
+        }));
+        setHistory(items);
+      }
+    } catch (error) {
+      console.error('加载历史记录失败:', error);
     }
   };
 
