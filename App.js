@@ -1937,17 +1937,47 @@ export default function App() {
 
                       <Card style={styles.inputCard}>
                         <Text style={styles.cardTitle}>🎵 选择音色</Text>
-                        <View style={styles.voiceRow}>
-                          {['温柔女声', '沉稳男声', '可爱童声', '磁性男声'].map(voice => (
-                            <TouchableOpacity
-                              key={voice}
-                              style={[styles.voiceButton, digitalVoice === voice && styles.voiceButtonActive]}
-                              onPress={() => setDigitalVoice(voice)}
-                            >
-                              <Text style={[styles.voiceText, digitalVoice === voice && styles.voiceTextActive]}>{voice}</Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                          {ttsVoices.length > 0 ? (
+                            ttsVoices.map(voice => (
+                              <View key={voice.id} style={styles.voiceItemWrapper}>
+                                <TouchableOpacity
+                                  style={styles.voiceItem}
+                                  onPress={() => {
+                                    setSelectedVoiceId(voice.id);
+                                    setDigitalVoice(voice.name);
+                                  }}
+                                  activeOpacity={0.7}
+                                >
+                                  <Text style={[styles.voiceItemText, selectedVoiceId === voice.id && styles.voiceItemTextActive]}>
+                                    {voice.name}
+                                  </Text>
+                                </TouchableOpacity>
+                                {voice.preview_url && (
+                                  <TouchableOpacity
+                                    onPress={(e) => {
+                                      e.stopPropagation();
+                                      playVoicePreview(voice.id, voice.preview_url);
+                                    }}
+                                    style={styles.voicePlayButton}
+                                    activeOpacity={0.7}
+                                  >
+                                    <Icon 
+                                      name={playingVoiceId === voice.id ? "pause-circle" : "play-circle"} 
+                                      size={24} 
+                                      color="#7c3aed" 
+                                    />
+                                  </TouchableOpacity>
+                                )}
+                              </View>
+                            ))
+                          ) : (
+                            <View style={styles.loadingVoices}>
+                              <ActivityIndicator size="small" color="#7c3aed" />
+                              <Text style={styles.loadingVoicesText}>加载音色中...</Text>
+                            </View>
+                          )}
+                        </ScrollView>
                       </Card>
 
                       <Card style={styles.inputCard}>
