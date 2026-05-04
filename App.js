@@ -153,6 +153,11 @@ export default function App() {
       shouldDuckAndroid: true,
       playThroughEarpieceAndroid: false,
     });
+    // 从 localStorage 读取历史记录
+    const saved = localStorage.getItem(HISTORY_KEY);
+    if (saved) {
+      setHistory(JSON.parse(saved));
+    }
 
     const token = localStorage.getItem('access_token');
     if (token) {
@@ -162,7 +167,7 @@ export default function App() {
       fetchUserCredits();  // ✅ 添加这一行
       fetchPresetAvatars();
       fetchTtsVoices();
-      loadHistory();
+      
     }
     
     // 组件卸载时清理音频资源
@@ -1004,6 +1009,7 @@ export default function App() {
     
       console.log('视频 URL:', videoUrl);
       setResult({ video_url: videoUrl });
+      saveToHistory(videoUrl, '视频生成');
       showToast('视频生成成功');
     } catch (err) {
       console.error('视频生成错误:', err);
