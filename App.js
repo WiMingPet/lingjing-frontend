@@ -484,23 +484,27 @@ export default function App() {
       // 2. 手动音色（5个）
       const manualVoices = MANUAL_VOICES;
 
-      // 3. 合并时按名称去重：保留手动音色，去除官方音色中同名的
-      const manualVoiceNames = new Set(manualVoices.map(v => v.name));
-      const filteredOfficial = officialVoices.filter(v => !manualVoiceNames.has(v.name));
+      // 3. 合并所有音色
+      const allVoicesRaw = [...officialVoices, ...manualVoices];
       
-      // 4. 最终音色列表 = 手动音色 + 去重后的官方音色
-      const allVoices = [...manualVoices, ...filteredOfficial];
+      // 4. 按 id 去重（保留第一个出现的）
+      const uniqueMap = new Map();
+      allVoicesRaw.forEach(voice => {
+        if (!uniqueMap.has(voice.id)) {
+          uniqueMap.set(voice.id, voice);
+        }
+      });
+      const allVoices = Array.from(uniqueMap.values());
       
       setTtsVoices(allVoices);
 
-      // 5. 默认选中第一个音色（手动音色的第一个）
+      // 5. 默认选中第一个音色
       if (allVoices.length > 0 && !selectedVoiceId) {
         setSelectedVoiceId(allVoices[0].id);
         setDigitalVoice(allVoices[0].name);
       }
     } catch (error) {
       console.error('获取音色列表失败:', error);
-      // API 失败时仍然能显示手动音色
       setTtsVoices(MANUAL_VOICES);
     }
   };
