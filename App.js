@@ -26,6 +26,7 @@ import * as FileSystem from 'expo-file-system';
 
 const { width, height } = Dimensions.get('window');
 const API_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
+const HISTORY_KEY = 'lingjing_image_history'; 
 
 
 const Card = ({ children, style }) => (
