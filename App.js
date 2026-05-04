@@ -737,7 +737,7 @@ export default function App() {
           id: item.id,
           url: item.url,
           type: item.type,
-          thumbnail: item.thumbnail || item.url,
+          thumbnail: item.thumbnail,
           timestamp: new Date(item.timestamp).toLocaleString()
         }));
         setHistory(items);
@@ -2375,7 +2375,17 @@ export default function App() {
                       }}
                       style={styles.historyItem}
                     >
-                      <img src={item.url} style={styles.historyImage} alt="历史记录" />
+                      <img 
+                        src={item.thumbnail || item.url} 
+                        style={styles.historyImage} 
+                        alt="历史记录" 
+                        onError={(e) => {
+                          // 如果封面加载失败（404等），降级到视频原链接
+                          if (e.target.src !== item.url) {
+                            e.target.src = item.url;
+                          }
+                        }}
+                      />
                       <Text style={styles.historyText}>{item.type}</Text>
                       <Text style={styles.historyTime}>{item.timestamp}</Text>
                     </TouchableOpacity>
