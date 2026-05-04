@@ -1,31 +1,31 @@
 export const MANUAL_VOICES = [
   {
     "id": "880091449093152858",
-    "name": "知性学姐(独）",
+    "name": "知性女声",
     "preview_url": "https://v2-kling.kechuangai.com/bs2/upload-ylab-stunt/muse/867844650139664460/AUDIO/20260504/58bba308094725230dcccf9e6d21216d-69695ff5-2fcb-4770-9370-454da3536290.quality.wav?x-kcdn-pid=112452",
     "type": "clone"
   },
   {
     "id": "880091502654263336",
-    "name": "温雅老师（独）",
+    "name": "温雅情感女声",
     "preview_url": "https://v2-kling.kechuangai.com/bs2/upload-ylab-stunt/muse/867844650139664460/AUDIO/20260504/b83166509060089d05e25ed4b52a8336-7ac20f98-d930-4190-9c64-a0054aeb50ae.quality.wav?x-kcdn-pid=112452",
     "type": "clone"
   },
   {
     "id": "880091548670124045",
-    "name": "活力男声",
+    "name": "多情感男声",
     "preview_url": "https://v2-kling.kechuangai.com/bs2/upload-ylab-stunt/muse/867844650139664460/AUDIO/20260504/4e89bfaf20a4d94611601e04bb0d3b76-df51e3df-b75c-4b2b-abf0-01336cf196ce.quality.wav?x-kcdn-pid=112452",
     "type": "clone"
   },
   {
     "id": "880091602185248775",
-    "name": "磁性大叔",
+    "name": "磁性大叔男声",
     "preview_url": "https://v2-kling.kechuangai.com/bs2/upload-ylab-stunt/muse/867844650139664460/AUDIO/20260504/61d8258cb67263fdd056028db0f04bb6-4dd0f088-5040-4bf8-a280-09daed92dfb0.quality.wav?x-kcdn-pid=112452",
     "type": "clone"
   },
   {
     "id": "880091651543683127",
-    "name": "温柔解说",
+    "name": "温柔细腻",
     "preview_url": "https://v2-kling.kechuangai.com/bs2/upload-ylab-stunt/muse/867844650139664460/AUDIO/20260504/8ba80fa0187b1900f671f19926dae947-37424eb7-5863-45eb-9f7e-1ab52cd6452d.quality.wav?x-kcdn-pid=112452",
     "type": "clone"
   },

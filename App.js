@@ -475,30 +475,23 @@ export default function App() {
       const token = localStorage.getItem('access_token');
       if (!token) return;
 
-      // 1. 获取官方音色
       const officialResponse = await axios.get(`${API_URL}/tts/voices`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const officialVoices = officialResponse.data || [];
-
-      // 2. 手动音色（5个）
       const manualVoices = MANUAL_VOICES;
 
-      // 3. 合并所有音色
-      const allVoicesRaw = [...officialVoices, ...manualVoices];
+      // 获取手动音色的名称集合
+      const manualNames = new Set(manualVoices.map(v => v.name));
       
-      // 4. 按 id 去重（保留第一个出现的）
-      const uniqueMap = new Map();
-      allVoicesRaw.forEach(voice => {
-        if (!uniqueMap.has(voice.id)) {
-          uniqueMap.set(voice.id, voice);
-        }
-      });
-      const allVoices = Array.from(uniqueMap.values());
+      // 过滤官方音色：去掉与手动音色同名的
+      const filteredOfficial = officialVoices.filter(v => !manualNames.has(v.name));
+      
+      // 合并：手动音色 + 过滤后的官方音色
+      const allVoices = [...manualVoices, ...filteredOfficial];
       
       setTtsVoices(allVoices);
 
-      // 5. 默认选中第一个音色
       if (allVoices.length > 0 && !selectedVoiceId) {
         setSelectedVoiceId(allVoices[0].id);
         setDigitalVoice(allVoices[0].name);
