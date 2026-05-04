@@ -955,6 +955,7 @@ export default function App() {
       }
     
       setResult(res.data?.data?.output_data || res.data?.output_data);
+      saveToHistory(imgUrl, '图片生成');
       showToast('图片生成成功');
     } catch (err) {
       console.error('图片生成错误:', err);
@@ -1064,6 +1065,7 @@ export default function App() {
       }
     
       setResult(res.data?.data?.output_data || res.data?.output_data);
+      saveToHistory(tryonUrl, '虚拟试穿');
       showToast('试穿视频生成成功');
     } catch (err) {
       console.error('虚拟试穿错误:', err);
@@ -1135,6 +1137,7 @@ export default function App() {
       }
     
       setResult({ video_url: videoUrl });
+      saveToHistory(videoUrl, '数字人分身');
       showToast('数字人视频生成成功');
     } catch (err) {
       console.error('数字人分身错误:', err);
@@ -1414,6 +1417,7 @@ export default function App() {
       }
     
       setResult({ images: [{ url: imageUrl }] });
+      saveToHistory(imageUrl, '多角度试穿');
       showToast('多角度合成成功');
     } catch (err) {
       console.error('多角度合成错误:', err);
