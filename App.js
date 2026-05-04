@@ -121,6 +121,10 @@ export default function App() {
   const [ecommerceImage, setEcommerceImage] = useState(null);
   const [ecommerceDigitalImage, setEcommerceDigitalImage] = useState(null);
   const [ecommerceVideoUrl, setEcommerceVideoUrl] = useState('');
+  const [ecommerceTaskId, setEcommerceTaskId] = useState('');        // 异步任务ID
+  const [ecommerceStatusMsg, setEcommerceStatusMsg] = useState('');  // 进度消息
+  const [isGeneratingEcommerce, setIsGeneratingEcommerce] = useState(false); // 生成中标识
+  const pollingRef = useRef(null); // 轮询定时器引用
 
   // 新增：创建一个ref来稳定地保存验证码
   const savedRegisterCode = useRef('');
@@ -1249,7 +1253,7 @@ export default function App() {
     }
   };
 
-  // 生成带货视频 - 终极硬编码版本
+  // 生成带货视频 - 异步后台版本
   const generateEcommerceVideo = async () => {
     const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
     
@@ -1258,23 +1262,21 @@ export default function App() {
       return;
     }
     
-    setLoading(true);
+    setIsGeneratingEcommerce(true);
+    setEcommerceStatusMsg('正在准备生成...');
+    setEcommerceVideoUrl('');
     
     try {
       let productImageUrl = null;
       
-      // 判断商品图片是 URL 还是本地文件
+      // 处理商品图片
       if (ecommerceImage) {
         if (ecommerceImage.isUrl || ecommerceImage.uri?.startsWith('http')) {
-          // 已经是 URL，直接使用
           productImageUrl = ecommerceImage.uri;
-          console.log('[使用已有图片URL]', productImageUrl);
         } else if (ecommerceImage.uri) {
-          // 本地文件，需要上传
           const formData = new FormData();
           const file = await convertToFile(ecommerceImage);
           formData.append('file', file);
-          
           const uploadRes = await axios.post(`${BACKEND_URL}/upload`, formData, {
             headers: { 
               'Content-Type': 'multipart/form-data',
@@ -1282,16 +1284,9 @@ export default function App() {
             }
           });
           productImageUrl = uploadRes.data.url;
-          console.log('[上传图片成功]', productImageUrl);
         }
       }
       
-      // 如果没有商品图片，使用描述生成（不强制要求图片）
-      if (!productImageUrl) {
-        console.log('[无商品图片，仅使用描述生成视频]');
-      }
-      
-      // 处理数字人照片（类似逻辑）
       let digitalImageUrl = null;
       if (ecommerceDigitalImage) {
         if (ecommerceDigitalImage.uri?.startsWith('http')) {
@@ -1300,7 +1295,6 @@ export default function App() {
           const formData = new FormData();
           const file = await convertToFile(ecommerceDigitalImage);
           formData.append('file', file);
-          
           const uploadRes = await axios.post(`${BACKEND_URL}/upload`, formData, {
             headers: { 
               'Content-Type': 'multipart/form-data',
@@ -1311,7 +1305,8 @@ export default function App() {
         }
       }
       
-      // 调用生成视频接口
+      // 1. 提交异步任务
+      setEcommerceStatusMsg('正在提交生成任务...');
       const res = await axios.post(`${BACKEND_URL}/ecommerce/generate_video`, {
         url: ecommerceUrl || undefined,
         description: ecommerceDescription,
@@ -1322,22 +1317,97 @@ export default function App() {
       });
       
       if (res.data.code === 200) {
-        const videoUrl = res.data.data?.video_url;
-        if (videoUrl) {
-          setEcommerceVideoUrl(videoUrl);
-          showToast('视频生成成功');
+        const taskId = res.data.data?.task_id;
+        if (taskId) {
+          setEcommerceTaskId(taskId);
+          setEcommerceStatusMsg('🎬 AI正在制作带货视频，预计2-5分钟...');
+          // 2. 开始轮询
+          startPollingTask(taskId);
         } else {
-          showToast('视频生成中，请稍后查看', false);
+          // 兼容旧版同步返回
+          const videoUrl = res.data.data?.video_url;
+          if (videoUrl) {
+            setEcommerceVideoUrl(videoUrl);
+            showToast('视频生成成功');
+            saveToHistory(videoUrl, 'AI带货视频');
+          }
+          setIsGeneratingEcommerce(false);
         }
       } else {
         showToast(res.data.message || '生成失败', true);
+        setIsGeneratingEcommerce(false);
       }
     } catch (err) {
       console.error('生成带货视频失败:', err);
       showToast(err.response?.data?.detail || '生成失败', true);
-    } finally {
-      setLoading(false);
+      setIsGeneratingEcommerce(false);
     }
+  };
+
+  // 轮询任务状态
+  const startPollingTask = (taskId) => {
+    const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
+    let attempts = 0;
+    const maxAttempts = 60; // 最多10分钟
+    
+    // 清除之前的轮询
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+    }
+    
+    pollingRef.current = setInterval(async () => {
+      attempts++;
+      try {
+        const token = accessToken;
+        if (!token) {
+          clearInterval(pollingRef.current);
+          setIsGeneratingEcommerce(false);
+          return;
+        }
+        
+        const statusRes = await axios.get(`${BACKEND_URL}/ecommerce/task/${taskId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const task = statusRes.data.data;
+        if (task) {
+          setEcommerceStatusMsg(task.message || '生成中...');
+          
+          if (task.status === 'completed') {
+            clearInterval(pollingRef.current);
+            setIsGeneratingEcommerce(false);
+            const videoUrl = task.video_url;
+            setEcommerceVideoUrl(videoUrl);
+            showToast('🎉 带货视频生成成功！');
+            saveToHistory(videoUrl, 'AI带货视频');
+            await loadHistory();
+          } else if (task.status === 'failed') {
+            clearInterval(pollingRef.current);
+            setIsGeneratingEcommerce(false);
+            showToast('生成失败: ' + task.message, true);
+          }
+        }
+        
+        if (attempts >= maxAttempts) {
+          clearInterval(pollingRef.current);
+          setIsGeneratingEcommerce(false);
+          showToast('生成超时，请稍后在历史记录中查看', true);
+        }
+      } catch (err) {
+        console.error('查询任务状态失败:', err);
+        if (attempts >= maxAttempts) {
+          clearInterval(pollingRef.current);
+          setIsGeneratingEcommerce(false);
+        }
+      }
+    }, 10000); // 每10秒查一次
+
+    // 保存引用以便清除
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    };
   };
 
 
@@ -2211,9 +2281,9 @@ export default function App() {
                       <TouchableOpacity
                         style={[styles.generateButton, (!ecommerceImage && !ecommerceDescription) && styles.disabledButton]}
                         onPress={generateEcommerceVideo}
-                        disabled={loading || (!ecommerceImage && !ecommerceDescription)}
+                        disabled={isGeneratingEcommerce || (!ecommerceImage && !ecommerceDescription)}
                       >
-                        {loading ? (
+                        {isGeneratingEcommerce ? (
                           <ActivityIndicator color="#fff" size="small" />
                         ) : (
                           <Text style={styles.generateText}>生成带货视频</Text>
@@ -2237,6 +2307,30 @@ export default function App() {
                           </TouchableOpacity>
                         </View>
                       ) : null}
+
+                      {/* ========== 带货视频生成进度弹窗 ========== */}
+                      {isGeneratingEcommerce && (
+                        <View style={styles.generatingOverlay}>
+                          <View style={styles.generatingBox}>
+                            <ActivityIndicator size="large" color="#FF4757" />
+                            <Text style={styles.generatingTitle}>🎬 AI正在制作带货视频</Text>
+                            <Text style={styles.generatingMsg}>{ecommerceStatusMsg}</Text>
+                            <Text style={styles.generatingTips}>• 数字人讲解 + 商品展示</Text>
+                            <Text style={styles.generatingTips}>• 预计需要 2-5 分钟</Text>
+                            <Text style={styles.generatingTips}>• 请勿关闭页面，完成后自动显示</Text>
+                            <TouchableOpacity 
+                              style={styles.generatingCancelBtn}
+                              onPress={() => {
+                                if (pollingRef.current) clearInterval(pollingRef.current);
+                                setIsGeneratingEcommerce(false);
+                                showToast('已切换后台生成，稍后查看历史记录');
+                              }}
+                            >
+                              <Text style={styles.generatingCancelText}>后台生成</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      )}
                     </Card>
                   )}
                 </ScrollView>
@@ -3467,5 +3561,55 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#666',
     textAlign: 'center',
+  },
+  // 生成进度弹窗
+  generatingOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  generatingBox: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    width: '85%',
+    maxWidth: 340,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  generatingTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 20,
+    color: '#333',
+  },
+  generatingMsg: {
+    fontSize: 14,
+    color: '#FF4757',
+    marginTop: 10,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  generatingTips: {
+    fontSize: 13,
+    color: '#999',
+    marginTop: 6,
+  },
+  generatingCancelBtn: {
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    backgroundColor: '#f0f0f0',
+  },
+  generatingCancelText: {
+    color: '#666',
+    fontSize: 14,
   },
 });
