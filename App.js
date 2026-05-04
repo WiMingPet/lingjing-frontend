@@ -154,12 +154,6 @@ export default function App() {
       shouldDuckAndroid: true,
       playThroughEarpieceAndroid: false,
     });
-    // 从 localStorage 读取历史记录
-    const saved = localStorage.getItem(HISTORY_KEY);
-    if (saved) {
-      setHistory(JSON.parse(saved));
-    }
-
     const token = localStorage.getItem('access_token');
     if (token) {
       setIsLoggedIn(true);
@@ -168,6 +162,7 @@ export default function App() {
       fetchUserCredits();  // ✅ 添加这一行
       fetchPresetAvatars();
       fetchTtsVoices();
+      loadHistory();  // 加载历史记录
       
     }
     
@@ -670,7 +665,7 @@ export default function App() {
   };
 
   // 保存历史记录（改为调用后端API）
-  const saveToHistory = async (url, type) => {
+  const saveToHistory = async (url, type, thumbnail = null) => {
     if (!url) return;
     
     const token = localStorage.getItem('access_token');
@@ -680,18 +675,15 @@ export default function App() {
     }
     
     try {
-      // 调用后端API保存历史记录
       await axios.post(`${API_URL}/history/save`, {
         url: url,
         type: type,
-        thumbnail: null  // 暂时没有封面图，后续可以添加
+        thumbnail: thumbnail
       }, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      // 刷新历史记录列表（从后端重新获取）
       await loadHistory();
-      
       showToast(`${type} 已保存到历史记录`);
     } catch (error) {
       console.error('保存历史记录失败:', error);
