@@ -1280,7 +1280,7 @@ export default function App() {
           const formData = new FormData();
           const file = await convertToFile(ecommerceImage);
           formData.append('file', file);
-          const uploadRes = await axios.post(`${BACKEND_URL}/upload`, formData, {
+          const uploadRes = await axios.post(`${BACKEND_URL}/upload/`, formData, {
             headers: { 
               'Content-Type': 'multipart/form-data',
               'Authorization': `Bearer ${accessToken}`
@@ -1298,7 +1298,7 @@ export default function App() {
           const formData = new FormData();
           const file = await convertToFile(ecommerceDigitalImage);
           formData.append('file', file);
-          const uploadRes = await axios.post(`${BACKEND_URL}/upload`, formData, {
+          const uploadRes = await axios.post(`${BACKEND_URL}/upload/`, formData, {
             headers: { 
               'Content-Type': 'multipart/form-data',
               'Authorization': `Bearer ${accessToken}`
