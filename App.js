@@ -121,9 +121,9 @@ export default function App() {
   const [ecommerceImage, setEcommerceImage] = useState(null);
   const [ecommerceDigitalImage, setEcommerceDigitalImage] = useState(null);
   const [ecommerceVideoUrl, setEcommerceVideoUrl] = useState('');
-  const [ecommerceTaskId, setEcommerceTaskId] = useState('');        // 异步任务ID
-  const [ecommerceStatusMsg, setEcommerceStatusMsg] = useState('');  // 进度消息
-  const [isGeneratingEcommerce, setIsGeneratingEcommerce] = useState(false); // 生成中标识
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingTitle, setGeneratingTitle] = useState('');
+  const [generatingSubtitle, setGeneratingSubtitle] = useState('');
   const pollingRef = useRef(null); // 轮询定时器引用
 
   // 新增：创建一个ref来稳定地保存验证码
@@ -899,9 +899,11 @@ export default function App() {
   };
 
   const generateImage = async () => {
-    if (!checkAndUseCredits(5, '图片生成', () => {})) return;
     if (!selectedImage) return showToast('请先选择一张参考图片');
     setLoading(true);
+    setIsGenerating(true);
+    setGeneratingTitle('AI正在生成图片');
+    setGeneratingSubtitle('文生图 / 图生图');
   
     const formData = new FormData();
     const file = await convertToFile(selectedImage);
@@ -947,14 +949,17 @@ export default function App() {
       showToast(err.message || '生成失败', true);
     } finally {
       setLoading(false);
+      setIsGenerating(false);
     }
   };
 
   const generateVideo = async () => {
     const cost = duration === 5 ? 10 : 15;
-    if (!checkAndUseCredits(cost, `${duration}秒视频生成`, () => {})) return;
     if (!selectedImage) return showToast('请先选择一张图片');
     setLoading(true);
+    setIsGenerating(true);
+    setGeneratingTitle('AI正在生成视频');
+    setGeneratingSubtitle('图生视频动态展示');
   
     const formData = new FormData();
     const file = await convertToFile(selectedImage);
@@ -1003,14 +1008,17 @@ export default function App() {
       showToast(err.message || '生成失败', true);
     } finally {
       setLoading(false);
+      setIsGenerating(false);
     }
   };
 
   const generateTryon = async () => {
-    if (!checkAndUseCredits(15, '虚拟试穿', () => {})) return;
     if (!modelImage) return showToast('请先选择模特图片');
     if (!garmentImage) return showToast('请先选择服装图片');
     setLoading(true);
+    setIsGenerating(true);
+    setGeneratingTitle('AI正在生成试穿视频');
+    setGeneratingSubtitle('服装上身效果展示');
   
     const formData = new FormData();
   
@@ -1058,14 +1066,17 @@ export default function App() {
       showToast(err.message || '试穿失败', true);
     } finally {
       setLoading(false);
+      setIsGenerating(false);
     }
   };
 
   const generateDigitalHuman = async () => {
-    if (!checkAndUseCredits(20, '数字人分身', () => {})) return;
     if (!digitalImage) return showToast('请先上传照片');
     if (!digitalText.trim()) return showToast('请输入说话内容');
     setLoading(true);
+    setIsGenerating(true);
+    setGeneratingTitle('AI正在生成数字人视频');
+    setGeneratingSubtitle('虚拟形象口播讲解');
 
     try {
       const token = localStorage.getItem('access_token');
@@ -1130,6 +1141,7 @@ export default function App() {
       showToast(err.message || '生成失败', true);
     } finally {
       setLoading(false);
+      setIsGenerating(false);
     }
   };
 
@@ -1252,8 +1264,9 @@ export default function App() {
       return;
     }
     
-    setIsGeneratingEcommerce(true);
-    setEcommerceStatusMsg('正在准备生成...');
+    setIsGenerating(true);
+    setGeneratingTitle('AI正在制作带货视频');
+    setGeneratingSubtitle('数字人讲解 + 商品展示');
     setEcommerceVideoUrl('');
     
     try {
@@ -1295,8 +1308,7 @@ export default function App() {
         }
       }
       
-      // 1. 提交异步任务
-      setEcommerceStatusMsg('正在提交生成任务...');
+      // 提交异步任务
       const res = await axios.post(`${BACKEND_URL}/ecommerce/generate_video`, {
         url: ecommerceUrl || undefined,
         description: ecommerceDescription,
@@ -1309,85 +1321,72 @@ export default function App() {
       if (res.data.code === 200) {
         const taskId = res.data.data?.task_id;
         if (taskId) {
-          setEcommerceTaskId(taskId);
-          setEcommerceStatusMsg('🎬 AI正在制作带货视频，预计2-5分钟...');
-          // 2. 开始轮询
-          startPollingTask(taskId);
+          startPollingTask(taskId, 'AI带货视频', `${BACKEND_URL}/ecommerce/task/${taskId}`);
         } else {
-          // 兼容旧版同步返回
           const videoUrl = res.data.data?.video_url;
           if (videoUrl) {
             setEcommerceVideoUrl(videoUrl);
             showToast('视频生成成功');
             saveToHistory(videoUrl, 'AI带货视频');
           }
-          setIsGeneratingEcommerce(false);
+          setIsGenerating(false);
         }
       } else {
         showToast(res.data.message || '生成失败', true);
-        setIsGeneratingEcommerce(false);
+        setIsGenerating(false);
       }
     } catch (err) {
       console.error('生成带货视频失败:', err);
       showToast(err.response?.data?.detail || '生成失败', true);
-      setIsGeneratingEcommerce(false);
+      setIsGenerating(false);
     }
   };
 
-  // 轮询任务状态
-  const startPollingTask = (taskId) => {
+  // 通用后台轮询：完成后自动保存历史记录
+  const startPollingTask = (taskId, type, queryUrl) => {
     const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
     let attempts = 0;
-    const maxAttempts = 60; // 最多10分钟
+    const maxAttempts = 60;
     
-    // 清除之前的轮询
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-    }
+    if (pollingRef.current) clearInterval(pollingRef.current);
     
     pollingRef.current = setInterval(async () => {
       attempts++;
       try {
-        const token = accessToken;
-        if (!token) {
-          clearInterval(pollingRef.current);
-          setIsGeneratingEcommerce(false);
-          return;
-        }
+        const token = localStorage.getItem('access_token');
+        if (!token) { clearInterval(pollingRef.current); setIsGenerating(false); return; }
         
-        const statusRes = await axios.get(`${BACKEND_URL}/ecommerce/task/${taskId}`, {
+        const statusRes = await axios.get(queryUrl, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
         const task = statusRes.data.data;
-        if (task) {
-          setEcommerceStatusMsg(task.message || '生成中...');
-          
-          if (task.status === 'completed') {
-            clearInterval(pollingRef.current);
-            setIsGeneratingEcommerce(false);
-            const videoUrl = task.video_url;
-            setEcommerceVideoUrl(videoUrl);
-            showToast('🎉 带货视频生成成功！');
-            saveToHistory(videoUrl, 'AI带货视频');
+        if (!task) return;
+        
+        if (task.status === 'completed') {
+          clearInterval(pollingRef.current);
+          setIsGenerating(false);
+          const videoUrl = task.video_url || task.output_data?.video_url;
+          if (videoUrl) {
+            saveToHistory(videoUrl, type);
+            showToast(`🎉 ${type}生成成功！`);
             await loadHistory();
-          } else if (task.status === 'failed') {
-            clearInterval(pollingRef.current);
-            setIsGeneratingEcommerce(false);
-            showToast('生成失败: ' + task.message, true);
           }
+        } else if (task.status === 'failed') {
+          clearInterval(pollingRef.current);
+          setIsGenerating(false);
+          showToast(`${type}生成失败: ${task.message || '请重试'}`, true);
         }
         
         if (attempts >= maxAttempts) {
           clearInterval(pollingRef.current);
-          setIsGeneratingEcommerce(false);
+          setIsGenerating(false);
           showToast('生成超时，请稍后在历史记录中查看', true);
         }
       } catch (err) {
-        console.error('查询任务状态失败:', err);
         if (attempts >= maxAttempts) {
           clearInterval(pollingRef.current);
-          setIsGeneratingEcommerce(false);
+          setIsGenerating(false);
         }
       }
     }, 10000); // 每10秒查一次
@@ -1439,6 +1438,9 @@ export default function App() {
       }
       
       setLoading(true);
+      setIsGenerating(true);
+      setGeneratingTitle('AI正在生成多角度视频');
+      setGeneratingSubtitle('多角度动态展示');
     
       try {
         const formData = new FormData();
@@ -1493,6 +1495,7 @@ export default function App() {
         showToast(err.message || '合成失败', true);
       } finally {
         setLoading(false);
+        setIsGenerating(false);
       }
     };
 
@@ -2316,30 +2319,24 @@ export default function App() {
                         </View>
                       ) : null}
 
-                      {/* ========== 带货视频生成进度弹窗 ========== */}
-                      {isGeneratingEcommerce && (
+                      {/* ========== 通用生成进度弹窗 ========== */}
+                      {isGenerating && (
                         <View style={styles.generatingOverlay}>
                           <View style={styles.generatingBox}>
                             <ActivityIndicator size="large" color="#FF4757" />
-                            <Text style={styles.generatingTitle}>🎬 AI正在制作带货视频</Text>
-                            <Text style={styles.generatingMsg}>{ecommerceStatusMsg}</Text>
-                            <Text style={styles.generatingTips}>• 数字人讲解 + 商品展示</Text>
+                            <Text style={styles.generatingTitle}>🎬 {generatingTitle}</Text>
+                            <Text style={styles.generatingTips}>• {generatingSubtitle}</Text>
                             <Text style={styles.generatingTips}>• 预计需要 2-5 分钟</Text>
                             <Text style={styles.generatingTips}>• 若需离开，请点击下方按钮</Text>
                             <Text style={styles.generatingTips}>• 视频完成后自动刷新历史记录</Text>
                             <TouchableOpacity 
                               style={styles.generatingCancelBtn}
                               onPress={() => {
-                                if (pollingRef.current) clearInterval(pollingRef.current);
-                                setIsGeneratingEcommerce(false);
-                                showToast('已切换后台生成，完成后自动打开');
-                                // 保持轮询继续在后台运行
-                                if (ecommerceTaskId) {
-                                  startPollingTask(ecommerceTaskId);
-                                }
+                                setIsGenerating(false);
+                                showToast('已切换后台生成，完成后自动保存至历史记录');
                               }}
                             >
-                              <Text style={styles.generatingCancelText}>后台生成，完成后自动打开</Text>
+                              <Text style={styles.generatingCancelText}>后台生成</Text>
                             </TouchableOpacity>
                           </View>
                         </View>
