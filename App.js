@@ -385,65 +385,82 @@ export default function App() {
   };
 
   const handleRecharge = async (pkg) => {
-    if (!accessToken) {
-      showToast('请先登录', true);
-      setShowRechargeModal(false);
-      setShowLoginModal(true);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await axios.post(`${API_URL}/payment/create_order`, {
-        package_id: pkg.id,
-        amount: pkg.price,
-        credits: pkg.credits
-      }, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-
-      const {
-        pay_url,
-        qr_code,
-        channel,
-        out_trade_no,
-      } = res.data;
-
-      setShowRechargeModal(false);
-      setPendingOrderId(out_trade_no || '');
-      setPaymentLink(pay_url || '');
-      setPaymentQRCode('');
-      setShowPaymentModal(false);
-
-      // ✅ 关键修改：只要 qr_code 存在，就显示二维码
-      if (qr_code) {
-        console.log("收到二维码，显示支付弹窗");
-        setPaymentQRCode(qr_code);
-        console.log("qr_code的值:", qr_code);  // ✅ 添加这一行
-        setShowPaymentModal(true);
+      if (!accessToken) {
+        showToast('请先登录', true);
         setShowRechargeModal(false);
+        setShowLoginModal(true);
         return;
       }
 
-      if (channel === 'mobile_wap' && pay_url) {
-        // 手机端 H5 支付：跳转支付宝页面。
-        doAlipayPay(pay_url, channel);
-        return;
-      }
+      setLoading(true);
+      try {
+        const res = await axios.post(`${API_URL}/payment/create_order`, {
+          package_id: pkg.id,
+          amount: pkg.price,
+          credits: pkg.credits
+        }, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
 
-      // 兜底：桌面端尽量打开支付链接，移动端直接跳转。
-      if (pay_url) {
-        doAlipayPay(pay_url, isDesktopBrowser ? 'pc_qr' : 'mobile_wap');
-      } else {
-        showToast('支付链接获取失败', true);
-      }
+        const {
+          pay_url,
+          qr_code,
+          channel,
+          out_trade_no,
+          order_info  // 后端可能会返回原生支付所需的订单字符串
+        } = res.data;
 
-    } catch (err) {
-      showToast(err.response?.data?.detail || '创建订单失败', true);
-    } finally {
-      setLoading(false);
-    }
-  };
+        setShowRechargeModal(false);
+        setPendingOrderId(out_trade_no || '');
+        setPaymentLink(pay_url || '');
+        setPaymentQRCode('');
+        setShowPaymentModal(false);
+
+        // ========== 第一步：尝试唤起支付宝APP（仅真实手机支持） ==========
+        const isNativeApp = Platform.OS !== 'web' && !Expo.Constants?.appOwnership === 'expo';
+        
+        if (isNativeApp && order_info) {
+          // 在独立的 Expo 开发构建或打包后的 App 中，且有支付宝订单字符串
+          try {
+            // TODO: 替换为你安装的支付宝 Expo 插件的实际调用方式
+            // const result = await ExpoAlipay.pay({ orderInfo: order_info });
+            // 如果支付成功或失败，处理 result
+            // return;
+          } catch (nativePayError) {
+            console.warn('唤起支付宝失败，降级使用二维码:', nativePayError);
+            // 唤起失败，继续执行降级逻辑
+          }
+        }
+
+        // ========== 第二步：降级方案 - H5支付或二维码 ==========
+        if (channel === 'mobile_wap' && pay_url && Platform.OS !== 'web') {
+          // 移动端 WebView：打开支付宝 H5 支付页面
+          doAlipayPay(pay_url, channel);
+          return;
+        }
+
+        // 桌面端 或 移动端没有 pay_url 时：显示二维码
+        if (qr_code) {
+          console.log("显示支付二维码（桌面端或降级方案）");
+          setPaymentQRCode(qr_code);
+          setShowPaymentModal(true);
+          return;
+        }
+
+        // 兜底：有 pay_url 就跳转
+        if (pay_url) {
+          doAlipayPay(pay_url, 'pc_qr');
+        } else {
+          showToast('支付链接获取失败', true);
+        }
+
+      } catch (err) {
+        showToast(err.response?.data?.detail || '创建订单失败', true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
   const handleMembership = async (pkg) => {
     showToast(`开通 ${pkg.name}，功能开发中`);
   };
