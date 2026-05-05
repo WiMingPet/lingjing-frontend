@@ -1429,67 +1429,85 @@ export default function App() {
   };
 
   const generateMultiAngle = async () => {
-    if (!checkAndUseCredits(15, '多角度试穿', () => {})) return;
-    if (multiImages.length < 2) return showToast('请至少上传2张照片');
-    setLoading(true);
-  
-    const formData = new FormData();
-    for (let i = 0; i < multiImages.length; i++) {
-      const file = await convertToFile(multiImages[i]);
-      const ext = file.name?.split('.').pop() || 'jpg';
-      const safeFile = new File([file], `multi_${Date.now()}_${i}.${ext}`, { type: file.type });
-      formData.append('images', safeFile);
-    }
-    formData.append('prompt', prompt || '合成统一角色，自然光线');
-
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`${API_URL}/multi-angle/tryon`, {
-        method: 'POST',
-        headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || '合成失败');
-      }
-
-      const res = await response.json();
-      console.log('多角度合成响应:', res);
-    
-      const imageUrl = res.data?.data?.output_data?.image_url ||
-                       res.data?.output_data?.image_url ||
-                       res.data?.image_url;
-    
-      if (!imageUrl) {
-        console.error('无法提取图片 URL:', res);
-        showToast('多角度合成成功，但无法获取链接', true);
+      if (multiImages.length < 2) {
+        showToast('请至少上传2张不同角度的照片', true);
         return;
       }
+      if (multiImages.length > 4) {
+        showToast('最多上传4张照片', true);
+        return;
+      }
+      
+      setLoading(true);
     
-      setResult({ images: [{ url: imageUrl }] });
-      saveToHistory(imageUrl, '多角度试穿');
-      showToast('多角度合成成功');
-    } catch (err) {
-      console.error('多角度合成错误:', err);
-      showToast(err.message || '合成失败', true);
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        const formData = new FormData();
+        
+        // 添加所有图片
+        for (let i = 0; i < multiImages.length; i++) {
+          const file = await convertToFile(multiImages[i]);
+          const ext = file.name?.split('.').pop() || 'jpg';
+          const safeFile = new File([file], `multi_${Date.now()}_${i}.${ext}`, { type: file.type });
+          formData.append('images', safeFile);
+        }
+        
+        // 添加描述
+        formData.append('description', '展示服装多角度细节');
+        
+        const token = localStorage.getItem('access_token');
+        
+        // ✅ 修正：调用正确的后端接口路径
+        const response = await fetch(`${API_URL}/multi-angle/generate`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': token ? `Bearer ${token}` : '' 
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || '多角度合成失败');
+        }
+
+        const res = await response.json();
+        console.log('多角度合成响应:', res);
+      
+        // ✅ 修正：后端返回 video_url，不是 image_url
+        const videoUrl = res.data?.video_url;
+      
+        if (!videoUrl) {
+          console.error('无法提取视频 URL:', res);
+          showToast('多角度合成成功，但无法获取视频链接', true);
+          return;
+        }
+      
+        // 显示结果视频
+        setCurrentVideoUrl(videoUrl);
+        setVideoModalVisible(true);
+        saveToHistory(videoUrl, '多角度试穿');
+        showToast('多角度视频生成成功');
+        
+      } catch (err) {
+        console.error('多角度合成错误:', err);
+        showToast(err.message || '合成失败', true);
+      } finally {
+        setLoading(false);
+      }
+    };
 
   const handleGenerate = () => {
-    switch (activeTab) {
-      case 'size': recommendSize(); break;
-      case 'image': generateImage(); break;
-      case 'video': generateVideo(); break;
-      case 'tryon': generateTryon(); break;
-      case 'digital': generateDigitalHuman(); break;
-      case 'digital_custom': generateDigitalHumanCustom(); break;
-      default: break;
-    }
-  };
+      switch (activeTab) {
+        case 'size': recommendSize(); break;
+        case 'image': generateImage(); break;
+        case 'video': generateVideo(); break;
+        case 'tryon': generateTryon(); break;
+        case 'multi': generateMultiAngle(); break;  // ✅ 新增多角度
+        case 'digital': generateDigitalHuman(); break;
+        case 'digital_custom': generateDigitalHumanCustom(); break;
+        default: break;
+      }
+    };
 
   const renderResult = () => {
     if (!result) return null;
