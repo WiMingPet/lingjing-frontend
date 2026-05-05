@@ -2292,9 +2292,9 @@ export default function App() {
                       <TouchableOpacity
                         style={[styles.generateButton, (!ecommerceImage && !ecommerceDescription) && styles.disabledButton]}
                         onPress={generateEcommerceVideo}
-                        disabled={isGeneratingEcommerce || (!ecommerceImage && !ecommerceDescription)}
+                        disabled={isGenerating || (!ecommerceImage && !ecommerceDescription)}
                       >
-                        {isGeneratingEcommerce ? (
+                        {isGenerating ? (
                           <ActivityIndicator color="#fff" size="small" />
                         ) : (
                           <Text style={styles.generateText}>生成带货视频</Text>
