@@ -2307,16 +2307,21 @@ export default function App() {
                             <Text style={styles.generatingMsg}>{ecommerceStatusMsg}</Text>
                             <Text style={styles.generatingTips}>• 数字人讲解 + 商品展示</Text>
                             <Text style={styles.generatingTips}>• 预计需要 2-5 分钟</Text>
-                            <Text style={styles.generatingTips}>• 请勿关闭页面，完成后自动显示</Text>
+                            <Text style={styles.generatingTips}>• 若需离开，请点击下方按钮</Text>
+                            <Text style={styles.generatingTips}>• 视频完成后自动刷新历史记录</Text>
                             <TouchableOpacity 
                               style={styles.generatingCancelBtn}
                               onPress={() => {
                                 if (pollingRef.current) clearInterval(pollingRef.current);
                                 setIsGeneratingEcommerce(false);
-                                showToast('已切换后台生成，稍后查看历史记录');
+                                showToast('已切换后台生成，完成后自动打开');
+                                // 保持轮询继续在后台运行
+                                if (ecommerceTaskId) {
+                                  startPollingTask(ecommerceTaskId);
+                                }
                               }}
                             >
-                              <Text style={styles.generatingCancelText}>后台生成</Text>
+                              <Text style={styles.generatingCancelText}>后台生成，完成后自动打开</Text>
                             </TouchableOpacity>
                           </View>
                         </View>
