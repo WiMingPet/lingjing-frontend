@@ -1228,21 +1228,18 @@ export default function App() {
         // 自动填充商品描述
         setEcommerceDescription(productData.description || productData.title);
         
-        // ✅ 关键：如果后端返回了图片，自动设置商品图片（存为对象格式，标记为 URL）
+        // ✅ 自动设置商品图片
         if (productData.images && productData.images.length > 0) {
-          // 存储为特殊对象，表示这是一个 URL 而不是本地文件
           setEcommerceImage({ uri: productData.images[0], isUrl: true });
-          showToast(`解析成功，已自动获取商品图片`);
+          showToast(`解析成功，正在自动生成带货视频...`);
+          // ✅ 关键：自动触发生成
+          setTimeout(() => {
+            generateEcommerceVideo();
+          }, 500);
         } else {
           setEcommerceImage(null);
           showToast(`解析成功，请手动上传商品图片`);
         }
-        
-        Alert.alert(
-          '解析成功',
-          `商品：${productData.title}\n价格：${productData.price}元`,
-          [{ text: '确定' }]
-        );
       } else {
         showToast(res.data.message || '解析失败', true);
       }
@@ -1259,8 +1256,8 @@ export default function App() {
   const generateEcommerceVideo = async () => {
     const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
     
-    if (!ecommerceDescription.trim()) {
-      showToast('请填写商品描述或先点击解析链接', true);
+    if (!ecommerceImage && !ecommerceDescription.trim()) {
+      showToast('请上传商品图片或填写描述', true);
       return;
     }
     
