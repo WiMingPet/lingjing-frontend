@@ -1366,11 +1366,13 @@ export default function App() {
         if (task.status === 'completed') {
           clearInterval(pollingRef.current);
           setIsGenerating(false);
-          const videoUrl = task.video_url || task.output_data?.video_url;
-          if (videoUrl) {
-            saveToHistory(videoUrl, type);
-            showToast(`🎉 ${type}生成成功！`);
-            await loadHistory();
+          if (type !== 'AI带货视频') {
+            const videoUrl = task.video_url || task.output_data?.video_url;
+            if (videoUrl) {
+              saveToHistory(videoUrl, type);
+              showToast(`🎉 ${type}生成成功！`);
+              await loadHistory();
+            }
           }
         } else if (task.status === 'failed') {
           clearInterval(pollingRef.current);
