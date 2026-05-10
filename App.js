@@ -2286,7 +2286,12 @@ export default function App() {
                       {/* ========== 修改：显示自动获取的图片（如果有） ========== */}
                       {ecommerceImage && typeof ecommerceImage === 'object' && ecommerceImage.uri?.startsWith('http') && (
                         <View style={styles.autoImageContainer}>
-                          <Text style={styles.label}>✓ 已自动获取商品图片</Text>
+                          <View style={styles.cardHeader}>
+                            <Text style={styles.label}>✓ 已自动获取商品图片</Text>
+                            <TouchableOpacity onPress={() => setEcommerceImage(null)} style={styles.deleteButton}>
+                              <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                            </TouchableOpacity>
+                          </View>
                           <TouchableOpacity 
                             onPress={() => {
                               setPreviewUrl(ecommerceImage.uri);
@@ -2303,7 +2308,14 @@ export default function App() {
                       )}
                       
                       {/* 数字人照片（可选，有默认值） */}
-                      <Text style={styles.label}>数字人照片（可选）</Text>
+                      <View style={styles.cardHeader}>
+                        <Text style={styles.label}>数字人照片（可选）</Text>
+                        {ecommerceDigitalImage && (
+                          <TouchableOpacity onPress={() => setEcommerceDigitalImage(null)} style={styles.deleteButton}>
+                            <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
                       <TouchableOpacity onPress={pickEcommerceDigitalImage} style={styles.imagePicker}>
                         {ecommerceDigitalImage ? (
                           <TouchableOpacity 
