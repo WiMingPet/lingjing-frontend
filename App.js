@@ -1031,6 +1031,7 @@ export default function App() {
     const garmentExt = garmentFile.name?.split('.').pop() || 'jpg';
     const safeGarment = new File([garmentFile], `garment_${Date.now()}.${garmentExt}`, { type: garmentFile.type });
     formData.append('garment_image', safeGarment);
+    formData.append('cloth_category', 'lower');
 
     try {
       const token = localStorage.getItem('access_token');
