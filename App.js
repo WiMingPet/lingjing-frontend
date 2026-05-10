@@ -53,6 +53,7 @@ export default function App() {
   const [prompt, setPrompt] = useState('');
   const [modelImage, setModelImage] = useState(null);
   const [garmentImage, setGarmentImage] = useState(null);
+  const [clothCategory, setClothCategory] = useState('upper');  // 默认上装
   const [duration, setDuration] = useState(5);
   const [digitalImage, setDigitalImage] = useState(null);
     // 预设形象相关状态
@@ -1021,8 +1022,16 @@ export default function App() {
     setGeneratingSubtitle('服装上身效果展示');
   
     const formData = new FormData();
-  
-    const modelFile = await convertToFile(modelImage);
+    // 如果是下装，下载专用模特图作为文件
+    let modelFile;
+    if (clothCategory === 'lower') {
+      const LOWER_MODEL_URL = "https://media.lingjing-media.com/%E8%B6%85%E6%A8%A1.jpg";
+      const response = await fetch(LOWER_MODEL_URL);
+      const blob = await response.blob();
+      modelFile = new File([blob], 'lower_model.jpg', { type: 'image/jpeg' });
+    } else {
+      modelFile = await convertToFile(modelImage);
+    }
     const modelExt = modelFile.name?.split('.').pop() || 'jpg';
     const safeModel = new File([modelFile], `model_${Date.now()}.${modelExt}`, { type: modelFile.type });
     formData.append('model_image', safeModel);
@@ -1031,7 +1040,7 @@ export default function App() {
     const garmentExt = garmentFile.name?.split('.').pop() || 'jpg';
     const safeGarment = new File([garmentFile], `garment_${Date.now()}.${garmentExt}`, { type: garmentFile.type });
     formData.append('garment_image', safeGarment);
-    formData.append('cloth_category', 'lower');
+    formData.append('cloth_category', clothCategory);
 
     try {
       const token = localStorage.getItem('access_token');
@@ -1764,6 +1773,33 @@ export default function App() {
                     </TouchableOpacity>
                   </View>
                 </Card>
+                
+                {/* 服装类型选择 */}
+                <Card style={styles.imageCard}>
+                  <Text style={styles.cardTitle}>📦 服装类型</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 10 }}>
+                    {['upper', 'lower', 'dress'].map(cat => (
+                      <TouchableOpacity
+                        key={cat}
+                        onPress={() => setClothCategory(cat)}
+                        style={{
+                          paddingVertical: 8,
+                          paddingHorizontal: 20,
+                          borderRadius: 20,
+                          backgroundColor: clothCategory === cat ? '#FF4757' : '#f0f0f0',
+                        }}
+                      >
+                        <Text style={{
+                          color: clothCategory === cat ? '#fff' : '#333',
+                          fontWeight: 'bold',
+                        }}>
+                          {cat === 'upper' ? '上装' : cat === 'lower' ? '下装' : '连衣裙'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </Card>
+                
                 <Card style={styles.imageCard}>
                   <View style={styles.cardHeader}>
                     <Text style={styles.cardTitle}>👕 上传服装图</Text>
