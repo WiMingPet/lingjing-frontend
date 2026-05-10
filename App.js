@@ -1808,7 +1808,7 @@ export default function App() {
                           color: clothCategory === cat ? '#fff' : '#333',
                           fontWeight: 'bold',
                         }}>
-                          {cat === 'upper' ? '上装' : cat === 'lower' ? '下装' : '连衣裙'}
+                          {cat === '' ? '不限' : cat === 'upper' ? '上装' : cat === 'lower' ? '下装' : '连衣裙'}
                         </Text>
                       </TouchableOpacity>
                     ))}
