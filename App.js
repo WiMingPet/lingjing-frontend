@@ -1029,6 +1029,11 @@ export default function App() {
       const response = await fetch(LOWER_MODEL_URL);
       const blob = await response.blob();
       modelFile = new File([blob], 'lower_model.jpg', { type: 'image/jpeg' });
+    } else if (clothCategory === 'dress') {
+      const DRESS_MODEL_URL = "https://media.lingjing-media.com/%E5%AE%B6%E9%A6%A8.png";
+      const response = await fetch(DRESS_MODEL_URL);
+      const blob = await response.blob();
+      modelFile = new File([blob], 'dress_model.jpg', { type: 'image/jpeg' });
     } else {
       modelFile = await convertToFile(modelImage);
     }
