@@ -1016,6 +1016,16 @@ export default function App() {
   const generateTryon = async () => {
     if (clothCategory !== 'lower' && clothCategory !== 'dress' && !modelImage) return showToast('请先选择模特图片');
     if (!garmentImage) return showToast('请先选择服装图片');
+    if (clothCategory === 'dress') {
+      Alert.alert(
+        '套装/连衣裙',
+        '如果是单件连衣裙，请直接上传。\n如果是上下装套装，请将上装和下装白底图错开排版到一张图后上传。',
+        [
+          { text: '我已按要求上传', onPress: () => {} },
+          { text: '取消', onPress: () => { setLoading(false); setIsGenerating(false); return; } }
+        ]
+      );
+    }
     setLoading(true);
     setIsGenerating(true);
     setGeneratingTitle('AI正在生成试穿视频');
@@ -1274,6 +1284,20 @@ export default function App() {
     if (!ecommerceImage && !ecommerceDescription.trim()) {
       showToast('请上传商品图片或填写描述', true);
       return;
+    }
+    
+    // 套装确认弹窗
+    if (clothCategory === 'dress' && Platform.OS === 'web') {
+      const confirmed = window.confirm(
+        '套装/连衣裙上传须知：\n\n' +
+        '• 单件连衣裙 → 直接上传白底图即可\n\n' +
+        '• 上下装套装 → 请将上装和下装的白底图错开排版到一张图里（中间留空隙，不要连在一起）\n\n' +
+        '点击"确定"继续生成，点击"取消"返回修改'
+      );
+      if (!confirmed) {
+        setIsGenerating(false);
+        return;
+      }
     }
     
     setIsGenerating(true);
@@ -1827,6 +1851,17 @@ export default function App() {
                   )}
                 </Card>
                 
+                {/* 服装图片上传提示 */}
+                {clothCategory === 'dress' && (
+                  <Card style={styles.uploadTips}>
+                    <Text style={styles.tipsTitle}>📌 套装上传要求：</Text>
+                    <Text style={styles.tipsText}>• 单件连衣裙：上传白底商品图即可</Text>
+                    <Text style={styles.tipsText}>• 上下装套装：需将上装和下装的白底图错开排版到一张图里，中间留空隙（不要连在一起）</Text>
+                    <Text style={styles.tipsText}>• 支持 .jpg / .jpeg / .png 格式</Text>
+                    <Text style={styles.tipsText}>• 文件大小不超过 10MB</Text>
+                  </Card>
+                )}
+                
                 <Card style={styles.imageCard}>
                   <View style={styles.cardHeader}>
                     <Text style={styles.cardTitle}>👕 上传服装图</Text>
@@ -2300,6 +2335,16 @@ export default function App() {
                           </View>
                         )}
                       </Card>
+                      {/* 服装图片上传提示 */}
+                      {clothCategory === 'dress' && (
+                        <Card style={styles.uploadTips}>
+                          <Text style={styles.tipsTitle}>📌 套装上传要求：</Text>
+                          <Text style={styles.tipsText}>• 单件连衣裙：上传白底商品图即可</Text>
+                          <Text style={styles.tipsText}>• 上下装套装：需将上装和下装的白底图错开排版到一张图里，中间留空隙（不要连在一起）</Text>
+                          <Text style={styles.tipsText}>• 支持 .jpg / .jpeg / .png 格式</Text>
+                          <Text style={styles.tipsText}>• 文件大小不超过 10MB</Text>
+                        </Card>
+                      )}
                       
                       {/* ========== 修改：只在没有自动获取图片时显示上传区域 ========== */}
                       {(!ecommerceImage || (typeof ecommerceImage === 'object' && !ecommerceImage.uri?.startsWith('http'))) && (
@@ -3746,5 +3791,21 @@ const styles = StyleSheet.create({
   generatingCancelText: {
     color: '#666',
     fontSize: 14,
+  },
+  uploadTips: {
+  backgroundColor: '#FFF9E6',
+  borderRadius: 10,
+  padding: 12,
+  marginBottom: 10,
+  },
+  tipsTitle: {
+    color: '#FF8C00',
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  tipsText: {
+    color: '#666',
+    fontSize: 13,
+    lineHeight: 20,
   },
 });
