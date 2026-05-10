@@ -2258,7 +2258,14 @@ export default function App() {
                       {/* ========== 修改：只在没有自动获取图片时显示上传区域 ========== */}
                       {(!ecommerceImage || (typeof ecommerceImage === 'object' && !ecommerceImage.uri?.startsWith('http'))) && (
                         <>
-                          <Text style={styles.label}>商品主图 *</Text>
+                          <View style={styles.cardHeader}>
+                            <Text style={styles.label}>商品主图 *</Text>
+                            {ecommerceImage && (
+                              <TouchableOpacity onPress={() => setEcommerceImage(null)} style={styles.deleteButton}>
+                                <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                              </TouchableOpacity>
+                            )}
+                          </View>
                           <TouchableOpacity onPress={pickEcommerceImage} style={styles.imagePicker}>
                             {ecommerceImage ? (
                               <TouchableOpacity 
