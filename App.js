@@ -53,7 +53,7 @@ export default function App() {
   const [prompt, setPrompt] = useState('');
   const [modelImage, setModelImage] = useState(null);
   const [garmentImage, setGarmentImage] = useState(null);
-  const [clothCategory, setClothCategory] = useState('');
+  const [clothCategory, setClothCategory] = useState('other');
   const [duration, setDuration] = useState(5);
   const [digitalImage, setDigitalImage] = useState(null);
     // 预设形象相关状态
@@ -1014,7 +1014,7 @@ export default function App() {
   };
 
   const generateTryon = async () => {
-    if (clothCategory !== 'lower' && !modelImage) return showToast('请先选择模特图片');
+    if (clothCategory !== 'lower' && clothCategory !== 'dress' && !modelImage) return showToast('请先选择模特图片');
     if (!garmentImage) return showToast('请先选择服装图片');
     setLoading(true);
     setIsGenerating(true);
@@ -1728,12 +1728,12 @@ export default function App() {
 
             {activeTab === 'tryon' && (
               <>
-                {clothCategory === 'lower' ? (
+                {(clothCategory === 'lower' || clothCategory === 'dress') ? (
                   <Card style={styles.imageCard}>
                     <View style={{ padding: 20, alignItems: 'center' }}>
                       <Icon name="information-circle-outline" size={48} color="#FF4757" />
                       <Text style={{ fontSize: 16, fontWeight: 'bold', marginTop: 10, textAlign: 'center' }}>
-                        下装试穿将使用系统默认模特图
+                        {clothCategory === 'lower' ? '下装试穿将使用系统默认模特图' : '套装/连衣裙将使用系统指定模特图'}
                       </Text>
                       <Text style={{ color: '#666', marginTop: 5, textAlign: 'center' }}>
                         请直接上传服装图片，点击生成即可
@@ -1793,7 +1793,7 @@ export default function App() {
                 <Card style={styles.imageCard}>
                   <Text style={styles.cardTitle}>📦 服装类型</Text>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 10 }}>
-                    {['', 'upper', 'lower', 'dress'].map(cat => (
+                    {['other', 'dress', 'lower'].map(cat => (
                       <TouchableOpacity
                         key={cat}
                         onPress={() => setClothCategory(cat)}
@@ -1808,11 +1808,18 @@ export default function App() {
                           color: clothCategory === cat ? '#fff' : '#333',
                           fontWeight: 'bold',
                         }}>
-                          {cat === '' ? '不限' : cat === 'upper' ? '上装' : cat === 'lower' ? '下装' : '连衣裙'}
+                          {cat === 'other' ? '其他服装' : cat === 'dress' ? '套装/连衣裙' : '下身服装'}
                         </Text>
                       </TouchableOpacity>
                     ))}
                   </View>
+                  {(clothCategory === 'dress' || clothCategory === 'lower') && (
+                    <View style={{ padding: 10, backgroundColor: '#FFF3F3', borderRadius: 10, marginTop: 5 }}>
+                      <Text style={{ color: '#FF4757', textAlign: 'center', fontWeight: 'bold' }}>
+                        {clothCategory === 'lower' ? '📌 下身服装使用默认模特，请直接上传服装图' : '📌 套装/连衣裙使用指定模特，请直接上传服装图'}
+                      </Text>
+                    </View>
+                  )}
                 </Card>
                 
                 <Card style={styles.imageCard}>
@@ -2257,35 +2264,37 @@ export default function App() {
                       <View style={styles.divider} />
                       
                       {/* 服装类型选择 */}
-                      <Text style={styles.label}>服装类型（选填）</Text>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 10 }}>
-                        {['', 'upper', 'lower', 'dress'].map(cat => (
-                          <TouchableOpacity
-                            key={cat}
-                            onPress={() => setClothCategory(cat)}
-                            style={{
-                              paddingVertical: 8,
-                              paddingHorizontal: 20,
-                              borderRadius: 20,
-                              backgroundColor: clothCategory === cat ? '#FF4757' : '#f0f0f0',
-                            }}
-                          >
-                            <Text style={{
-                              color: clothCategory === cat ? '#fff' : '#333',
-                              fontWeight: 'bold',
-                            }}>
-                              {cat === '' ? '不限' : cat === 'upper' ? '上装' : cat === 'lower' ? '下装' : '连衣裙'}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                      {clothCategory === 'lower' && (
-                        <View style={{ padding: 10, backgroundColor: '#FFF3F3', borderRadius: 10, marginBottom: 10 }}>
-                          <Text style={{ color: '#FF4757', textAlign: 'center', fontWeight: 'bold' }}>
-                            📌 下装将使用系统默认模特图，请直接上传服装图片
-                          </Text>
+                      <Card style={styles.imageCard}>
+                        <Text style={styles.cardTitle}>📦 服装类型</Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 10 }}>
+                          {['other', 'dress', 'lower'].map(cat => (
+                            <TouchableOpacity
+                              key={cat}
+                              onPress={() => setClothCategory(cat)}
+                              style={{
+                                paddingVertical: 8,
+                                paddingHorizontal: 20,
+                                borderRadius: 20,
+                                backgroundColor: clothCategory === cat ? '#FF4757' : '#f0f0f0',
+                              }}
+                            >
+                              <Text style={{
+                                color: clothCategory === cat ? '#fff' : '#333',
+                                fontWeight: 'bold',
+                              }}>
+                                {cat === 'other' ? '其他服装' : cat === 'dress' ? '套装/连衣裙' : '下身服装'}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
                         </View>
-                      )}
+                        {(clothCategory === 'dress' || clothCategory === 'lower') && (
+                          <View style={{ padding: 10, backgroundColor: '#FFF3F3', borderRadius: 10, marginTop: 5 }}>
+                            <Text style={{ color: '#FF4757', textAlign: 'center', fontWeight: 'bold' }}>
+                              {clothCategory === 'lower' ? '📌 下身服装使用默认模特，请直接上传服装图' : '📌 套装/连衣裙使用指定模特，请直接上传服装图'}
+                            </Text>
+                          </View>
+                        )}
+                      </Card>
                       
                       {/* ========== 修改：只在没有自动获取图片时显示上传区域 ========== */}
                       {(!ecommerceImage || (typeof ecommerceImage === 'object' && !ecommerceImage.uri?.startsWith('http'))) && (
@@ -2346,8 +2355,8 @@ export default function App() {
                         </View>
                       )}
                       
-                      {/* 数字人照片（下装时自动使用专用模特，无需上传） */}
-                      {clothCategory !== 'lower' ? (
+                      {/* 数字人照片（下装/套装时隐藏） */}
+                      {(clothCategory !== 'lower' && clothCategory !== 'dress') ? (
                         <>
                           <View style={styles.cardHeader}>
                             <Text style={styles.label}>数字人照片（可选）</Text>
