@@ -53,7 +53,7 @@ export default function App() {
   const [prompt, setPrompt] = useState('');
   const [modelImage, setModelImage] = useState(null);
   const [garmentImage, setGarmentImage] = useState(null);
-  const [clothCategory, setClothCategory] = useState('upper');  // 默认上装
+  const [clothCategory, setClothCategory] = useState('');
   const [duration, setDuration] = useState(5);
   const [digitalImage, setDigitalImage] = useState(null);
     // 预设形象相关状态
@@ -1025,7 +1025,7 @@ export default function App() {
     // 如果是下装，下载专用模特图作为文件
     let modelFile;
     if (clothCategory === 'lower') {
-      const LOWER_MODEL_URL = "https://media.lingjing-media.com/%E8%B6%85%E6%A8%A1.jpg";
+      const LOWER_MODEL_URL = "https://media.lingjing-media.com/%E5%AE%B6%E9%A6%A8.png";
       const response = await fetch(LOWER_MODEL_URL);
       const blob = await response.blob();
       modelFile = new File([blob], 'lower_model.jpg', { type: 'image/jpeg' });
@@ -1793,7 +1793,7 @@ export default function App() {
                 <Card style={styles.imageCard}>
                   <Text style={styles.cardTitle}>📦 服装类型</Text>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 10 }}>
-                    {['upper', 'lower', 'dress'].map(cat => (
+                    {['', 'upper', 'lower', 'dress'].map(cat => (
                       <TouchableOpacity
                         key={cat}
                         onPress={() => setClothCategory(cat)}
