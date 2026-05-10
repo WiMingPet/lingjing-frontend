@@ -1321,7 +1321,8 @@ export default function App() {
         description: ecommerceDescription,
         image_url: productImageUrl,
         digital_image_url: digitalImageUrl,
-      }, { 
+        cloth_category: clothCategory || '',
+      }, {
         headers: { 'Authorization': `Bearer ${accessToken}` } 
       });
       
@@ -2255,6 +2256,37 @@ export default function App() {
                       
                       <View style={styles.divider} />
                       
+                      {/* 服装类型选择 */}
+                      <Text style={styles.label}>服装类型（选填）</Text>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 10 }}>
+                        {['', 'upper', 'lower', 'dress'].map(cat => (
+                          <TouchableOpacity
+                            key={cat}
+                            onPress={() => setClothCategory(cat)}
+                            style={{
+                              paddingVertical: 8,
+                              paddingHorizontal: 20,
+                              borderRadius: 20,
+                              backgroundColor: clothCategory === cat ? '#FF4757' : '#f0f0f0',
+                            }}
+                          >
+                            <Text style={{
+                              color: clothCategory === cat ? '#fff' : '#333',
+                              fontWeight: 'bold',
+                            }}>
+                              {cat === '' ? '不限' : cat === 'upper' ? '上装' : cat === 'lower' ? '下装' : '连衣裙'}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                      {clothCategory === 'lower' && (
+                        <View style={{ padding: 10, backgroundColor: '#FFF3F3', borderRadius: 10, marginBottom: 10 }}>
+                          <Text style={{ color: '#FF4757', textAlign: 'center', fontWeight: 'bold' }}>
+                            📌 下装将使用系统默认模特图，请直接上传服装图片
+                          </Text>
+                        </View>
+                      )}
+                      
                       {/* ========== 修改：只在没有自动获取图片时显示上传区域 ========== */}
                       {(!ecommerceImage || (typeof ecommerceImage === 'object' && !ecommerceImage.uri?.startsWith('http'))) && (
                         <>
@@ -2314,37 +2346,47 @@ export default function App() {
                         </View>
                       )}
                       
-                      {/* 数字人照片（可选，有默认值） */}
-                      <View style={styles.cardHeader}>
-                        <Text style={styles.label}>数字人照片（可选）</Text>
-                        {ecommerceDigitalImage && (
-                          <TouchableOpacity onPress={() => setEcommerceDigitalImage(null)} style={styles.deleteButton}>
-                            <Icon name="close-circle-outline" size={24} color="#ef4444" />
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                      <TouchableOpacity onPress={pickEcommerceDigitalImage} style={styles.imagePicker}>
-                        {ecommerceDigitalImage ? (
-                          <TouchableOpacity 
-                            onPress={() => {
-                              setPreviewUrl(ecommerceDigitalImage.uri);
-                              setModalVisible(true);
-                            }}
-                          >
-                            <img 
-                              src={ecommerceDigitalImage.uri} 
-                              style={{ width: '100%', height: 200, objectFit: 'contain' }} 
-                              alt="预览"
-                            />
-                          </TouchableOpacity>
-                        ) : (
-                          <View style={styles.placeholder}>
-                            <Icon name="person-outline" size={48} color="#666" />
-                            <Text style={styles.placeholderText}>点击上传数字人照片</Text>
-                            <Text style={styles.hintText}>不传则使用默认形象</Text>
+                      {/* 数字人照片（下装时自动使用专用模特，无需上传） */}
+                      {clothCategory !== 'lower' ? (
+                        <>
+                          <View style={styles.cardHeader}>
+                            <Text style={styles.label}>数字人照片（可选）</Text>
+                            {ecommerceDigitalImage && (
+                              <TouchableOpacity onPress={() => setEcommerceDigitalImage(null)} style={styles.deleteButton}>
+                                <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                              </TouchableOpacity>
+                            )}
                           </View>
-                        )}
-                      </TouchableOpacity>
+                          <TouchableOpacity onPress={pickEcommerceDigitalImage} style={styles.imagePicker}>
+                            {ecommerceDigitalImage ? (
+                              <TouchableOpacity 
+                                onPress={() => {
+                                  setPreviewUrl(ecommerceDigitalImage.uri);
+                                  setModalVisible(true);
+                                }}
+                              >
+                                <img 
+                                  src={ecommerceDigitalImage.uri} 
+                                  style={{ width: '100%', height: 200, objectFit: 'contain' }} 
+                                  alt="预览"
+                                />
+                              </TouchableOpacity>
+                            ) : (
+                              <View style={styles.placeholder}>
+                                <Icon name="person-outline" size={48} color="#666" />
+                                <Text style={styles.placeholderText}>点击上传数字人照片</Text>
+                                <Text style={styles.hintText}>不传则使用默认形象</Text>
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        </>
+                      ) : (
+                        <View style={{ padding: 10, backgroundColor: '#FFF3F3', borderRadius: 10, marginBottom: 10 }}>
+                          <Text style={{ color: '#FF4757', textAlign: 'center', fontWeight: 'bold' }}>
+                            📌 下装已自动使用专用模特图，无需上传
+                          </Text>
+                        </View>
+                      )}
                       
                       {/* 商品描述（可选，AI会自动生成） */}
                       <Text style={styles.label}>商品描述（可选，AI自动生成）</Text>
