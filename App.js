@@ -1014,7 +1014,7 @@ export default function App() {
   };
 
   const generateTryon = async () => {
-    if (!modelImage) return showToast('请先选择模特图片');
+    if (clothCategory !== 'lower' && !modelImage) return showToast('请先选择模特图片');
     if (!garmentImage) return showToast('请先选择服装图片');
     setLoading(true);
     setIsGenerating(true);
@@ -1727,7 +1727,20 @@ export default function App() {
 
             {activeTab === 'tryon' && (
               <>
-                <Card style={styles.imageCard}>
+                {clothCategory === 'lower' ? (
+                  <Card style={styles.imageCard}>
+                    <View style={{ padding: 20, alignItems: 'center' }}>
+                      <Icon name="information-circle-outline" size={48} color="#FF4757" />
+                      <Text style={{ fontSize: 16, fontWeight: 'bold', marginTop: 10, textAlign: 'center' }}>
+                        下装试穿将使用系统默认模特图
+                      </Text>
+                      <Text style={{ color: '#666', marginTop: 5, textAlign: 'center' }}>
+                        请直接上传服装图片，点击生成即可
+                      </Text>
+                    </View>
+                  </Card>
+                ) : (
+                  <Card style={styles.imageCard}>
                   <View style={styles.cardHeader}>
                     <Text style={styles.cardTitle}>👤 上传模特图</Text>
                     {modelImage && (
@@ -1773,6 +1786,7 @@ export default function App() {
                     </TouchableOpacity>
                   </View>
                 </Card>
+                )}
                 
                 {/* 服装类型选择 */}
                 <Card style={styles.imageCard}>
