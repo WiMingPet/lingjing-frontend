@@ -2488,29 +2488,6 @@ export default function App() {
                           </TouchableOpacity>
                         </View>
                       ) : null}
-
-                      {/* ========== 通用生成进度弹窗 ========== */}
-                      {isGenerating && (
-                        <View style={styles.generatingOverlay}>
-                          <View style={styles.generatingBox}>
-                            <ActivityIndicator size="large" color="#FF4757" />
-                            <Text style={styles.generatingTitle}>🎬 {generatingTitle}</Text>
-                            <Text style={styles.generatingTips}>• {generatingSubtitle}</Text>
-                            <Text style={styles.generatingTips}>• 预计需要 2-5 分钟</Text>
-                            <Text style={styles.generatingTips}>• 若需离开，请点击下方按钮</Text>
-                            <Text style={styles.generatingTips}>• 视频完成后自动刷新历史记录</Text>
-                            <TouchableOpacity 
-                              style={styles.generatingCancelBtn}
-                              onPress={() => {
-                                setIsGenerating(false);
-                                showToast('已切换后台生成，完成后自动保存至历史记录');
-                              }}
-                            >
-                              <Text style={styles.generatingCancelText}>后台生成</Text>
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      )}
                     </Card>
                   )}
                 </ScrollView>
@@ -3028,6 +3005,7 @@ export default function App() {
           </View>
         </Modal>
 
+
         <Modal visible={showPaymentModal} transparent={true} animationType="fade">
           <View style={styles.modalContainer}>
             <Card style={styles.paymentCard}>
@@ -3073,6 +3051,29 @@ export default function App() {
             </Card>
           </View>
         </Modal>
+        {/* ========== 通用生成进度弹窗 ========== */}
+        {isGenerating && (
+          <View style={styles.generatingOverlay}>
+            <View style={styles.generatingBox}>
+              <ActivityIndicator size="large" color="#FF4757" />
+              <Text style={styles.generatingTitle}>🎬 {generatingTitle}</Text>
+              <Text style={styles.generatingTips}>• {generatingSubtitle}</Text>
+              <Text style={styles.generatingTips}>• 预计需要 2-5 分钟</Text>
+              <Text style={styles.generatingTips}>• 若需离开，请点击下方按钮</Text>
+              <Text style={styles.generatingTips}>• 视频完成后自动刷新历史记录</Text>
+              <TouchableOpacity 
+                style={styles.generatingCancelBtn}
+                onPress={() => {
+                  setIsGenerating(false);
+                  showToast('已切换后台生成，完成后自动保存至历史记录');
+                }}
+              >
+                <Text style={styles.generatingCancelText}>后台生成</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* 全屏视频播放 Modal */}
         <Modal
           visible={videoModalVisible}
