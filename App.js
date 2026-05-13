@@ -2694,6 +2694,19 @@ export default function App() {
                   <TouchableOpacity onPress={() => showToast('关于我们开发中')}>
                     <Text style={{ color: '#fff' }}>关于我们</Text>
                   </TouchableOpacity>
+                  <TouchableOpacity onPress={() => {
+                    setShowSidebarMenu(false);
+                    const qqUrl = 'tencent://message/?uin=3060302415';
+                    const newWindow = window.open(qqUrl, '_blank');
+                    setTimeout(() => {
+                      if (!newWindow || newWindow.closed) {
+                        window.open('mailto:3060302415@qq.com', '_blank');
+                      }
+                    }, 2000);
+                  }}>
+                    <Text style={{ color: '#fff' }}>💬 帮助与客服</Text>
+                    <Text style={{ color: '#aaa', fontSize: 12 }}>QQ: 3060302415  电话: 15920978058</Text>
+                  </TouchableOpacity>
                   {isLoggedIn && (
                     <TouchableOpacity onPress={handleLogout} style={{ marginTop: 12 }}>
                       <Text style={{ color: '#ef4444' }}>退出登录</Text>
