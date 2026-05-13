@@ -681,7 +681,7 @@ export default function App() {
       await loadHistory();
       showToast(`${type} 已保存到历史记录`);
     } catch (error) {
-      console.error('保存历史记录失败:', error);
+      console.error('保存历史记录失败:', error, error.response?.data);
       showToast('保存失败', true);
     }
   };
