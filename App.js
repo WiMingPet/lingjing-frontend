@@ -1404,6 +1404,7 @@ export default function App() {
           clearInterval(pollingRef.current);
           setIsGenerating(false);
           const videoUrl = task.video_url || task.output_data?.video_url;
+          const thumbnail = task.thumbnail || null;
           if (videoUrl) {
             saveToHistory(videoUrl, type, thumbnail);
             showToast(`🎉 ${type}生成成功！`);
