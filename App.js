@@ -34,6 +34,13 @@ const Card = ({ children, style }) => (
 );
 
 export default function App() {
+    // 首次启动隐私政策确认
+  useEffect(() => {
+    const privacyAgreed = localStorage.getItem('privacy_agreed');
+    if (!privacyAgreed) {
+      setShowPrivacyModal(true);
+    }
+  }, []);
   const [videoModalVisible, setVideoModalVisible] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
   const fullscreenVideoRef = useRef(null);
@@ -75,6 +82,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [accessToken, setAccessToken] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [loginPhone, setLoginPhone] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -2736,6 +2744,50 @@ export default function App() {
           </View>
         )}
 
+        {/* 隐私政策弹窗 */}
+        <Modal visible={showPrivacyModal} transparent={true} animationType="fade">
+          <View style={styles.modalContainer}>
+            <Card style={styles.privacyCard}>
+              <Text style={styles.privacyTitle}>欢迎使用灵境AI</Text>
+              <Text style={styles.privacyContent}>
+                感谢您信任并使用灵境AI！我们非常重视您的个人信息和隐私保护。
+                在您开始使用前，请仔细阅读并同意以下协议：
+              </Text>
+              <View style={styles.privacyLinks}>
+                <TouchableOpacity onPress={() => window.open('https://lingjing-media.com/privacy', '_blank')}>
+                  <Text style={styles.privacyLink}>《隐私政策》</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => window.open('https://lingjing-media.com/terms', '_blank')}>
+                  <Text style={styles.privacyLink}>《用户服务协议》</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.privacyButtons}>
+                <TouchableOpacity 
+                  style={styles.privacyDisagreeBtn}
+                  onPress={() => {
+                    showToast('需同意协议才能使用本应用');
+                    // 不同意则退出应用
+                    if (Platform.OS === 'web') {
+                      window.close();
+                    }
+                  }}
+                >
+                  <Text style={styles.privacyDisagreeText}>不同意</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.privacyAgreeBtn}
+                  onPress={() => {
+                    localStorage.setItem('privacy_agreed', 'true');
+                    setShowPrivacyModal(false);
+                  }}
+                >
+                  <Text style={styles.privacyAgreeText}>同意并继续</Text>
+                </TouchableOpacity>
+              </View>
+            </Card>
+          </View>
+        </Modal>
+
         {/* 登录弹窗 */}
         <Modal visible={showLoginModal} transparent={true} animationType="slide">
           <View style={styles.modalContainer}>
@@ -3820,5 +3872,67 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 13,
     lineHeight: 20,
+  },
+    // 隐私弹窗样式
+  privacyCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '85%',
+    maxWidth: 340,
+    alignItems: 'center',
+  },
+  privacyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+  },
+  privacyContent: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 22,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  privacyLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  privacyLink: {
+    color: '#7c3aed',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginHorizontal: 10,
+    textDecorationLine: 'underline',
+  },
+  privacyButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 10,
+  },
+  privacyDisagreeBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  privacyDisagreeText: {
+    color: '#666',
+    fontSize: 14,
+  },
+  privacyAgreeBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    backgroundColor: '#7c3aed',
+  },
+  privacyAgreeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
