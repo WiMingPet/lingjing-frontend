@@ -3172,12 +3172,15 @@ export default function App() {
           onRequestClose={() => setVideoModalVisible(false)}
         >
           <View style={styles.videoModalContainer}>
-            <TouchableOpacity
-              style={styles.videoModalClose}
-              onPress={() => setVideoModalVisible(false)}
-            >
-              <Icon name="close-circle-outline" size={40} color="#fff" />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 10 }}>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>灵境AI</Text>
+              <TouchableOpacity
+                style={styles.videoModalClose}
+                onPress={() => setVideoModalVisible(false)}
+              >
+                <Icon name="close-circle-outline" size={40} color="#fff" />
+              </TouchableOpacity>
+            </View>
 
             <View style={{ position: 'relative', width: '100%', height: '100%' }}>
               <Video
