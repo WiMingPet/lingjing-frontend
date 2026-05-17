@@ -1688,8 +1688,7 @@ export default function App() {
       <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.logo}>灵境</Text>
-          <Text style={styles.subtitle}>AI 创意平台</Text>
+          <Text style={styles.logo}>灵境AI</Text>
         </View>
 
         <View style={styles.tabContainer}>
