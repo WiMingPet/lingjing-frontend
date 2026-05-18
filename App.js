@@ -3172,16 +3172,6 @@ export default function App() {
           onRequestClose={() => setVideoModalVisible(false)}
         >
           <View style={styles.videoModalContainer}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 10 }}>
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>灵境AI</Text>
-              <TouchableOpacity
-                style={styles.videoModalClose}
-                onPress={() => setVideoModalVisible(false)}
-              >
-                <Icon name="close-circle-outline" size={40} color="#fff" />
-              </TouchableOpacity>
-            </View>
-
             <View style={{ position: 'relative', width: '100%', height: '100%' }}>
               <Video
                 ref={fullscreenVideoRef}
@@ -3192,6 +3182,35 @@ export default function App() {
                 shouldPlay={true}
                 onError={(e) => console.log('视频播放错误', e)}
               />
+              {/* 标题 - 左上角 */}
+              <View style={{
+                position: 'absolute',
+                top: 10,
+                left: 10,
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                borderRadius: 8,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                zIndex: 999,
+              }}>
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>灵境AI</Text>
+              </View>
+              {/* 关闭按钮 - 右上角 */}
+              <TouchableOpacity
+                style={{
+                  position: 'absolute',
+                  top: 10,
+                  right: 10,
+                  zIndex: 999,
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  borderRadius: 20,
+                  padding: 4,
+                }}
+                onPress={() => setVideoModalVisible(false)}
+              >
+                <Icon name="close-circle-outline" size={36} color="#fff" />
+              </TouchableOpacity>
+              {/* AI生成标识 - 右下角 */}
               <View style={{
                 position: 'absolute',
                 bottom: 8,
