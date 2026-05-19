@@ -38,9 +38,16 @@ export default function App() {
   useEffect(() => {
     const style = document.createElement('style');
     style.innerHTML = `
-      body, html {
+      * {
         -webkit-text-size-adjust: none !important;
         text-size-adjust: none !important;
+      }
+      html, body, #root {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
       }
     `;
     document.head.appendChild(style);
@@ -3199,10 +3206,10 @@ export default function App() {
           animationType="fade"
           onRequestClose={() => setVideoModalVisible(false)}
         >
-          {/* 黑色背景，让视频垂直居中 */}
+          {/* 全屏黑色背景，内容垂直居中 */}
           <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
-            
-            {/* 标题 - 固定在屏幕左上角 */}
+
+            {/* 标题 - 绝对定位在屏幕左上角 */}
             <View style={{
               position: 'absolute',
               top: 10,
@@ -3216,7 +3223,7 @@ export default function App() {
               <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>灵境AI</Text>
             </View>
 
-            {/* 关闭按钮 - 固定在屏幕右上角 */}
+            {/* 关闭按钮 - 绝对定位在屏幕右上角 */}
             <TouchableOpacity
               style={{
                 position: 'absolute',
@@ -3232,31 +3239,29 @@ export default function App() {
               <Icon name="close-circle-outline" size={36} color="#fff" />
             </TouchableOpacity>
 
-            {/* 视频和AI水印的容器，高度由视频决定 */}
-            <View style={{ position: 'relative' }}>
-              <Video
-                ref={fullscreenVideoRef}
-                source={{ uri: currentVideoUrl }}
-                style={{ width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%' }}
-                resizeMode="contain"
-                useNativeControls={true}
-                shouldPlay={true}
-                onError={(e) => console.log('视频播放错误', e)}
-              />
-              
-              {/* AI生成标识 - 相对于视频容器定位，永远在视频画面内 */}
-              <View style={{
-                position: 'absolute',
-                bottom: 35,
-                right: 10,
-                backgroundColor: 'rgba(0,0,0,0.7)',
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 6,
-                zIndex: 99999,
-              }}>
-                <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>AI生成</Text>
-              </View>
+            {/* 视频播放区域，占满屏幕宽度 */}
+            <Video
+              ref={fullscreenVideoRef}
+              source={{ uri: currentVideoUrl }}
+              style={{ width: '100%', height: '80%' }}
+              resizeMode="contain"
+              useNativeControls={true}
+              shouldPlay={true}
+              onError={(e) => console.log('视频播放错误', e)}
+            />
+
+            {/* AI生成标识 - 固定在屏幕底部，不受视频大小影响 */}
+            <View style={{
+              position: 'absolute',
+              bottom: 10,
+              right: 16,
+              zIndex: 99999,
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 6,
+            }}>
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>AI生成</Text>
             </View>
 
           </View>
