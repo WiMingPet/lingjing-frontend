@@ -1665,28 +1665,14 @@ export default function App() {
           <Text style={styles.resultTitle}>
             {activeTab === 'video' ? '🎬 生成视频' : activeTab === 'tryon' ? '👗 试穿结果' : '🤖 数字人视频'}
           </Text>
-          <View style={{ position: 'relative', width: '100%' }}>
-            <Video
-              source={{ uri: videoUrl }}
-              style={styles.resultVideo}
-              resizeMode="contain"
-              useNativeControls
-              isMuted={false}
-              onError={(e) => console.log('视频播放错误', e)}
-            />
-            <View style={{
-              position: 'absolute',
-              bottom: 8,
-              right: 8,
-              backgroundColor: 'rgba(0,0,0,0.6)',
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: 4,
-              zIndex: 10,
-            }}>
-              <Text style={{ color: '#fff', fontSize: 12 }}>AI生成</Text>
-            </View>
-          </View>
+          <Video
+            source={{ uri: videoUrl }}
+            style={styles.resultVideo}
+            resizeMode="contain"
+            useNativeControls
+            isMuted={false}
+            onError={(e) => console.log('视频播放错误', e)}
+          />
           <View style={styles.buttonGroup}>
             <TouchableOpacity onPress={() => { navigator.clipboard.writeText(videoUrl); showToast('链接已复制'); }} style={styles.actionButton}>
               <Icon name="copy-outline" size={18} color="#7c3aed" />
@@ -2522,19 +2508,7 @@ export default function App() {
                             useNativeControls
                             resizeMode="contain"
                           />
-                          {/* AI生成标识 */}
-                          <View style={{
-                            position: 'absolute',
-                            bottom: 8,
-                            right: 8,
-                            backgroundColor: 'rgba(0,0,0,0.6)',
-                            paddingHorizontal: 8,
-                            paddingVertical: 4,
-                            borderRadius: 4,
-                            zIndex: 99999,
-                          }}>
-                            <Text style={{ color: '#fff', fontSize: 12 }}>AI生成</Text>
-                          </View>
+
                           <TouchableOpacity
                             style={styles.saveVideoButton}
                             onPress={handleSaveEcommerceVideo}
@@ -2664,47 +2638,29 @@ export default function App() {
                     <TouchableOpacity
                       key={item.id}
                       onPress={() => {
-                        // 判断是否为视频类型
                         if (item.type === '视频生成' || item.type === '虚拟试穿' || item.type === '数字人分身' || item.type === 'AI带货视频') {
-                          // 视频类型：打开全屏播放 Modal
                           setCurrentVideoUrl(item.url);
                           setVideoModalVisible(true);
                         } else if (item.type === '图片生成' || item.type === '多角度试穿') {
-                          // 图片类型
                           setResult({ images: [{ url: item.url }] });
                           setActiveTab(item.type === '图片生成' ? 'image' : 'multi');
                         } else {
-                          // 其他视频类型（兜底）
                           setCurrentVideoUrl(item.url);
                           setVideoModalVisible(true);
                         }
                       }}
                       style={styles.historyItem}
                     >
-                      <View style={{ position: 'relative', display: 'inline-block' }}>
-                        <img 
-                          src={item.thumbnail || item.url} 
-                          style={styles.historyImage} 
-                          alt="历史记录" 
-                          onError={(e) => {
-                            if (e.target.src !== item.url) {
-                              e.target.src = item.url;
-                            }
-                          }}
-                        />
-                        <Text style={{
-                          position: 'absolute',
-                          bottom: 4,
-                          right: 4,
-                          backgroundColor: 'rgba(0,0,0,0.6)',
-                          color: '#fff',
-                          fontSize: 10,
-                          paddingHorizontal: 4,
-                          paddingVertical: 2,
-                          borderRadius: 2,
-                          zIndex: 10,
-                        }}>AI生成</Text>
-                      </View>
+                      <img 
+                        src={item.thumbnail || item.url} 
+                        style={styles.historyImage} 
+                        alt="历史记录" 
+                        onError={(e) => {
+                          if (e.target.src !== item.url) {
+                            e.target.src = item.url;
+                          }
+                        }}
+                      />
                       <Text style={styles.historyText}>{item.type}</Text>
                       <Text style={styles.historyTime}>{item.timestamp}</Text>
                     </TouchableOpacity>
@@ -3235,17 +3191,6 @@ export default function App() {
               onError={(e) => console.log('视频播放错误', e)}
             />
 
-            {/* AI生成标识 - 底部横条，视频下方 */}
-            <View style={{
-              backgroundColor: '#000',
-              alignItems: 'flex-end',
-              paddingRight: 16,
-              paddingBottom: 12,
-              paddingTop: 4,
-            }}>
-              <Text style={{ color: '#999', fontSize: 12 }}>AI生成</Text>
-            </View>
-
           </View>
         </Modal>
 
@@ -3259,25 +3204,11 @@ export default function App() {
               <Icon name="close-circle-outline" size={40} color="#fff" />
             </TouchableOpacity>
             {previewUrl && (
-              <View style={{ position: 'relative' }}>
-                <img 
-                  src={previewUrl} 
-                  style={{ width: '90%', height: '70%', objectFit: 'contain' }} 
-                  alt="全屏预览"
-                />
-                <View style={{
-                  position: 'absolute',
-                  bottom: 8,
-                  right: 8,
-                  backgroundColor: 'rgba(0,0,0,0.6)',
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
-                  borderRadius: 4,
-                  zIndex: 10,
-                }}>
-                  <Text style={{ color: '#fff', fontSize: 12 }}>AI生成</Text>
-                </View>
-              </View>
+              <img 
+                src={previewUrl} 
+                style={{ width: '90%', height: '70%', objectFit: 'contain' }} 
+                alt="全屏预览"
+              />
             )}
           </View>
         </Modal>
@@ -3296,28 +3227,14 @@ export default function App() {
             >
               <Icon name="close-circle-outline" size={40} color="#fff" />
             </TouchableOpacity>
-            <View style={{ position: 'relative', width: '100%', height: '100%' }}>
-              <Video
-                source={{ uri: currentPreviewVideoUrl }}
-                style={styles.videoPreviewPlayer}
-                resizeMode="contain"
-                useNativeControls
-                shouldPlay={true}
-                onError={(e) => console.log('预览视频播放错误', e)}
-              />
-              <View style={{
-                position: 'absolute',
-                bottom: 8,
-                right: 8,
-                backgroundColor: 'rgba(0,0,0,0.6)',
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                borderRadius: 4,
-                zIndex: 10,
-              }}>
-                <Text style={{ color: '#fff', fontSize: 12 }}>AI生成</Text>
-              </View>
-            </View>
+            <Video
+              source={{ uri: currentPreviewVideoUrl }}
+              style={styles.videoPreviewPlayer}
+              resizeMode="contain"
+              useNativeControls
+              shouldPlay={true}
+              onError={(e) => console.log('预览视频播放错误', e)}
+            />
             <TouchableOpacity
               style={styles.useThisAvatarButton}
               onPress={() => {
