@@ -1698,7 +1698,7 @@ export default function App() {
   ];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} maxFontSizeMultiplier={1}>
       <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
       <View style={styles.container}>
         <View style={styles.header}>
@@ -3229,12 +3229,12 @@ export default function App() {
               bottom: 20,
               right: 16,
               zIndex: 999,
-              backgroundColor: 'rgba(0,0,0,0.6)',
+              backgroundColor: '#ffffff',
               paddingHorizontal: 10,
               paddingVertical: 5,
               borderRadius: 4,
             }}>
-              <Text style={{ color: '#fff', fontSize: 13, fontWeight: 'bold' }}>AI生成</Text>
+              <Text style={{ color: '#000', fontSize: 13, fontWeight: 'bold' }}>AI生成</Text>
             </View>
           </View>
         </Modal>
@@ -3501,6 +3501,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     paddingBottom: 150,
+    maxHeight: '80%',
+    overflow: 'scroll',
     zIndex: 1000,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
