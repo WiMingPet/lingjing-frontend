@@ -2509,7 +2509,7 @@ export default function App() {
                             paddingHorizontal: 8,
                             paddingVertical: 4,
                             borderRadius: 4,
-                            zIndex: 10,
+                            zIndex: 99999,
                           }}>
                             <Text style={{ color: '#fff', fontSize: 12 }}>AI生成</Text>
                           </View>
