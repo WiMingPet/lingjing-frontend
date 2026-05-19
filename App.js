@@ -3206,8 +3206,8 @@ export default function App() {
                 {/* AI生成标识 - 紧贴视频画面右下角 */}
                 <View style={{
                   position: 'absolute',
-                  bottom: 40,
-                  right: 10,
+                  bottom: 10,
+                  right: 5,
                   backgroundColor: 'rgba(0,0,0,0.7)',
                   paddingHorizontal: 12,
                   paddingVertical: 6,
@@ -3786,7 +3786,7 @@ const styles = StyleSheet.create({
   },
   fullscreenVideo: {
     width: '100%',
-    aspectRatio: 16 / 9,
+    height: '100%',
   },
   // ========== 形象选择器样式 ==========
   categoryScroll: {
