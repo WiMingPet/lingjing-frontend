@@ -2659,17 +2659,30 @@ export default function App() {
                       }}
                       style={styles.historyItem}
                     >
-                      <img 
-                        src={item.thumbnail || item.url} 
-                        style={styles.historyImage} 
-                        alt="历史记录" 
-                        onError={(e) => {
-                          // 如果封面加载失败（404等），降级到视频原链接
-                          if (e.target.src !== item.url) {
-                            e.target.src = item.url;
-                          }
-                        }}
-                      />
+                      <View style={{ position: 'relative', display: 'inline-block' }}>
+                        <img 
+                          src={item.thumbnail || item.url} 
+                          style={styles.historyImage} 
+                          alt="历史记录" 
+                          onError={(e) => {
+                            if (e.target.src !== item.url) {
+                              e.target.src = item.url;
+                            }
+                          }}
+                        />
+                        <Text style={{
+                          position: 'absolute',
+                          bottom: 4,
+                          right: 4,
+                          backgroundColor: 'rgba(0,0,0,0.6)',
+                          color: '#fff',
+                          fontSize: 10,
+                          paddingHorizontal: 4,
+                          paddingVertical: 2,
+                          borderRadius: 2,
+                          zIndex: 10,
+                        }}>AI生成</Text>
+                      </View>
                       <Text style={styles.historyText}>{item.type}</Text>
                       <Text style={styles.historyTime}>{item.timestamp}</Text>
                     </TouchableOpacity>
@@ -3210,18 +3223,18 @@ export default function App() {
               >
                 <Icon name="close-circle-outline" size={36} color="#fff" />
               </TouchableOpacity>
-              {/* AI生成标识 - 右下角 */}
+              {/* AI生成标识 - 固定屏幕右下角，避免被原生播放器遮挡 */}
               <View style={{
-                position: 'absolute',
-                bottom: 8,
-                right: 8,
-                backgroundColor: 'rgba(0,0,0,0.6)',
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                borderRadius: 4,
+                position: 'fixed',
+                bottom: 16,
+                right: 16,
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 6,
                 zIndex: 99999,
               }}>
-                <Text style={{ color: '#fff', fontSize: 12 }}>AI生成</Text>
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>AI生成</Text>
               </View>
             </View>
           </View>
@@ -3743,10 +3756,15 @@ const styles = StyleSheet.create({
   },
   // 视频全屏播放 Modal 样式
   videoModalContainer: {
-    flex: 1,
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 9999,
   },
   videoModalClose: {
     position: 'absolute',
