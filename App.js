@@ -3185,67 +3185,53 @@ export default function App() {
           onRequestClose={() => setVideoModalVisible(false)}
         >
           <View style={styles.videoModalContainer}>
-            <View style={{ 
-              position: 'relative', 
-              width: '100%', 
-              height: '100%',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
+            {/* 标题 - 左上角 */}
+            <View style={{
+              position: 'absolute',
+              top: 10,
+              left: 10,
+              zIndex: 999,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              borderRadius: 8,
+              paddingHorizontal: 10,
+              paddingVertical: 4,
             }}>
-              <View style={{ position: 'relative', width: '100%', maxWidth: '100%' }}>
-                <Video
-                  ref={fullscreenVideoRef}
-                  source={{ uri: currentVideoUrl }}
-                  style={styles.fullscreenVideo}
-                  resizeMode="contain"
-                  useNativeControls={true}
-                  shouldPlay={true}
-                  onError={(e) => console.log('视频播放错误', e)}
-                />
-                {/* AI生成标识 - 紧贴视频画面右下角 */}
-                <View style={{
-                  position: 'absolute',
-                  bottom: 10,
-                  right: 5,
-                  backgroundColor: 'rgba(0,0,0,0.7)',
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 6,
-                  zIndex: 99999,
-                  pointerEvents: 'none',
-                }}>
-                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>AI生成</Text>
-                </View>
-              </View>
-              {/* 标题 - 左上角 */}
-              <View style={{
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>灵境AI</Text>
+            </View>
+            {/* 关闭按钮 - 右上角 */}
+            <TouchableOpacity
+              style={{
                 position: 'absolute',
                 top: 10,
-                left: 10,
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                borderRadius: 8,
-                paddingHorizontal: 10,
-                paddingVertical: 4,
+                right: 10,
                 zIndex: 999,
-              }}>
-                <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>灵境AI</Text>
-              </View>
-              {/* 关闭按钮 - 右上角 */}
-              <TouchableOpacity
-                style={{
-                  position: 'absolute',
-                  top: 10,
-                  right: 10,
-                  zIndex: 999,
-                  backgroundColor: 'rgba(0,0,0,0.5)',
-                  borderRadius: 20,
-                  padding: 4,
-                }}
-                onPress={() => setVideoModalVisible(false)}
-              >
-                <Icon name="close-circle-outline" size={36} color="#fff" />
-              </TouchableOpacity>
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                borderRadius: 20,
+                padding: 4,
+              }}
+              onPress={() => setVideoModalVisible(false)}
+            >
+              <Icon name="close-circle-outline" size={36} color="#fff" />
+            </TouchableOpacity>
+
+            <Video
+              ref={fullscreenVideoRef}
+              source={{ uri: currentVideoUrl }}
+              style={styles.fullscreenVideo}
+              resizeMode="contain"
+              useNativeControls={true}
+              shouldPlay={true}
+              onError={(e) => console.log('视频播放错误', e)}
+            />
+            {/* AI生成标识 - 视频下方底部 */}
+            <View style={{
+              width: '100%',
+              backgroundColor: '#000',
+              alignItems: 'flex-end',
+              paddingRight: 16,
+              paddingBottom: 12,
+            }}>
+              <Text style={{ color: '#999', fontSize: 11 }}>AI生成</Text>
             </View>
           </View>
         </Modal>
