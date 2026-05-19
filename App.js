@@ -34,7 +34,22 @@ const Card = ({ children, style }) => (
 );
 
 export default function App() {
-    // 首次启动隐私政策确认
+  // 注入全局样式，禁止移动端浏览器自动缩放字体
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      body, html {
+        -webkit-text-size-adjust: none !important;
+        text-size-adjust: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  // 首次启动隐私政策确认
   useEffect(() => {
     const privacyAgreed = localStorage.getItem('privacy_agreed');
     if (!privacyAgreed) {
@@ -3180,12 +3195,14 @@ export default function App() {
         {/* 全屏视频播放 Modal */}
         <Modal
           visible={videoModalVisible}
-          transparent={true}
+          transparent={false}
           animationType="fade"
           onRequestClose={() => setVideoModalVisible(false)}
         >
-          <View style={styles.videoModalContainer}>
-            {/* 标题 - 左上角 */}
+          {/* 黑色背景，让视频垂直居中 */}
+          <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+            
+            {/* 标题 - 固定在屏幕左上角 */}
             <View style={{
               position: 'absolute',
               top: 10,
@@ -3198,7 +3215,8 @@ export default function App() {
             }}>
               <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>灵境AI</Text>
             </View>
-            {/* 关闭按钮 - 右上角 */}
+
+            {/* 关闭按钮 - 固定在屏幕右上角 */}
             <TouchableOpacity
               style={{
                 position: 'absolute',
@@ -3214,28 +3232,33 @@ export default function App() {
               <Icon name="close-circle-outline" size={36} color="#fff" />
             </TouchableOpacity>
 
-            <Video
-              ref={fullscreenVideoRef}
-              source={{ uri: currentVideoUrl }}
-              style={styles.fullscreenVideo}
-              resizeMode="contain"
-              useNativeControls={true}
-              shouldPlay={true}
-              onError={(e) => console.log('视频播放错误', e)}
-            />
-            {/* AI生成标识 - 绝对定位在底部 */}
-            <View style={{
-              position: 'absolute',
-              bottom: 20,
-              right: 16,
-              zIndex: 999,
-              backgroundColor: '#ffffff',
-              paddingHorizontal: 10,
-              paddingVertical: 5,
-              borderRadius: 4,
-            }}>
-              <Text style={{ color: '#000', fontSize: 13, fontWeight: 'bold' }}>AI生成</Text>
+            {/* 视频和AI水印的容器，高度由视频决定 */}
+            <View style={{ position: 'relative' }}>
+              <Video
+                ref={fullscreenVideoRef}
+                source={{ uri: currentVideoUrl }}
+                style={{ width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%' }}
+                resizeMode="contain"
+                useNativeControls={true}
+                shouldPlay={true}
+                onError={(e) => console.log('视频播放错误', e)}
+              />
+              
+              {/* AI生成标识 - 相对于视频容器定位，永远在视频画面内 */}
+              <View style={{
+                position: 'absolute',
+                bottom: 35,
+                right: 10,
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 6,
+                zIndex: 99999,
+              }}>
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>AI生成</Text>
+              </View>
             </View>
+
           </View>
         </Modal>
 
@@ -3504,6 +3527,8 @@ const styles = StyleSheet.create({
     maxHeight: '80%',
     overflow: 'scroll',
     zIndex: 1000,
+    maxHeight: '80%',       // 👈 新增，限制菜单最大高度
+    overflowY: 'auto',      // 👈 新增，内容超出时允许滚动
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
