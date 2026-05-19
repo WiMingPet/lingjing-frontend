@@ -3206,10 +3206,25 @@ export default function App() {
           animationType="fade"
           onRequestClose={() => setVideoModalVisible(false)}
         >
-          {/* 主容器：flex布局，让视频自动填充空间 */}
           <View style={{ flex: 1, backgroundColor: '#000' }}>
             
-            {/* 视频区域：flex: 1 让视频填满整个屏幕 */}
+            {/* 标题栏 - 顶部 */}
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingHorizontal: 16,
+              paddingTop: 10,
+              paddingBottom: 10,
+              backgroundColor: '#000',
+            }}>
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>灵境AI</Text>
+              <TouchableOpacity onPress={() => setVideoModalVisible(false)}>
+                <Icon name="close-circle-outline" size={36} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            {/* 视频 */}
             <Video
               ref={fullscreenVideoRef}
               source={{ uri: currentVideoUrl }}
@@ -3220,55 +3235,15 @@ export default function App() {
               onError={(e) => console.log('视频播放错误', e)}
             />
 
-            {/* 覆盖层：铺满屏幕，用来放绝对定位的标题和按钮 */}
+            {/* AI生成标识 - 底部横条，视频下方 */}
             <View style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              pointerEvents: 'box-none', // 让点击穿透到视频
+              backgroundColor: '#000',
+              alignItems: 'flex-end',
+              paddingRight: 16,
+              paddingBottom: 12,
+              paddingTop: 4,
             }}>
-              {/* 标题 - 左上角 */}
-              <View style={{
-                position: 'absolute',
-                top: 10,
-                left: 10,
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                borderRadius: 8,
-                paddingHorizontal: 10,
-                paddingVertical: 4,
-              }}>
-                <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>灵境AI</Text>
-              </View>
-
-              {/* 关闭按钮 - 右上角 */}
-              <TouchableOpacity
-                style={{
-                  position: 'absolute',
-                  top: 10,
-                  right: 10,
-                  backgroundColor: 'rgba(0,0,0,0.5)',
-                  borderRadius: 20,
-                  padding: 4,
-                }}
-                onPress={() => setVideoModalVisible(false)}
-              >
-                <Icon name="close-circle-outline" size={36} color="#fff" />
-              </TouchableOpacity>
-
-              {/* AI生成标识 - 右下角，独立于视频 */}
-              <View style={{
-                position: 'absolute',
-                bottom: 20,
-                right: 16,
-                backgroundColor: 'rgba(0,0,0,0.7)',
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 6,
-              }}>
-                <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>AI生成</Text>
-              </View>
+              <Text style={{ color: '#999', fontSize: 12 }}>AI生成</Text>
             </View>
 
           </View>
