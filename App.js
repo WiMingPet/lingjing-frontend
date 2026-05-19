@@ -3223,15 +3223,18 @@ export default function App() {
               shouldPlay={true}
               onError={(e) => console.log('视频播放错误', e)}
             />
-            {/* AI生成标识 - 视频下方底部 */}
+            {/* AI生成标识 - 绝对定位在底部 */}
             <View style={{
-              width: '100%',
-              backgroundColor: '#000',
-              alignItems: 'flex-end',
-              paddingRight: 16,
-              paddingBottom: 12,
+              position: 'absolute',
+              bottom: 20,
+              right: 16,
+              zIndex: 999,
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              borderRadius: 4,
             }}>
-              <Text style={{ color: '#999', fontSize: 11 }}>AI生成</Text>
+              <Text style={{ color: '#fff', fontSize: 13, fontWeight: 'bold' }}>AI生成</Text>
             </View>
           </View>
         </Modal>
@@ -3399,7 +3402,7 @@ const styles = StyleSheet.create({
   linkText: { color: '#7c3aed', fontSize: 12, marginTop: 8, textDecorationLine: 'underline' },
   urlRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, width: '100%', gap: 8 },
   copyButton: { padding: 8, backgroundColor: '#2d2d44', borderRadius: 8 },
-  historyCard: { marginTop: 10 },
+  historyCard: { marginTop: 10, minHeight: 250 },
   historyItem: { marginRight: 15, alignItems: 'center', width: 100 },
   historyImage: { width: 80, height: 80, borderRadius: 8, backgroundColor: '#2d2d44' },
   historyText: { color: '#aaa', fontSize: 10, marginTop: 4, textAlign: 'center' },
@@ -3497,7 +3500,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1e1e2e',
     borderRadius: 16,
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 150,
     zIndex: 1000,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -3902,7 +3905,7 @@ const styles = StyleSheet.create({
   },
   beianContainer: {
     paddingVertical: 16,
-    paddingBottom: 100,
+    paddingBottom: 150,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#0a0a0a',
