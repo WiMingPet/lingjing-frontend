@@ -3185,16 +3185,39 @@ export default function App() {
           onRequestClose={() => setVideoModalVisible(false)}
         >
           <View style={styles.videoModalContainer}>
-            <View style={{ position: 'relative', width: '100%', height: '100%' }}>
-              <Video
-                ref={fullscreenVideoRef}
-                source={{ uri: currentVideoUrl }}
-                style={styles.fullscreenVideo}
-                resizeMode="contain"
-                useNativeControls={true}
-                shouldPlay={true}
-                onError={(e) => console.log('视频播放错误', e)}
-              />
+            <View style={{ 
+              position: 'relative', 
+              width: '100%', 
+              height: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+              <View style={{ position: 'relative', width: '100%', maxWidth: '100%' }}>
+                <Video
+                  ref={fullscreenVideoRef}
+                  source={{ uri: currentVideoUrl }}
+                  style={styles.fullscreenVideo}
+                  resizeMode="contain"
+                  useNativeControls={true}
+                  shouldPlay={true}
+                  onError={(e) => console.log('视频播放错误', e)}
+                />
+                {/* AI生成标识 - 紧贴视频画面右下角 */}
+                <View style={{
+                  position: 'absolute',
+                  bottom: 40,
+                  right: 10,
+                  backgroundColor: 'rgba(0,0,0,0.7)',
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 6,
+                  zIndex: 99999,
+                  pointerEvents: 'none',
+                }}>
+                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>AI生成</Text>
+                </View>
+              </View>
               {/* 标题 - 左上角 */}
               <View style={{
                 position: 'absolute',
@@ -3223,19 +3246,6 @@ export default function App() {
               >
                 <Icon name="close-circle-outline" size={36} color="#fff" />
               </TouchableOpacity>
-              {/* AI生成标识 - 固定屏幕右下角，避免被原生播放器遮挡 */}
-              <View style={{
-                position: 'fixed',
-                bottom: 16,
-                right: 16,
-                backgroundColor: 'rgba(0,0,0,0.7)',
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 6,
-                zIndex: 99999,
-              }}>
-                <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>AI生成</Text>
-              </View>
             </View>
           </View>
         </Modal>
@@ -3501,6 +3511,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1e1e2e',
     borderRadius: 16,
     padding: 16,
+    paddingBottom: 100,
     zIndex: 1000,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -3759,8 +3770,8 @@ const styles = StyleSheet.create({
     position: 'fixed',
     top: 0,
     left: 0,
-    right: 0,
-    bottom: 0,
+    width: '100vw',
+    height: '100vh',
     backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
@@ -3775,7 +3786,7 @@ const styles = StyleSheet.create({
   },
   fullscreenVideo: {
     width: '100%',
-    height: '100%',
+    aspectRatio: 16 / 9,
   },
   // ========== 形象选择器样式 ==========
   categoryScroll: {
@@ -3903,8 +3914,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-    beianContainer: {
-    paddingVertical: 12,
+  beianContainer: {
+    paddingVertical: 16,
+    paddingBottom: 100,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#0a0a0a',
