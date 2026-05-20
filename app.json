@@ -8,6 +8,11 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "platforms": ["web"],
+    "locales": {
+      "zh": "灵境AI",
+      "zh-Hant": "靈境AI",
+      "en": "LingJing AI"
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
