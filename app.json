@@ -8,11 +8,6 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "platforms": ["web"],
-    "locales": {
-      "zh": "灵境AI",
-      "zh-Hant": "靈境AI",
-      "en": "LingJing AI"
-    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -35,7 +30,9 @@
     "extra": {
       "eas": {
         "projectId": "65cc5eeb-d2cd-4970-8b9d-30bb3848528f"
-      }
+      },
+      "appName": "灵境AI",
+      "appNameEn": "LingJing AI"
     }
   }
 }
