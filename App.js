@@ -16,6 +16,7 @@ import {
   Dimensions,
   Modal,
   Platform,
+  Linking,
 } from 'react-native';
 import * as ImagePicker from 'react-native-image-picker';
 import axios from 'axios';
@@ -3318,17 +3319,15 @@ export default function App() {
             <Text style={styles.toastText}>{toastMessage}</Text>
           </View>
         )}
-                {/* 备案号 */}
+        {/* 备案号 */}
         <View style={styles.beianContainer}>
           <Text style={styles.beianText}>
-            <a 
-              href="https://beian.miit.gov.cn" 
-              target="_blank" 
-              rel="noopener noreferrer"
+            <Text 
+              onPress={() => Linking.openURL('https://beian.miit.gov.cn')}
               style={{ color: '#666', textDecoration: 'none' }}
             >
               粤ICP备2026044431号
-            </a>
+            </Text>
           </Text>
         </View>
 
