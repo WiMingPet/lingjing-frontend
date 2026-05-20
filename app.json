@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "frontend",
+    "name": "灵境AI",
     "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,6 +10,11 @@
     "platforms": [
       "web"
     ],
+    "locales": {
+      "zh": "灵境AI",
+      "zh-Hant": "靈境AI",
+      "en": "LingJing AI"
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -23,7 +28,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.lingjing_media.app"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -31,6 +37,11 @@
     },
     "plugins": [
       "expo-video"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "65cc5eeb-d2cd-4970-8b9d-30bb3848528f"
+      }
+    }
   }
 }
