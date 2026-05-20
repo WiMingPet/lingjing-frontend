@@ -1665,14 +1665,27 @@ export default function App() {
           <Text style={styles.resultTitle}>
             {activeTab === 'video' ? '🎬 生成视频' : activeTab === 'tryon' ? '👗 试穿结果' : '🤖 数字人视频'}
           </Text>
-          <Video
-            source={{ uri: videoUrl }}
-            style={styles.resultVideo}
-            resizeMode="contain"
-            useNativeControls
-            isMuted={false}
-            onError={(e) => console.log('视频播放错误', e)}
-          />
+          <View style={{ position: 'relative', width: '100%' }}>
+            <Video
+              source={{ uri: videoUrl }}
+              style={styles.resultVideo}
+              resizeMode="contain"
+              useNativeControls
+              isMuted={false}
+              onError={(e) => console.log('视频播放错误', e)}
+            />
+            <View style={{
+              position: 'absolute',
+              bottom: 8,
+              right: 8,
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              borderRadius: 4,
+            }}>
+              <Text style={{ color: '#fff', fontSize: 12 }}>AI生成</Text>
+            </View>
+          </View>
           <View style={styles.buttonGroup}>
             <TouchableOpacity onPress={() => { navigator.clipboard.writeText(videoUrl); showToast('链接已复制'); }} style={styles.actionButton}>
               <Icon name="copy-outline" size={18} color="#7c3aed" />
@@ -2508,6 +2521,17 @@ export default function App() {
                             useNativeControls
                             resizeMode="contain"
                           />
+                          <View style={{
+                            position: 'absolute',
+                            bottom: 8,
+                            right: 8,
+                            backgroundColor: 'rgba(0,0,0,0.6)',
+                            paddingHorizontal: 8,
+                            paddingVertical: 4,
+                            borderRadius: 4,
+                          }}>
+                            <Text style={{ color: '#fff', fontSize: 12 }}>AI生成</Text>
+                          </View>
 
                           <TouchableOpacity
                             style={styles.saveVideoButton}
@@ -2651,16 +2675,29 @@ export default function App() {
                       }}
                       style={styles.historyItem}
                     >
-                      <img 
-                        src={item.thumbnail || item.url} 
-                        style={styles.historyImage} 
-                        alt="历史记录" 
-                        onError={(e) => {
-                          if (e.target.src !== item.url) {
-                            e.target.src = item.url;
-                          }
-                        }}
-                      />
+                      <View style={{ position: 'relative', display: 'inline-block' }}>
+                        <img 
+                          src={item.thumbnail || item.url} 
+                          style={styles.historyImage} 
+                          alt="历史记录" 
+                          onError={(e) => {
+                            if (e.target.src !== item.url) {
+                              e.target.src = item.url;
+                            }
+                          }}
+                        />
+                        <View style={{
+                          position: 'absolute',
+                          bottom: 4,
+                          right: 4,
+                          backgroundColor: 'rgba(0,0,0,0.6)',
+                          paddingHorizontal: 4,
+                          paddingVertical: 2,
+                          borderRadius: 2,
+                        }}>
+                          <Text style={{ color: '#fff', fontSize: 10 }}>AI生成</Text>
+                        </View>
+                      </View>
                       <Text style={styles.historyText}>{item.type}</Text>
                       <Text style={styles.historyTime}>{item.timestamp}</Text>
                     </TouchableOpacity>
