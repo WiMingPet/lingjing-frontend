@@ -7,22 +7,13 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "platforms": [
-      "web"
-    ],
-    "locales": {
-      "zh": "灵境AI",
-      "zh-Hant": "靈境AI",
-      "en": "LingJing AI"
-    },
+    "platforms": ["web"],
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "ios": {
-      "supportsTablet": true
-    },
+    "ios": { "supportsTablet": true },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -35,9 +26,7 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "plugins": [
-      "expo-video"
-    ],
+    "plugins": ["expo-video"],
     "extra": {
       "eas": {
         "projectId": "65cc5eeb-d2cd-4970-8b9d-30bb3848528f"
@@ -45,4 +34,3 @@
     }
   }
 }
-
