@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "frontend",
+    "name": "灵境AI",
     "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,31 +8,39 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "platforms": ["android", "ios", "web"],
+    "locales": {
+      "zh": "灵境AI",
+      "zh-Hant": "靈境AI",
+      "en": "LingJing AI"
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "ios": { "supportsTablet": true },
+    "ios": {
+      "supportsTablet": true
+    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.lingjing_media.app"
+      "package": "com.lingjing_media.app",
+      "appName": "灵境AI"
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "plugins": ["expo-video"],
+    "plugins": [
+      "expo-video"
+    ],
     "extra": {
       "eas": {
         "projectId": "65cc5eeb-d2cd-4970-8b9d-30bb3848528f"
-      },
-      "appName": "灵境AI",
-      "appNameEn": "LingJing AI"
+      }
     }
   }
 }
