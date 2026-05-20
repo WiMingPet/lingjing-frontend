@@ -3162,45 +3162,55 @@ export default function App() {
           animationType="fade"
           onRequestClose={() => setVideoModalVisible(false)}
         >
-          <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ width: '100%', height: '100%', backgroundColor: '#000' }}>
             
-            <Video
-              ref={fullscreenVideoRef}
-              source={{ uri: currentVideoUrl }}
-              style={{ width: '100%', height: Dimensions.get('window').height - 50 }}
-              resizeMode="contain"
-              useNativeControls={true}
-              shouldPlay={true}
-              onError={(e) => console.log('视频播放错误', e)}
-            />
-            
-            {/* 标题 - 左上角 */}
+            {/* 标题栏 */}
             <View style={{
               position: 'absolute',
-              top: 10,
-              left: 10,
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 50,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingHorizontal: 16,
               backgroundColor: 'rgba(0,0,0,0.5)',
-              borderRadius: 8,
-              paddingHorizontal: 10,
-              paddingVertical: 4,
+              zIndex: 10,
             }}>
-              <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>灵境AI</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>灵境AI</Text>
+                <View style={{
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 3,
+                }}>
+                  <Text style={{ color: '#fff', fontSize: 11 }}>AI生成</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setVideoModalVisible(false)}>
+                <Icon name="close" size={28} color="#fff" />
+              </TouchableOpacity>
             </View>
-            
-            {/* 关闭按钮 - 右上角 */}
-            <TouchableOpacity
+
+            {/* 视频 - 铺满整个屏幕 */}
+            <video
+              ref={fullscreenVideoRef}
+              src={currentVideoUrl}
+              controls
+              playsInline
               style={{
                 position: 'absolute',
-                top: 10,
-                right: 10,
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                borderRadius: 20,
-                padding: 4,
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                backgroundColor: '#000',
               }}
-              onPress={() => setVideoModalVisible(false)}
-            >
-              <Icon name="close-circle-outline" size={36} color="#fff" />
-            </TouchableOpacity>
+              onError={(e) => console.log('视频播放错误', e)}
+            />
 
           </View>
         </Modal>
