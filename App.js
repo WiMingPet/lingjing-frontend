@@ -3162,34 +3162,45 @@ export default function App() {
           animationType="fade"
           onRequestClose={() => setVideoModalVisible(false)}
         >
-          <View style={{ flex: 1, backgroundColor: '#000' }}>
+          <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
             
-            {/* 标题栏 - 顶部 */}
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingHorizontal: 16,
-              paddingTop: 10,
-              paddingBottom: 10,
-              backgroundColor: '#000',
-            }}>
-              <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>灵境AI</Text>
-              <TouchableOpacity onPress={() => setVideoModalVisible(false)}>
-                <Icon name="close-circle-outline" size={36} color="#fff" />
-              </TouchableOpacity>
-            </View>
-
-            {/* 视频 */}
             <Video
               ref={fullscreenVideoRef}
               source={{ uri: currentVideoUrl }}
-              style={{ flex: 1, width: '100%' }}
+              style={{ width: '100%', height: Dimensions.get('window').height - 50 }}
               resizeMode="contain"
               useNativeControls={true}
               shouldPlay={true}
               onError={(e) => console.log('视频播放错误', e)}
             />
+            
+            {/* 标题 - 左上角 */}
+            <View style={{
+              position: 'absolute',
+              top: 10,
+              left: 10,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              borderRadius: 8,
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+            }}>
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>灵境AI</Text>
+            </View>
+            
+            {/* 关闭按钮 - 右上角 */}
+            <TouchableOpacity
+              style={{
+                position: 'absolute',
+                top: 10,
+                right: 10,
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                borderRadius: 20,
+                padding: 4,
+              }}
+              onPress={() => setVideoModalVisible(false)}
+            >
+              <Icon name="close-circle-outline" size={36} color="#fff" />
+            </TouchableOpacity>
 
           </View>
         </Modal>
