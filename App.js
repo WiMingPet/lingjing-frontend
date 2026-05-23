@@ -326,8 +326,7 @@ export default function App() {
     }
 
     if (channel === 'pc_qr') {
-      // 桌面端新开标签页，降低浏览器拦截概率。
-      window.open(payUrl, '_blank');
+      Linking.openURL(payUrl);
       return;
     }
 
@@ -364,9 +363,9 @@ export default function App() {
     }
 
     if (isDesktopBrowser) {
-      window.open(payUrl, '_blank');
+      Linking.openURL(payUrl);
     } else {
-      window.location.href = payUrl;
+      Linking.openURL(payUrl);
     }
   };
 
@@ -444,10 +443,7 @@ export default function App() {
 
         // ＝＝＝ 核心修改：优先跳转，移动端用 pay_url，桌面端用 qr_code ＝＝＝
         if (pay_url) {
-          // 只要有支付链接，就跳转（无论手机还是桌面，H5链接均可打开）
-          window.open(pay_url, '_blank');
-          // 或者使用你自己的 doAlipayPay 函数
-          // doAlipayPay(pay_url, channel);
+          Linking.openURL(pay_url);
           return;
         }
 
@@ -1767,10 +1763,9 @@ export default function App() {
                           setModalVisible(true);
                         }}
                       >
-                        <img 
-                          src={selectedImage.uri} 
-                          style={{ width: '100%', height: 200, objectFit: 'contain' }} 
-                          alt="预览"
+                        <Image
+                          source={{ uri: selectedImage.uri }}
+                          style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                         />
                       </TouchableOpacity>
                       <View style={styles.imageOverlay}>
@@ -1830,10 +1825,9 @@ export default function App() {
                             setModalVisible(true);
                           }}
                         >
-                          <img 
-                            src={modelImage.uri} 
-                            style={{ width: '100%', height: 200, objectFit: 'contain' }} 
-                            alt="预览"
+                          <Image
+                            source={{ uri: selectedImage.uri }}
+                            style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                           />
                         </TouchableOpacity>
                         <View style={styles.imageOverlay}>
@@ -1922,10 +1916,9 @@ export default function App() {
                             setModalVisible(true);
                           }}
                         >
-                          <img 
-                            src={garmentImage.uri} 
-                            style={{ width: '100%', height: 200, objectFit: 'contain' }} 
-                            alt="预览"
+                          <Image
+                            source={{ uri: selectedImage.uri }}
+                            style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                           />
                         </TouchableOpacity>
                         <View style={styles.imageOverlay}>
@@ -1994,7 +1987,7 @@ export default function App() {
                           }
                         }}
                       >
-                        <img src={avatar.preview_image} style={styles.avatarImage} alt={avatar.name} />
+                        <Image source={{ uri: avatar.preview_image }} style={styles.avatarImage} />
                         <Text style={styles.avatarName}>{avatar.name}</Text>
                       </TouchableOpacity>
                     ))}
@@ -2019,10 +2012,9 @@ export default function App() {
                             setModalVisible(true);
                           }}
                         >
-                          <img 
-                            src={digitalImage.uri} 
-                            style={{ width: '100%', height: 200, objectFit: 'contain' }} 
-                            alt="预览"
+                          <Image
+                            source={{ uri: selectedImage.uri }}
+                            style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                           />
                         </TouchableOpacity>
                         <View style={styles.imageOverlay}>
@@ -2162,10 +2154,9 @@ export default function App() {
                                   setModalVisible(true);
                                 }}
                               >
-                                <img 
-                                  src={digitalImage.uri} 
-                                  style={{ width: '100%', height: 200, objectFit: 'contain' }} 
-                                  alt="预览"
+                                <Image
+                                  source={{ uri: selectedImage.uri }}
+                                  style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                                 />
                               </TouchableOpacity>
                               <View style={styles.imageOverlay}>
@@ -2407,10 +2398,9 @@ export default function App() {
                                   setModalVisible(true);
                                 }}
                               >
-                                <img 
-                                  src={ecommerceImage.uri} 
-                                  style={{ width: '100%', height: 200, objectFit: 'contain' }} 
-                                  alt="预览"
+                                <Image
+                                  source={{ uri: selectedImage.uri }}
+                                  style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                                 />
                               </TouchableOpacity>
                             ) : (
@@ -2438,10 +2428,9 @@ export default function App() {
                               setModalVisible(true);
                             }}
                           >
-                            <img 
-                              src={ecommerceImage.uri} 
-                              style={{ width: '100%', height: 200, objectFit: 'contain' }} 
-                              alt="预览"
+                            <Image
+                              source={{ uri: selectedImage.uri }}
+                              style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                             />
                           </TouchableOpacity>
                         </View>
@@ -2466,10 +2455,9 @@ export default function App() {
                                   setModalVisible(true);
                                 }}
                               >
-                                <img 
-                                  src={ecommerceDigitalImage.uri} 
-                                  style={{ width: '100%', height: 200, objectFit: 'contain' }} 
-                                  alt="预览"
+                                <Image
+                                  source={{ uri: selectedImage.uri }}
+                                  style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                                 />
                               </TouchableOpacity>
                             ) : (
@@ -2560,10 +2548,9 @@ export default function App() {
                           setModalVisible(true);
                         }}
                       >
-                        <img 
-                          src={img.uri} 
-                          style={{ width: 80, height: 80, objectFit: 'contain' }} 
-                          alt="预览"
+                        <Image
+                          source={{ uri: img.uri }}
+                          style={{ width: 80, height: 80, resizeMode: 'contain' }}
                         />
                       </TouchableOpacity>
                       <TouchableOpacity onPress={() => setMultiImages(multiImages.filter((_, i) => i !== idx))} style={styles.removeMultiImage}>
@@ -2676,14 +2663,13 @@ export default function App() {
                       }}
                       style={styles.historyItem}
                     >
-                      <View style={{ position: 'relative', display: 'inline-block' }}>
-                        <img 
-                          src={item.thumbnail || item.url} 
-                          style={styles.historyImage} 
-                          alt="历史记录" 
+                      <View style={{ position: 'relative' }}>
+                        <Image
+                          source={{ uri: item.thumbnail || item.url }}
+                          style={styles.historyImage}
                           onError={(e) => {
-                            if (e.target.src !== item.url) {
-                              e.target.src = item.url;
+                            if (e.nativeEvent?.error) {
+                              // 加载失败，可以设置一个备用 source
                             }
                           }}
                         />
@@ -2759,13 +2745,9 @@ export default function App() {
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => {
                     setShowSidebarMenu(false);
-                    const qqUrl = 'tencent://message/?uin=3060302415';
-                    const newWindow = window.open(qqUrl, '_blank');
-                    setTimeout(() => {
-                      if (!newWindow || newWindow.closed) {
-                        window.open('mailto:3060302415@qq.com', '_blank');
-                      }
-                    }, 2000);
+                    Linking.openURL('tencent://message/?uin=3060302415').catch(() => {
+                      Linking.openURL('mailto:3060302415@qq.com');
+                    });
                   }}>
                     <Text style={{ color: '#fff' }}>💬 帮助与客服</Text>
                     <Text style={{ color: '#aaa', fontSize: 12 }}>QQ: 3060302415  电话: 15920978058</Text>
@@ -2778,7 +2760,6 @@ export default function App() {
                 </View>
               </>
             )}
-
             {isLoggedIn ? (
               <View style={styles.profileContent}>
                 <Text style={styles.welcomeText}>欢迎回来</Text>
@@ -2809,10 +2790,10 @@ export default function App() {
                 在您开始使用前，请仔细阅读并同意以下协议：
               </Text>
               <View style={styles.privacyLinks}>
-                <TouchableOpacity onPress={() => window.open('https://lingjing-media.com/privacy', '_blank')}>
+                <TouchableOpacity onPress={() => Linking.openURL('https://lingjing-media.com/privacy')}>
                   <Text style={styles.privacyLink}>《隐私政策》</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => window.open('https://lingjing-media.com/terms', '_blank')}>
+                <TouchableOpacity onPress={() => Linking.openURL('https://lingjing-media.com/terms')}>
                   <Text style={styles.privacyLink}>《用户服务协议》</Text>
                 </TouchableOpacity>
               </View>
@@ -3132,15 +3113,13 @@ export default function App() {
               <Text style={styles.paymentHint}>
                 请使用支付宝扫码完成付款，支付完成后返回此页面刷新余额。
               </Text>
-              {/* ✅ 直接使用 img 标签，不用 getQRCodeImageUrl */}
+              {/* 支付宝支付二维码 */}
               {!!paymentQRCode && (
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(paymentQRCode)}`}
+                <Image
+                  source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(paymentQRCode)}` }}
                   style={{ width: 280, height: 280, borderRadius: 16, marginBottom: 16 }}
-                  alt="支付宝支付二维码"
                   onError={(e) => {
                     console.error('二维码生成失败，原始URL:', paymentQRCode);
-                    e.target.alt = '二维码加载失败，请刷新重试';
                   }}
                 />
               )}
@@ -3203,20 +3182,18 @@ export default function App() {
           <View style={{ width: '100%', height: '100%', backgroundColor: '#000' }}>
             
             {/* 视频 - 铺满整个屏幕 */}
-            <video
+            <Video
               ref={fullscreenVideoRef}
-              src={currentVideoUrl}
-              controls
-              playsInline
+              source={{ uri: currentVideoUrl }}
+              useNativeControls
               style={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
                 width: '100%',
                 height: '100%',
-                objectFit: 'contain',
-                backgroundColor: '#000',
               }}
+              resizeMode="contain"
               onError={(e) => console.log('视频播放错误', e)}
             />
 
@@ -3267,10 +3244,9 @@ export default function App() {
               <Icon name="close-circle-outline" size={40} color="#fff" />
             </TouchableOpacity>
             {previewUrl && (
-              <img 
-                src={previewUrl} 
-                style={{ width: '90%', height: '70%', objectFit: 'contain' }} 
-                alt="全屏预览"
+              <Image
+                source={{ uri: previewUrl }}
+                style={{ width: '90%', height: '70%', resizeMode: 'contain' }}
               />
             )}
           </View>
