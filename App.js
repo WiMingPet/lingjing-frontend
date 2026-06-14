@@ -3879,15 +3879,10 @@ const styles = StyleSheet.create({
   },
   // 视频全屏播放 Modal 样式
   videoModalContainer: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100vw',
-    height: '100vh',
+    flex: 1,
     backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 9999,
   },
   videoModalClose: {
     position: 'absolute',
