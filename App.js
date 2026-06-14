@@ -3264,25 +3264,25 @@ const handleGenerate = () => {
         {/* 全屏视频播放 Modal */}
         <Modal
           visible={videoModalVisible}
-          transparent={false}
+          transparent={true}
           animationType="fade"
           onRequestClose={() => setVideoModalVisible(false)}
         >
-          <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', backgroundColor: '#000' }}>
-            
-            {/* 视频 - 铺满整个屏幕 */}
+          <View style={styles.videoModalContainer}>
+            <TouchableOpacity
+              style={styles.videoModalClose}
+              onPress={() => setVideoModalVisible(false)}
+            >
+              <Icon name="close-circle-outline" size={40} color="#fff" />
+            </TouchableOpacity>
+
             <Video
               ref={fullscreenVideoRef}
               source={{ uri: currentVideoUrl }}
-              useNativeControls
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-              }}
+              style={styles.fullscreenVideo}
               resizeMode="contain"
+              useNativeControls={true}
+              shouldPlay={true}
               onError={(e) => console.log('视频播放错误', e)}
             />
 
