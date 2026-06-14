@@ -972,7 +972,7 @@ export default function App() {
     }
     
     if (!selectedImage) return showToast('请先选择一张参考图片');
-    setimageLoading(true);
+    setImageLoading(true);
     setIsGenerating(true);
     setGeneratingTitle('AI正在生成图片');
     setGeneratingSubtitle('文生图 / 图生图');
@@ -1020,7 +1020,7 @@ export default function App() {
       console.error('图片生成错误:', err);
       showToast(err.message || '生成失败', true);
     } finally {
-      setimageLoading(false);
+      setImageLoading(false);
       setIsGenerating(false);
     }
   };
@@ -1111,7 +1111,7 @@ export default function App() {
         ]
       );
     }
-    settryonLoading(true);
+    setTryonLoading(true);
     setIsGenerating(true);
     setGeneratingTitle('AI正在生成试穿视频');
     setGeneratingSubtitle('服装上身效果展示');
@@ -1175,7 +1175,7 @@ export default function App() {
       console.error('虚拟试穿错误:', err);
       showToast(err.message || '试穿失败', true);
     } finally {
-      settryonLoading(false);
+      setTryonLoading(false);
       setIsGenerating(false);
     }
   };
@@ -1915,23 +1915,16 @@ const handleGenerate = () => {
                   </View>
                   <TouchableOpacity onPress={pickModelImage} style={styles.imagePicker}>
                     {modelImage ? (
-                      <>
-                        <TouchableOpacity 
-                          onPress={() => {
-                            setPreviewUrl(modelImage.uri);
-                            setModalVisible(true);
-                          }}
-                        >
-                          <Image
-                            key={selectedImage?.uri}
-                            source={{ uri: modelImage?.uri }}
-                            style={{ width: '100%', height: 200, resizeMode: 'contain' }}
-                          />
-                        </TouchableOpacity>
+                      <View style={{ width: '100%', height: 200, position: 'relative' }}>
+                        <Image
+                          key={modelImage?.uri}
+                          source={{ uri: modelImage?.uri }}
+                          style={{ width: '100%', height: 200, resizeMode: 'contain' }}
+                        />
                         <View style={styles.imageOverlay}>
                           <Text style={styles.overlayText}>点击更换</Text>
                         </View>
-                      </>
+                      </View>
                     ) : (
                       <View style={styles.placeholder}>
                         <Icon name="person-outline" size={48} color="#666" />
@@ -2007,23 +2000,16 @@ const handleGenerate = () => {
                   </View>
                   <TouchableOpacity onPress={pickGarmentImage} style={styles.imagePicker}>
                     {garmentImage ? (
-                      <>
-                        <TouchableOpacity 
-                          onPress={() => {
-                            setPreviewUrl(garmentImage.uri);
-                            setModalVisible(true);
-                          }}
-                        >
-                          <Image
-                            key={selectedImage?.uri}
-                            source={{ uri: garmentImage?.uri }}
-                            style={{ width: '100%', height: 200, resizeMode: 'contain' }}
-                          />
-                        </TouchableOpacity>
+                      <View style={{ width: '100%', height: 200, position: 'relative' }}>
+                        <Image
+                          key={garmentImage?.uri}
+                          source={{ uri: garmentImage?.uri }}
+                          style={{ width: '100%', height: 200, resizeMode: 'contain' }}
+                        />
                         <View style={styles.imageOverlay}>
                           <Text style={styles.overlayText}>点击更换</Text>
                         </View>
-                      </>
+                      </View>
                     ) : (
                       <View style={styles.placeholder}>
                         <Icon name="shirt-outline" size={48} color="#666" />
