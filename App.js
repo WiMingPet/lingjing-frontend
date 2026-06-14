@@ -34,6 +34,12 @@ const Card = ({ children, style }) => (
   <View style={[styles.card, style]}>{children}</View>
 );
 
+// 检查是否已实名认证（已绑定手机号）
+const checkPhoneVerified = () => {
+  const token = localStorage.getItem('access_token');
+  return !!token;
+};
+
 export default function App() {
   // 注入全局样式，禁止移动端浏览器自动缩放字体
   useEffect(() => {
@@ -56,6 +62,7 @@ export default function App() {
       document.head.removeChild(style);
     };
   }, []);
+
 
   // 首次启动隐私政策确认
   useEffect(() => {
@@ -779,7 +786,7 @@ export default function App() {
   };
 
   const takePhoto = () => {
-    ImagePicker.launchCamera({ mediaType: 'photo', quality: 0.8 }, (res) => {
+    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
       if (res.assets && res.assets[0]) {
         setSelectedImage(res.assets[0]);
         setResult(null);
@@ -878,6 +885,14 @@ export default function App() {
   };
 
   const recommendSize = async () => {
+    // 实名认证检查
+    const isVerified = await checkPhoneVerified();
+    if (!isVerified) {
+      showToast('根据法规要求，使用AI功能前需完成手机号认证');
+      setShowLoginModal(true);
+      return;
+    }
+    
     if (!checkAndUseCredits(2, '尺码推荐', () => {})) return;
     if (!selectedImage) return showToast('请先选择一张照片');
     setLoading(true);
@@ -927,6 +942,13 @@ export default function App() {
   };
 
   const generateImage = async () => {
+    const isVerified = await checkPhoneVerified();
+    if (!isVerified) {
+      showToast('根据法规要求，使用AI功能前需完成手机号认证');
+      setShowLoginModal(true);
+      return;
+    }
+    
     if (!selectedImage) return showToast('请先选择一张参考图片');
     setLoading(true);
     setIsGenerating(true);
@@ -982,6 +1004,13 @@ export default function App() {
   };
 
   const generateVideo = async () => {
+    const isVerified = await checkPhoneVerified();
+    if (!isVerified) {
+      showToast('根据法规要求，使用AI功能前需完成手机号认证');
+      setShowLoginModal(true);
+      return;
+    }
+    
     const cost = duration === 5 ? 10 : 15;
     if (!selectedImage) return showToast('请先选择一张图片');
     setLoading(true);
@@ -1041,6 +1070,13 @@ export default function App() {
   };
 
   const generateTryon = async () => {
+    const isVerified = await checkPhoneVerified();
+    if (!isVerified) {
+      showToast('根据法规要求，使用AI功能前需完成手机号认证');
+      setShowLoginModal(true);
+      return;
+    }
+    
     if (clothCategory !== 'lower' && clothCategory !== 'dress' && !modelImage) return showToast('请先选择模特图片');
     if (!garmentImage) return showToast('请先选择服装图片');
     if (clothCategory === 'dress') {
@@ -1123,6 +1159,13 @@ export default function App() {
   };
 
   const generateDigitalHuman = async () => {
+    const isVerified = await checkPhoneVerified();
+    if (!isVerified) {
+      showToast('根据法规要求，使用AI功能前需完成手机号认证');
+      setShowLoginModal(true);
+      return;
+    }
+    
     if (!digitalImage) return showToast('请先上传照片');
     if (!digitalText.trim()) return showToast('请输入说话内容');
     setLoading(true);
@@ -1198,13 +1241,20 @@ export default function App() {
   };
 
   const generateDigitalHumanCustom = async () => {
+    const isVerified = await checkPhoneVerified();
+    if (!isVerified) {
+      showToast('根据法规要求，使用AI功能前需完成手机号认证');
+      setShowLoginModal(true);
+      return;
+    }
+    
     if (!checkAndUseCredits(10, '定制数字人', () => {})) return;
     if (!customVideo) return showToast('请先上传训练视频');
     if (!customName.trim()) return showToast('请输入数字人名称');
     setLoading(true);
-  
+
     const formData = new FormData();
-  
+
     // 清理视频文件名，移除特殊字符
     const videoExt = customVideo.name?.split('.').pop() || 'mp4';
     const safeVideoName = `video_${Date.now()}.${videoExt}`;
@@ -1246,20 +1296,27 @@ export default function App() {
 
   // ========== AI带货视频相关函数（替换版） ==========
 
-  // 解析抖音链接 - 终极硬编码版本
-  const fetchProductInfo = async () => {
-    if (!ecommerceUrl.trim()) {
-      showToast('请输入商品链接', true);
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const token = accessToken;
-      if (!token) {
-        showToast('请先登录', true);
+    // 解析抖音链接 - 终极硬编码版本
+    const fetchProductInfo = async () => {
+      const isVerified = await checkPhoneVerified();
+      if (!isVerified) {
+        showToast('根据法规要求，使用AI功能前需完成手机号认证');
+        setShowLoginModal(true);
         return;
       }
+      
+      if (!ecommerceUrl.trim()) {
+        showToast('请输入商品链接', true);
+        return;
+      }
+      
+      setLoading(true);
+      try {
+        const token = accessToken;
+        if (!token) {
+          showToast('请先登录', true);
+          return;
+        }
 
       const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
 
@@ -1305,13 +1362,20 @@ export default function App() {
   };
 
   // 生成带货视频 - 异步后台版本
-  const generateEcommerceVideo = async () => {
-    const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
-    
-    if (!ecommerceImage && !ecommerceDescription.trim()) {
-      showToast('请上传商品图片或填写描述', true);
-      return;
-    }
+    const generateEcommerceVideo = async () => {
+      const isVerified = await checkPhoneVerified();
+      if (!isVerified) {
+        showToast('根据法规要求，使用AI功能前需完成手机号认证');
+        setShowLoginModal(true);
+        return;
+      }
+      
+      const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
+      
+      if (!ecommerceImage && !ecommerceDescription.trim()) {
+        showToast('请上传商品图片或填写描述', true);
+        return;
+      }
     
     // 套装确认弹窗
     if (clothCategory === 'dress' && Platform.OS === 'web') {
@@ -1493,15 +1557,21 @@ export default function App() {
   };
 
   const generateMultiAngle = async () => {
-      if (multiImages.length < 2) {
-        showToast('请至少上传2张不同角度的照片', true);
-        return;
-      }
-      if (multiImages.length > 4) {
-        showToast('最多上传4张照片', true);
-        return;
-      }
-      
+    const isVerified = await checkPhoneVerified();
+    if (!isVerified) {
+      showToast('根据法规要求，使用AI功能前需完成手机号认证');
+      setShowLoginModal(true);
+      return;
+    }
+    
+    if (multiImages.length < 2) {
+      showToast('请至少上传2张不同角度的照片', true);
+      return;
+    }
+    if (multiImages.length > 4) {
+      showToast('最多上传4张照片', true);
+      return;
+    }
       setLoading(true);
       setIsGenerating(true);
       setGeneratingTitle('AI正在生成多角度视频');
@@ -1663,14 +1733,16 @@ export default function App() {
             {activeTab === 'video' ? '🎬 生成视频' : activeTab === 'tryon' ? '👗 试穿结果' : '🤖 数字人视频'}
           </Text>
           <View style={{ position: 'relative', width: '100%' }}>
-            <Video
-              source={{ uri: videoUrl }}
-              style={styles.resultVideo}
-              resizeMode="contain"
-              useNativeControls
-              isMuted={false}
-              onError={(e) => console.log('视频播放错误', e)}
-            />
+            {videoUrl && (
+              <Video
+                source={{ uri: videoUrl }}
+                style={styles.resultVideo}
+                resizeMode="contain"
+                useNativeControls
+                isMuted={false}
+                onError={(e) => console.log('视频播放错误', e)}
+              />
+            )}
             <View style={{
               position: 'absolute',
               bottom: 8,
@@ -1764,7 +1836,8 @@ export default function App() {
                         }}
                       >
                         <Image
-                          source={{ uri: selectedImage.uri }}
+                          key={selectedImage?.uri}
+                          source={{ uri: selectedImage?.uri }}
                           style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                         />
                       </TouchableOpacity>
@@ -1826,7 +1899,8 @@ export default function App() {
                           }}
                         >
                           <Image
-                            source={{ uri: selectedImage.uri }}
+                            key={selectedImage?.uri}
+                            source={{ uri: modelImage?.uri }}
                             style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                           />
                         </TouchableOpacity>
@@ -1917,7 +1991,8 @@ export default function App() {
                           }}
                         >
                           <Image
-                            source={{ uri: selectedImage.uri }}
+                            key={selectedImage?.uri}
+                            source={{ uri: garmentImage?.uri }}
                             style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                           />
                         </TouchableOpacity>
@@ -2013,7 +2088,8 @@ export default function App() {
                           }}
                         >
                           <Image
-                            source={{ uri: selectedImage.uri }}
+                            key={selectedImage?.uri}
+                            source={{ uri: digitalImage?.uri }}
                             style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                           />
                         </TouchableOpacity>
@@ -2155,7 +2231,8 @@ export default function App() {
                                 }}
                               >
                                 <Image
-                                  source={{ uri: selectedImage.uri }}
+                                  key={selectedImage?.uri}
+                                  source={{ uri: digitalImage?.uri }}
                                   style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                                 />
                               </TouchableOpacity>
@@ -2399,7 +2476,8 @@ export default function App() {
                                 }}
                               >
                                 <Image
-                                  source={{ uri: selectedImage.uri }}
+                                  key={selectedImage?.uri}
+                                  source={{ uri: ecommerceImage?.uri }}
                                   style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                                 />
                               </TouchableOpacity>
@@ -2429,7 +2507,8 @@ export default function App() {
                             }}
                           >
                             <Image
-                              source={{ uri: selectedImage.uri }}
+                              key={selectedImage?.uri}
+                              source={{ uri: ecommerceImage?.uri }}
                               style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                             />
                           </TouchableOpacity>
@@ -2456,7 +2535,8 @@ export default function App() {
                                 }}
                               >
                                 <Image
-                                  source={{ uri: selectedImage.uri }}
+                                  key={selectedImage?.uri}
+                                  source={{ uri: ecommerceDigitalImage?.uri }}
                                   style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                                 />
                               </TouchableOpacity>
@@ -2548,10 +2628,10 @@ export default function App() {
                           setModalVisible(true);
                         }}
                       >
-                        <Image
+                        {img?.uri && <Image
                           source={{ uri: img.uri }}
                           style={{ width: 80, height: 80, resizeMode: 'contain' }}
-                        />
+                        />}
                       </TouchableOpacity>
                       <TouchableOpacity onPress={() => setMultiImages(multiImages.filter((_, i) => i !== idx))} style={styles.removeMultiImage}>
                         <Icon name="close-circle" size={24} color="#ef4444" />
@@ -2802,10 +2882,6 @@ export default function App() {
                   style={styles.privacyDisagreeBtn}
                   onPress={() => {
                     showToast('需同意协议才能使用本应用');
-                    // 不同意则退出应用
-                    if (Platform.OS === 'web') {
-                      window.close();
-                    }
                   }}
                 >
                   <Text style={styles.privacyDisagreeText}>不同意</Text>
