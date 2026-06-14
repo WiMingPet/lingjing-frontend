@@ -497,18 +497,25 @@ export default function App() {
     // 获取预设形象列表
   const fetchPresetAvatars = async () => {
     try {
+      // 先读缓存
+      const cached = localStorage.getItem('preset_avatars');
+      if (cached) {
+        setPresetAvatars(JSON.parse(cached));
+      }
+      
       const token = localStorage.getItem('access_token');
       const response = await axios.get(`${API_URL}/preset-avatars`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.data) {
         setPresetAvatars(response.data);
+        localStorage.setItem('preset_avatars', JSON.stringify(response.data));
       }
     } catch (error) {
       console.error('获取预设形象失败:', error);
     }
   };
-    // 获取音色列表
+
   const fetchTtsVoices = async () => {
     try {
       const token = localStorage.getItem('access_token');
@@ -519,16 +526,12 @@ export default function App() {
       });
       const officialVoices = officialResponse.data || [];
       const manualVoices = MANUAL_VOICES;
-
-      // 获取手动音色的名称集合
       const manualNames = new Set(manualVoices.map(v => v.name));
-      
-      // 过滤官方音色：去掉与手动音色同名的
       const filteredOfficial = officialVoices.filter(v => !manualNames.has(v.name));
-      
-      // 合并：手动音色 + 过滤后的官方音色
       const allVoices = [...manualVoices, ...filteredOfficial];
       
+      // 缓存
+      localStorage.setItem('tts_voices', JSON.stringify(allVoices));
       setTtsVoices(allVoices);
 
       if (allVoices.length > 0 && !selectedVoiceId) {
@@ -536,8 +539,13 @@ export default function App() {
         setDigitalVoice(allVoices[0].name);
       }
     } catch (error) {
-      console.error('获取音色列表失败:', error);
-      setTtsVoices(MANUAL_VOICES);
+      // 网络失败时用缓存
+      const cached = localStorage.getItem('tts_voices');
+      if (cached) {
+        setTtsVoices(JSON.parse(cached));
+      } else {
+        setTtsVoices(MANUAL_VOICES);
+      }
     }
   };
     // 试听音色
@@ -3260,7 +3268,7 @@ const handleGenerate = () => {
           animationType="fade"
           onRequestClose={() => setVideoModalVisible(false)}
         >
-          <View style={{ width: '100%', height: '100%', backgroundColor: '#000' }}>
+          <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', backgroundColor: '#000' }}>
             
             {/* 视频 - 铺满整个屏幕 */}
             <Video
@@ -3268,7 +3276,7 @@ const handleGenerate = () => {
               source={{ uri: currentVideoUrl }}
               useNativeControls
               style={{
-                position: 'absolute',
+                position: 'fixed',
                 top: 0,
                 left: 0,
                 width: '100%',
