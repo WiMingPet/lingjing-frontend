@@ -3289,19 +3289,19 @@ const handleGenerate = () => {
               zIndex: 10,
             }}>
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>灵境AI</Text>
-              <TouchableOpacity onPress={() => setVideoModalVisible(false)}>
-                <Icon name="close" size={28} color="#fff" />
+              <TouchableOpacity onPress={() => setVideoModalVisible(false)} style={{ padding: 12}}>
+                <Icon name="close" size={36} color="#fff" />
               </TouchableOpacity>
             </View>
 
             {/* AI生成 - 右下角，视频内部 */}
             <View style={{
               position: 'absolute',
-              bottom: 20,
-              right: 16,
+              bottom: 60,
+              right: 40,
               backgroundColor: 'rgba(0,0,0,0.6)',
-              paddingHorizontal: 10,
-              paddingVertical: 5,
+              paddingHorizontal: 16,
+              paddingVertical: 10,
               borderRadius: 4,
               zIndex: 10,
             }}>
