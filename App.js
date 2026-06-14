@@ -1640,19 +1640,6 @@ export default function App() {
       }
     };
 
-  const handleGenerate = () => {
-      switch (activeTab) {
-        case 'size': recommendSize(); break;
-        case 'image': generateImage(); break;
-        case 'video': generateVideo(); break;
-        case 'tryon': generateTryon(); break;
-        case 'multi': generateMultiAngle(); break;  // ✅ 新增多角度
-        case 'digital': generateDigitalHuman(); break;
-        case 'digital_custom': generateDigitalHumanCustom(); break;
-        default: break;
-      }
-    };
-
   const renderResult = () => {
     if (!result) return null;
 
