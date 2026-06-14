@@ -957,7 +957,7 @@ export default function App() {
     }
     
     if (!selectedImage) return showToast('请先选择一张参考图片');
-    imageLoading(true);
+    setimageLoading(true);
     setIsGenerating(true);
     setGeneratingTitle('AI正在生成图片');
     setGeneratingSubtitle('文生图 / 图生图');
@@ -1005,7 +1005,7 @@ export default function App() {
       console.error('图片生成错误:', err);
       showToast(err.message || '生成失败', true);
     } finally {
-      imageLoading(false);
+      setimageLoading(false);
       setIsGenerating(false);
     }
   };
@@ -1020,7 +1020,7 @@ export default function App() {
     
     const cost = duration === 5 ? 10 : 15;
     if (!selectedImage) return showToast('请先选择一张图片');
-    videoLoading(true);
+    setVideoLoading(true);
     setIsGenerating(true);
     setGeneratingTitle('AI正在生成视频');
     setGeneratingSubtitle('图生视频动态展示');
@@ -1071,7 +1071,7 @@ export default function App() {
       console.error('视频生成错误:', err);
       showToast(err.message || '生成失败', true);
     } finally {
-      videoLoading(false);
+      setVideoLoading(false);
       setIsGenerating(false);
     }
   };
@@ -1096,7 +1096,7 @@ export default function App() {
         ]
       );
     }
-    tryonLoading(true);
+    settryonLoading(true);
     setIsGenerating(true);
     setGeneratingTitle('AI正在生成试穿视频');
     setGeneratingSubtitle('服装上身效果展示');
@@ -1160,7 +1160,7 @@ export default function App() {
       console.error('虚拟试穿错误:', err);
       showToast(err.message || '试穿失败', true);
     } finally {
-      tryonLoading(false);
+      settryonLoading(false);
       setIsGenerating(false);
     }
   };
@@ -1175,7 +1175,7 @@ export default function App() {
     
     if (!digitalImage) return showToast('请先上传照片');
     if (!digitalText.trim()) return showToast('请输入说话内容');
-    digitalLoading(true);
+    setDigitalLoading(true);
     setIsGenerating(true);
     setGeneratingTitle('AI正在生成数字人视频');
     setGeneratingSubtitle('虚拟形象口播讲解');
@@ -1242,7 +1242,7 @@ export default function App() {
       console.error('数字人分身错误:', err);
       showToast(err.message || '生成失败', true);
     } finally {
-      digitalLoading(false);
+      setDigitalLoading(false);
       setIsGenerating(false);
     }
   };
@@ -1258,7 +1258,7 @@ export default function App() {
     if (!checkAndUseCredits(10, '定制数字人', () => {})) return;
     if (!customVideo) return showToast('请先上传训练视频');
     if (!customName.trim()) return showToast('请输入数字人名称');
-    ecommerceLoading(true);
+    setEcommerceLoading(true);
 
     const formData = new FormData();
 
@@ -1297,7 +1297,7 @@ export default function App() {
       console.error('数字人定制错误:', err);
       showToast(err.message || '定制失败', true);
     } finally {
-      ecommerceLoading(false);
+      setEcommerceLoading(false);
     }
   };
 
@@ -1637,6 +1637,19 @@ export default function App() {
         showToast(err.message || '合成失败', true);
       } finally {
         setIsGenerating(false);
+      }
+    };
+
+const handleGenerate = () => {
+      switch (activeTab) {
+        case 'size': recommendSize(); break;
+        case 'image': generateImage(); break;
+        case 'video': generateVideo(); break;
+        case 'tryon': generateTryon(); break;
+        case 'multi': generateMultiAngle(); break;  // ✅ 新增多角度
+        case 'digital': generateDigitalHuman(); break;
+        case 'digital_custom': generateDigitalHumanCustom(); break;
+        default: break;
       }
     };
 
