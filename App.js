@@ -702,6 +702,7 @@ export default function App() {
 
   // 保存历史记录（改为调用后端API）
   const saveToHistory = async (url, type, thumbnail = null) => {
+    console.trace('saveToHistory 被调用:', type, url);
     if (!url) return;
     
     const token = localStorage.getItem('access_token');
@@ -1806,7 +1807,17 @@ const handleGenerate = () => {
             <TouchableOpacity
               key={tab.key}
               style={[styles.tab, activeTab === tab.key && styles.activeTab]}
-              onPress={() => setActiveTab(tab.key)}>
+              onPress={() => {
+                if (activeTab !== tab.key) {
+                  setSelectedImage(null);
+                  setResult(null);
+                  setModelImage(null);
+                  setGarmentImage(null);
+                  setDigitalImage(null);
+                }
+                setActiveTab(tab.key);
+              }}
+            >
               <Icon name={tab.icon} size={24} color={activeTab === tab.key ? tab.color : '#888'} />
               <Text style={[styles.tabText, activeTab === tab.key && { color: tab.color }]}>
                 {tab.label}
@@ -2718,6 +2729,10 @@ const handleGenerate = () => {
                           setCurrentVideoUrl(item.url);
                           setVideoModalVisible(true);
                         } else if (item.type === '图片生成' || item.type === '多角度试穿') {
+                          setSelectedImage(null);
+                          setModelImage(null);
+                          setGarmentImage(null);
+                          setDigitalImage(null);
                           setResult({ images: [{ url: item.url }] });
                           setActiveTab(item.type === '图片生成' ? 'image' : 'multi');
                         } else {
@@ -2854,10 +2869,10 @@ const handleGenerate = () => {
                 在您开始使用前，请仔细阅读并同意以下协议：
               </Text>
               <View style={styles.privacyLinks}>
-                <TouchableOpacity onPress={() => Linking.openURL('https://lingjing-media.com/privacy')}>
+                <TouchableOpacity onPress={() => window.open('https://lingjing-media.com/privacy', '_blank')}>
                   <Text style={styles.privacyLink}>《隐私政策》</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => Linking.openURL('https://lingjing-media.com/terms')}>
+                <TouchableOpacity onPress={() => window.open('https://lingjing-media.com/terms', '_blank')}>
                   <Text style={styles.privacyLink}>《用户服务协议》</Text>
                 </TouchableOpacity>
               </View>

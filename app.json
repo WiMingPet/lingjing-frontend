@@ -28,19 +28,17 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "plugins": [
-      "expo-video",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "resourceValues": {
-              "app_name": "灵境AI"
-            }
-          }
-        }
-      ]
+    "static": [
+      {
+        "source": "privacy.html",
+        "target": "privacy.html"
+      },
+      {
+        "source": "terms.html",
+        "target": "terms.html"
+      }
     ],
+    "plugins": [],
     "extra": {
       "eas": {
         "projectId": "65cc5eeb-d2cd-4970-8b9d-30bb3848528f"
