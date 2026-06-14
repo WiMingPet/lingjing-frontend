@@ -120,6 +120,8 @@ export default function App() {
   const [accessToken, setAccessToken] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showPrivacyContent, setShowPrivacyContent] = useState(false);
+  const [showTermsContent, setShowTermsContent] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [loginPhone, setLoginPhone] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -2873,10 +2875,10 @@ const handleGenerate = () => {
                 在您开始使用前，请仔细阅读并同意以下协议：
               </Text>
               <View style={styles.privacyLinks}>
-                <TouchableOpacity onPress={() => window.open('https://lingjing-media.com/privacy', '_blank')}>
+                <TouchableOpacity onPress={() => setShowPrivacyContent(true)}>
                   <Text style={styles.privacyLink}>《隐私政策》</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => window.open('https://lingjing-media.com/terms', '_blank')}>
+                <TouchableOpacity onPress={() => setShowTermsContent(true)}>
                   <Text style={styles.privacyLink}>《用户服务协议》</Text>
                 </TouchableOpacity>
               </View>
@@ -2901,6 +2903,72 @@ const handleGenerate = () => {
               </View>
             </Card>
           </View>
+        </Modal>
+
+        {/* 隐私政策内容 Modal */}
+        <Modal visible={showPrivacyContent} transparent={false} animationType="slide">
+          <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+            <View style={{ padding: 16 }}>
+              <TouchableOpacity onPress={() => setShowPrivacyContent(false)} style={{ alignSelf: 'flex-end', padding: 8 }}>
+                <Icon name="close-outline" size={28} color="#333" />
+              </TouchableOpacity>
+              <ScrollView>
+                <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>灵境AI隐私政策</Text>
+                <Text style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>更新日期：2026年5月15日</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 12 }}>公司名称：广州速码智能信息有限公司</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 12 }}>注册地址：广东省广州市</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 20 }}>个人信息保护负责人：魏先生</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>一、我们如何收集和使用您的个人信息</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 16 }}>我们仅在有合法性基础的情形下才会使用您的个人信息。根据适用的法律，我们可能会基于您的同意、为履行/订立您与我们的合同所必需、履行法定义务所必需等合法性基础，使用您的个人信息。您主动提供的信息包括：手机号（用于注册登录）、上传的图片/视频（用于AI生成服务）、身高数据（用于尺码推荐）。我们自动收集的信息包括：设备信息、日志信息。</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>二、我们如何存储您的个人信息</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 16 }}>您的个人信息存储于中国境内的服务器。存储期限为30天。</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>三、我们如何保护您的个人信息</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 16 }}>采用数据加密传输、访问权限控制、定期安全审查等措施保护您的信息安全。</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>四、您的权利</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 16 }}>您享有查阅权、更正权、删除权、撤回同意权。可通过以下方式联系我们行使权利。</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>五、投诉渠道</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 16 }}>电子邮件：3060302415@qq.com{'\n'}电话：15920978058</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>六、未成年人保护</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 16 }}>本应用不面向未满14周岁的未成年人提供服务。</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>七、联系我们</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 16 }}>公司名称：广州速码智能信息有限公司{'\n'}电子邮件：3060302415@qq.com{'\n'}电话：15920978058</Text>
+              </ScrollView>
+            </View>
+          </SafeAreaView>
+        </Modal>
+
+        {/* 用户服务协议内容 Modal */}
+        <Modal visible={showTermsContent} transparent={false} animationType="slide">
+          <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+            <View style={{ padding: 16 }}>
+              <TouchableOpacity onPress={() => setShowTermsContent(false)} style={{ alignSelf: 'flex-end', padding: 8 }}>
+                <Icon name="close-outline" size={28} color="#333" />
+              </TouchableOpacity>
+              <ScrollView>
+                <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>灵境AI用户服务协议</Text>
+                <Text style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>更新日期：2026年5月15日</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 12 }}>公司名称：广州速码智能信息有限公司</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 12 }}>注册地址：广东省广州市</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 20 }}>联系方式：3060302415@qq.com</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>一、服务条款的接受</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 16 }}>用户在使用灵境AI提供的服务之前，应仔细阅读本协议。用户一旦使用灵境AI的服务，即表示同意接受本协议的全部条款。</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>二、服务内容</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 16 }}>灵境AI提供AI图片生成、视频生成、尺码推荐、虚拟试穿、数字人视频生成、AI带货视频生成等服务。部分服务需要消耗灵境点。</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>三、用户账号</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 16 }}>用户需通过手机号注册账号。用户对账号的安全负全部责任，不得将账号提供给第三方使用。</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>四、使用规则</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 16 }}>用户不得利用本平台从事违法活动，不得上传违法或侵权内容。用户上传的内容默认为用户拥有合法权利。</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>五、知识产权</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 16 }}>灵境AI平台的所有知识产权归广州速码智能信息有限公司所有。用户通过平台生成的AI内容，版权归用户所有。</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>六、免责声明</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 16 }}>灵境AI作为AI服务平台，不对生成内容的准确性、合法性承担责任。用户需自行判断生成内容的使用风险。</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>七、协议修改</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 16 }}>灵境AI有权随时修改本协议，修改后的协议在平台公示后生效。</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>八、联系我们</Text>
+                <Text style={{ fontSize: 14, lineHeight: 24, marginBottom: 16 }}>公司名称：广州速码智能信息有限公司{'\n'}电子邮件：3060302415@qq.com{'\n'}电话：15920978058</Text>
+              </ScrollView>
+            </View>
+          </SafeAreaView>
         </Modal>
 
         {/* 登录弹窗 */}
