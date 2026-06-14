@@ -79,7 +79,13 @@ export default function App() {
   const [currentPreviewVideoUrl, setCurrentPreviewVideoUrl] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   const [height, setHeight] = useState('170');
-  const [loading, setLoading] = useState(false);
+  const [sizeLoading, setSizeLoading] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [tryonLoading, setTryonLoading] = useState(false);
+  const [digitalLoading, setDigitalLoading] = useState(false);
+  const [customLoading, setCustomLoading] = useState(false);
+  const [ecommerceLoading, setEcommerceLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [activeTab, setActiveTab] = useState('size');
   const [history, setHistory] = useState([]);
@@ -895,7 +901,7 @@ export default function App() {
     
     if (!checkAndUseCredits(2, '尺码推荐', () => {})) return;
     if (!selectedImage) return showToast('请先选择一张照片');
-    setLoading(true);
+    setSizeLoading(true);
   
     const formData = new FormData();
     const file = await convertToFile(selectedImage);
@@ -937,7 +943,7 @@ export default function App() {
       console.error('尺码推荐错误:', err);
       showToast(err.message || '请求失败', true);
     } finally {
-      setLoading(false);
+      setSizeLoading(false);
     }
   };
 
@@ -950,7 +956,7 @@ export default function App() {
     }
     
     if (!selectedImage) return showToast('请先选择一张参考图片');
-    setLoading(true);
+    imageLoading(true);
     setIsGenerating(true);
     setGeneratingTitle('AI正在生成图片');
     setGeneratingSubtitle('文生图 / 图生图');
@@ -998,7 +1004,7 @@ export default function App() {
       console.error('图片生成错误:', err);
       showToast(err.message || '生成失败', true);
     } finally {
-      setLoading(false);
+      imageLoading(false);
       setIsGenerating(false);
     }
   };
@@ -1013,7 +1019,7 @@ export default function App() {
     
     const cost = duration === 5 ? 10 : 15;
     if (!selectedImage) return showToast('请先选择一张图片');
-    setLoading(true);
+    videoLoading(true);
     setIsGenerating(true);
     setGeneratingTitle('AI正在生成视频');
     setGeneratingSubtitle('图生视频动态展示');
@@ -1064,7 +1070,7 @@ export default function App() {
       console.error('视频生成错误:', err);
       showToast(err.message || '生成失败', true);
     } finally {
-      setLoading(false);
+      videoLoading(false);
       setIsGenerating(false);
     }
   };
@@ -1085,11 +1091,11 @@ export default function App() {
         '如果是单件连衣裙，请直接上传。\n如果是上下装套装，请将上装和下装白底图错开排版到一张图后上传。',
         [
           { text: '我已按要求上传', onPress: () => {} },
-          { text: '取消', onPress: () => { setLoading(false); setIsGenerating(false); return; } }
+          { text: '取消', onPress: () => { tryonLoading(false); setIsGenerating(false); return; } }
         ]
       );
     }
-    setLoading(true);
+    tryonLoading(true);
     setIsGenerating(true);
     setGeneratingTitle('AI正在生成试穿视频');
     setGeneratingSubtitle('服装上身效果展示');
@@ -1153,7 +1159,7 @@ export default function App() {
       console.error('虚拟试穿错误:', err);
       showToast(err.message || '试穿失败', true);
     } finally {
-      setLoading(false);
+      tryonLoading(false);
       setIsGenerating(false);
     }
   };
@@ -1168,7 +1174,7 @@ export default function App() {
     
     if (!digitalImage) return showToast('请先上传照片');
     if (!digitalText.trim()) return showToast('请输入说话内容');
-    setLoading(true);
+    digitalLoading(true);
     setIsGenerating(true);
     setGeneratingTitle('AI正在生成数字人视频');
     setGeneratingSubtitle('虚拟形象口播讲解');
@@ -1235,7 +1241,7 @@ export default function App() {
       console.error('数字人分身错误:', err);
       showToast(err.message || '生成失败', true);
     } finally {
-      setLoading(false);
+      digitalLoading(false);
       setIsGenerating(false);
     }
   };
@@ -1251,7 +1257,7 @@ export default function App() {
     if (!checkAndUseCredits(10, '定制数字人', () => {})) return;
     if (!customVideo) return showToast('请先上传训练视频');
     if (!customName.trim()) return showToast('请输入数字人名称');
-    setLoading(true);
+    ecommerceLoading(true);
 
     const formData = new FormData();
 
@@ -1290,7 +1296,7 @@ export default function App() {
       console.error('数字人定制错误:', err);
       showToast(err.message || '定制失败', true);
     } finally {
-      setLoading(false);
+      ecommerceLoading(false);
     }
   };
 
@@ -1310,7 +1316,7 @@ export default function App() {
         return;
       }
       
-      setLoading(true);
+      setEcommerceLoading(true);
       try {
         const token = accessToken;
         if (!token) {
@@ -1357,7 +1363,7 @@ export default function App() {
       const errorMsg = err.response?.data?.detail || err.response?.data?.message || '解析失败，请手动填写';
       showToast(errorMsg, true);
     } finally {
-      setLoading(false);
+      setEcommerceLoading(false);
     }
   };
 
@@ -2178,8 +2184,8 @@ export default function App() {
                 </Card>
 
                 {/* 生成按钮 */}
-                <TouchableOpacity onPress={generateDigitalHuman} disabled={loading} style={styles.generateButton}>
-                  {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>生成数字人视频</Text>}
+                <TouchableOpacity onPress={generateDigitalHuman} disabled={digitalLoading} style={styles.generateButton}>
+                  {digitalLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>生成数字人视频</Text>}
                 </TouchableOpacity>
               </>
             )}
@@ -2317,8 +2323,8 @@ export default function App() {
                         />
                       </Card>
 
-                      <TouchableOpacity onPress={generateDigitalHuman} disabled={loading} style={styles.generateButton}>
-                        {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>生成数字人视频</Text>}
+                      <TouchableOpacity onPress={generateDigitalHuman} disabled={digitalLoading} style={styles.generateButton}>
+                        {digitalLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>生成数字人视频</Text>}
                       </TouchableOpacity>
                     </>
                   )}
@@ -2377,8 +2383,8 @@ export default function App() {
                         />
                       </Card>
 
-                      <TouchableOpacity onPress={generateDigitalHumanCustom} disabled={loading} style={styles.generateButton}>
-                        {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>开始定制数字人</Text>}
+                      <TouchableOpacity onPress={generateDigitalHumanCustom} disabled={customLoading} style={styles.generateButton}>
+                        {customLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>开始定制数字人</Text>}
                       </TouchableOpacity>
                     </>
                   )}
@@ -2400,11 +2406,11 @@ export default function App() {
                       
                       {/* 解析按钮 */}
                       <TouchableOpacity
-                        style={[styles.parseButton, loading && styles.disabledButton]}
+                        style={[styles.parseButton, ecommerceLoading && styles.disabledButton]}
                         onPress={fetchProductInfo}
-                        disabled={loading}
+                        disabled={ecommerceLoading}
                       >
-                        {loading ? (
+                        {ecommerceLoading ? (
                           <ActivityIndicator color="#fff" size="small" />
                         ) : (
                           <Text style={styles.parseButtonText}>解析链接</Text>
@@ -2704,21 +2710,29 @@ export default function App() {
               </Card>
             )}
 
-            <TouchableOpacity onPress={handleGenerate} disabled={loading} style={styles.generateButton}>
-              {loading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={styles.generateText}>
-                  {activeTab === 'size' ? '开始尺码推荐' :
-                   activeTab === 'image' ? '开始生成图片' :
-                   activeTab === 'video' ? '开始生成视频' :
-                   activeTab === 'tryon' ? '开始虚拟试穿' :
-                   activeTab === 'digital' ? '生成数字人视频' :
-                   activeTab === 'digital_custom' ? '开始定制数字人' :
-                   activeTab === 'multi' ? '开始多角度合成' : '开始'}
-                </Text>
-              )}
-            </TouchableOpacity>
+            {activeTab === 'size' && (
+              <TouchableOpacity onPress={recommendSize} disabled={sizeLoading} style={styles.generateButton}>
+                {sizeLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>开始尺码推荐</Text>}
+              </TouchableOpacity>
+            )}
+
+            {activeTab === 'image' && (
+              <TouchableOpacity onPress={generateImage} disabled={imageLoading} style={styles.generateButton}>
+                {imageLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>开始生成图片</Text>}
+              </TouchableOpacity>
+            )}
+
+            {activeTab === 'video' && (
+              <TouchableOpacity onPress={generateVideo} disabled={videoLoading} style={styles.generateButton}>
+                {videoLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>开始生成视频</Text>}
+              </TouchableOpacity>
+            )}
+
+            {activeTab === 'tryon' && (
+              <TouchableOpacity onPress={generateTryon} disabled={tryonLoading} style={styles.generateButton}>
+                {tryonLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>开始虚拟试穿</Text>}
+              </TouchableOpacity>
+            )}
 
             {renderResult()}
 
