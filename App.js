@@ -777,7 +777,11 @@ export default function App() {
           thumbnail: item.thumbnail,
           timestamp: new Date(item.timestamp).toLocaleString()
         }));
-        setHistory(items);
+        // 去重
+        const uniqueItems = items.filter((item, index, self) =>
+          index === self.findIndex(t => t.url === item.url && t.type === item.type)
+        );
+        setHistory(uniqueItems);
       }
     } catch (error) {
       console.error('加载历史记录失败:', error);
