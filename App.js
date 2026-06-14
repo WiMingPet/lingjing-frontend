@@ -79,6 +79,7 @@ export default function App() {
   const [currentPreviewVideoUrl, setCurrentPreviewVideoUrl] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   const [height, setHeight] = useState('170');
+  const [loading, setLoading] = useState(false); // 登录、验证码、充值、注册通用
   const [sizeLoading, setSizeLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [videoLoading, setVideoLoading] = useState(false);
@@ -1578,7 +1579,7 @@ export default function App() {
       showToast('最多上传4张照片', true);
       return;
     }
-      setLoading(true);
+      
       setIsGenerating(true);
       setGeneratingTitle('AI正在生成多角度视频');
       setGeneratingSubtitle('多角度动态展示');
@@ -1635,7 +1636,6 @@ export default function App() {
         console.error('多角度合成错误:', err);
         showToast(err.message || '合成失败', true);
       } finally {
-        setLoading(false);
         setIsGenerating(false);
       }
     };
@@ -1834,23 +1834,16 @@ export default function App() {
                 </View>
                 <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
                   {selectedImage ? (
-                    <>
-                      <TouchableOpacity 
-                        onPress={() => {
-                          setPreviewUrl(selectedImage.uri);
-                          setModalVisible(true);
-                        }}
-                      >
-                        <Image
-                          key={selectedImage?.uri}
-                          source={{ uri: selectedImage?.uri }}
-                          style={{ width: '100%', height: 200, resizeMode: 'contain' }}
-                        />
-                      </TouchableOpacity>
+                    <View style={{ width: '100%', height: 200, position: 'relative' }}>
+                      <Image
+                        key={selectedImage?.uri}
+                        source={{ uri: selectedImage?.uri }}
+                        style={{ width: '100%', height: 200, resizeMode: 'contain' }}
+                      />
                       <View style={styles.imageOverlay}>
                         <Text style={styles.overlayText}>点击更换</Text>
                       </View>
-                    </>
+                    </View>
                   ) : (
                     <View style={styles.placeholder}>
                       <Icon name="cloud-upload-outline" size={48} color="#666" />
@@ -2086,23 +2079,16 @@ export default function App() {
                   </View>
                   <TouchableOpacity onPress={pickDigitalImage} style={styles.imagePicker}>
                     {digitalImage ? (
-                      <>
-                        <TouchableOpacity 
-                          onPress={() => {
-                            setPreviewUrl(digitalImage.uri);
-                            setModalVisible(true);
-                          }}
-                        >
-                          <Image
-                            key={selectedImage?.uri}
-                            source={{ uri: digitalImage?.uri }}
-                            style={{ width: '100%', height: 200, resizeMode: 'contain' }}
-                          />
-                        </TouchableOpacity>
+                      <View style={{ width: '100%', height: 200, position: 'relative' }}>
+                        <Image
+                          key={digitalImage?.uri}
+                          source={{ uri: digitalImage?.uri }}
+                          style={{ width: '100%', height: 200, resizeMode: 'contain' }}
+                        />
                         <View style={styles.imageOverlay}>
                           <Text style={styles.overlayText}>点击更换</Text>
                         </View>
-                      </>
+                      </View>
                     ) : (
                       <View style={styles.placeholder}>
                         <Icon name="person-outline" size={48} color="#666" />
@@ -2229,23 +2215,16 @@ export default function App() {
                         </View>
                         <TouchableOpacity onPress={pickDigitalImage} style={styles.imagePicker}>
                           {digitalImage ? (
-                            <>
-                              <TouchableOpacity 
-                                onPress={() => {
-                                  setPreviewUrl(digitalImage.uri);
-                                  setModalVisible(true);
-                                }}
-                              >
-                                <Image
-                                  key={selectedImage?.uri}
-                                  source={{ uri: digitalImage?.uri }}
-                                  style={{ width: '100%', height: 200, resizeMode: 'contain' }}
-                                />
-                              </TouchableOpacity>
+                            <View style={{ width: '100%', height: 200, position: 'relative' }}>
+                              <Image
+                                key={digitalImage?.uri}
+                                source={{ uri: digitalImage?.uri }}
+                                style={{ width: '100%', height: 200, resizeMode: 'contain' }}
+                              />
                               <View style={styles.imageOverlay}>
                                 <Text style={styles.overlayText}>点击更换</Text>
                               </View>
-                            </>
+                            </View>
                           ) : (
                             <View style={styles.placeholder}>
                               <Icon name="person-outline" size={48} color="#666" />
@@ -2475,18 +2454,16 @@ export default function App() {
                           </View>
                           <TouchableOpacity onPress={pickEcommerceImage} style={styles.imagePicker}>
                             {ecommerceImage ? (
-                              <TouchableOpacity 
-                                onPress={() => {
-                                  setPreviewUrl(ecommerceImage.uri);
-                                  setModalVisible(true);
-                                }}
-                              >
+                              <View style={{ width: '100%', height: 200, position: 'relative' }}>
                                 <Image
-                                  key={selectedImage?.uri}
+                                  key={ecommerceImage?.uri}
                                   source={{ uri: ecommerceImage?.uri }}
                                   style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                                 />
-                              </TouchableOpacity>
+                                <View style={styles.imageOverlay}>
+                                  <Text style={styles.overlayText}>点击更换</Text>
+                                </View>
+                              </View>
                             ) : (
                               <View style={styles.placeholder}>
                                 <Icon name="image-outline" size={48} color="#666" />
@@ -2506,21 +2483,16 @@ export default function App() {
                               <Icon name="close-circle-outline" size={24} color="#ef4444" />
                             </TouchableOpacity>
                           </View>
-                          <TouchableOpacity 
-                            onPress={() => {
-                              setPreviewUrl(ecommerceImage.uri);
-                              setModalVisible(true);
-                            }}
-                          >
+                          <View style={{ width: '100%', height: 200, position: 'relative' }}>
                             <Image
-                              key={selectedImage?.uri}
+                              key={ecommerceImage?.uri}
                               source={{ uri: ecommerceImage?.uri }}
                               style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                             />
-                          </TouchableOpacity>
+                          </View>
                         </View>
                       )}
-                      
+
                       {/* 数字人照片（下装/套装时隐藏） */}
                       {(clothCategory !== 'lower' && clothCategory !== 'dress') ? (
                         <>
@@ -2534,18 +2506,16 @@ export default function App() {
                           </View>
                           <TouchableOpacity onPress={pickEcommerceDigitalImage} style={styles.imagePicker}>
                             {ecommerceDigitalImage ? (
-                              <TouchableOpacity 
-                                onPress={() => {
-                                  setPreviewUrl(ecommerceDigitalImage.uri);
-                                  setModalVisible(true);
-                                }}
-                              >
+                              <View style={{ width: '100%', height: 200, position: 'relative' }}>
                                 <Image
-                                  key={selectedImage?.uri}
+                                  key={ecommerceDigitalImage?.uri}
                                   source={{ uri: ecommerceDigitalImage?.uri }}
                                   style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                                 />
-                              </TouchableOpacity>
+                                <View style={styles.imageOverlay}>
+                                  <Text style={styles.overlayText}>点击更换</Text>
+                                </View>
+                              </View>
                             ) : (
                               <View style={styles.placeholder}>
                                 <Icon name="person-outline" size={48} color="#666" />
