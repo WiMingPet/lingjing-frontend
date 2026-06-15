@@ -3332,27 +3332,63 @@ const handleGenerate = () => {
         {/* 形象预览视频 Modal */}
         <Modal
           visible={previewVideoVisible}
-          transparent={true}
+          transparent={false}
           animationType="fade"
           onRequestClose={() => setPreviewVideoVisible(false)}
         >
-          <View style={styles.videoPreviewModalContainer}>
-            <TouchableOpacity
-              style={styles.videoPreviewClose}
-              onPress={() => setPreviewVideoVisible(false)}
-            >
-              <Icon name="close-circle-outline" size={40} color="#fff" />
-            </TouchableOpacity>
-            <Video
-              source={{ uri: currentPreviewVideoUrl }}
-              style={styles.videoPreviewPlayer}
-              resizeMode="contain"
-              useNativeControls
-              shouldPlay={true}
+          <View style={{ width: '100%', height: '100%', backgroundColor: '#000' }}>
+            
+            {/* 视频 - 铺满整个屏幕 */}
+            <video
+              src={currentPreviewVideoUrl}
+              controls
+              playsInline
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                backgroundColor: '#000',
+              }}
               onError={(e) => console.log('预览视频播放错误', e)}
             />
+
+            {/* 标题栏 - 左上角 */}
+            <View style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 60,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingHorizontal: 30,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              zIndex: 10,
+            }}>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>形象预览</Text>
+              <TouchableOpacity onPress={() => setPreviewVideoVisible(false)} style={{ padding: 12 }}>
+                <Icon name="close" size={36} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            {/* 使用此形象按钮 */}
             <TouchableOpacity
-              style={styles.useThisAvatarButton}
+              style={{
+                position: 'absolute',
+                bottom: 60,
+                left: 40,
+                right: 40,
+                backgroundColor: '#7c3aed',
+                paddingHorizontal: 20,
+                paddingVertical: 12,
+                borderRadius: 30,
+                zIndex: 10,
+                alignItems: 'center',
+              }}
               onPress={() => {
                 const currentAvatar = presetAvatars.find(a => a.preview_video_url === currentPreviewVideoUrl);
                 if (currentAvatar) {
@@ -3362,8 +3398,9 @@ const handleGenerate = () => {
                 setPreviewVideoVisible(false);
               }}
             >
-              <Text style={styles.useThisAvatarButtonText}>使用此形象</Text>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>使用此形象</Text>
             </TouchableOpacity>
+
           </View>
         </Modal>
 
