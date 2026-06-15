@@ -117,6 +117,8 @@ export default function App() {
   const [customName, setCustomName] = useState('');
   const [customDesc, setCustomDesc] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [voicesLoading, setVoicesLoading] = useState(false);
+  const [avatarsLoading, setAvatarsLoading] = useState(false);
   const [accessToken, setAccessToken] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -496,8 +498,8 @@ export default function App() {
   };
     // 获取预设形象列表
   const fetchPresetAvatars = async () => {
+    setAvatarsLoading(true);
     try {
-      // 先读缓存
       const cached = localStorage.getItem('preset_avatars');
       if (cached) {
         setPresetAvatars(JSON.parse(cached));
@@ -513,13 +515,19 @@ export default function App() {
       }
     } catch (error) {
       console.error('获取预设形象失败:', error);
+    } finally {
+      setAvatarsLoading(false);
     }
   };
 
   const fetchTtsVoices = async () => {
+    setVoicesLoading(true);
     try {
       const token = localStorage.getItem('access_token');
-      if (!token) return;
+      if (!token) {
+        setVoicesLoading(false);
+        return;
+      }
 
       const officialResponse = await axios.get(`${API_URL}/tts/voices`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -530,7 +538,6 @@ export default function App() {
       const filteredOfficial = officialVoices.filter(v => !manualNames.has(v.name));
       const allVoices = [...manualVoices, ...filteredOfficial];
       
-      // 缓存
       localStorage.setItem('tts_voices', JSON.stringify(allVoices));
       setTtsVoices(allVoices);
 
@@ -539,13 +546,14 @@ export default function App() {
         setDigitalVoice(allVoices[0].name);
       }
     } catch (error) {
-      // 网络失败时用缓存
       const cached = localStorage.getItem('tts_voices');
       if (cached) {
         setTtsVoices(JSON.parse(cached));
       } else {
         setTtsVoices(MANUAL_VOICES);
       }
+    } finally {
+      setVoicesLoading(false);
     }
   };
     // 试听音色
@@ -2070,31 +2078,36 @@ const handleGenerate = () => {
                   </TouchableOpacity>
                 </View>
 
-                {/* ========== 新增：预设形象横向滚动列表 ========== */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarScroll}>
-                  {presetAvatars
-                    .filter(avatar => avatarCategory === 'all' || avatar.category === avatarCategory)
-                    .map(avatar => (
-                      <TouchableOpacity
-                        key={avatar.id}
-                        style={[styles.avatarCard, selectedAvatarId === avatar.id && styles.avatarCardActive]}
-                        onPress={() => {
-                          // 如果有预览视频，先播放视频预览
-                          if (avatar.preview_video_url) {
-                            setCurrentPreviewVideoUrl(avatar.preview_video_url);
-                            setPreviewVideoVisible(true);
-                          } else {
-                            // 没有视频则直接选中形象
-                            setSelectedAvatarId(avatar.id);
-                            setDigitalImage({ uri: avatar.model_image, isUrl: true });
-                          }
-                        }}
-                      >
-                        <Image source={{ uri: avatar.preview_image }} style={styles.avatarImage} />
-                        <Text style={styles.avatarName}>{avatar.name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                </ScrollView>
+                {/* ========== 预设形象横向滚动列表 ========== */}
+                {presetAvatars.length === 0 ? (
+                  <View style={{ padding: 20, alignItems: 'center' }}>
+                    <ActivityIndicator size="small" color="#7c3aed" />
+                    <Text style={{ color: '#aaa', marginTop: 8 }}>加载形象中，请稍后...</Text>
+                  </View>
+                ) : (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarScroll}>
+                    {presetAvatars
+                      .filter(avatar => avatarCategory === 'all' || avatar.category === avatarCategory)
+                      .map(avatar => (
+                        <TouchableOpacity
+                          key={avatar.id}
+                          style={[styles.avatarCard, selectedAvatarId === avatar.id && styles.avatarCardActive]}
+                          onPress={() => {
+                            if (avatar.preview_video_url) {
+                              setCurrentPreviewVideoUrl(avatar.preview_video_url);
+                              setPreviewVideoVisible(true);
+                            } else {
+                              setSelectedAvatarId(avatar.id);
+                              setDigitalImage({ uri: avatar.model_image, isUrl: true });
+                            }
+                          }}
+                        >
+                          <Image source={{ uri: avatar.preview_image }} style={styles.avatarImage} />
+                          <Text style={styles.avatarName}>{avatar.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                  </ScrollView>
+                )}
 
                 {/* 原有的上传照片卡片 */}
                 <Card style={styles.imageCard}>
@@ -2142,10 +2155,26 @@ const handleGenerate = () => {
 
                 {/* 选择音色 */}
                 <Card style={styles.inputCard}>
-                  <Text style={styles.cardTitle}>🎵 选择音色</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    {ttsVoices.length > 0 ? (
-                      ttsVoices.map(voice => (
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={styles.cardTitle}>🎵 选择音色</Text>
+                    <TouchableOpacity onPress={fetchTtsVoices} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
+                      <Icon name="refresh-outline" size={18} color="#7c3aed" />
+                      <Text style={{ color: '#7c3aed', fontSize: 12, marginLeft: 4 }}>刷新</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {voicesLoading && ttsVoices.length === 0 ? (
+                    <View style={styles.loadingVoices}>
+                      <ActivityIndicator size="small" color="#7c3aed" />
+                      <Text style={styles.loadingVoicesText}>加载音色中...</Text>
+                    </View>
+                  ) : ttsVoices.length === 0 ? (
+                    <View style={styles.loadingVoices}>
+                      <Text style={styles.loadingVoicesText}>暂无音色，请点击刷新重试</Text>
+                    </View>
+                  ) : (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      {ttsVoices.map(voice => (
                         <View key={voice.id} style={styles.voiceItemWrapper}>
                           <TouchableOpacity
                             style={styles.voiceItem}
@@ -2176,14 +2205,9 @@ const handleGenerate = () => {
                             </TouchableOpacity>
                           )}
                         </View>
-                      ))
-                    ) : (
-                      <View style={styles.loadingVoices}>
-                        <ActivityIndicator size="small" color="#7c3aed" />
-                        <Text style={styles.loadingVoicesText}>加载音色中...</Text>
-                      </View>
-                    )}
-                  </ScrollView>
+                      ))}
+                    </ScrollView>
+                  )}
                 </Card>
 
                 {/* 数字人名称（可选） */}
@@ -2276,10 +2300,26 @@ const handleGenerate = () => {
                       </Card>
 
                       <Card style={styles.inputCard}>
-                        <Text style={styles.cardTitle}>🎵 选择音色</Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                          {ttsVoices.length > 0 ? (
-                            ttsVoices.map(voice => (
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text style={styles.cardTitle}>🎵 选择音色</Text>
+                          <TouchableOpacity onPress={fetchTtsVoices} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
+                            <Icon name="refresh-outline" size={18} color="#7c3aed" />
+                            <Text style={{ color: '#7c3aed', fontSize: 12, marginLeft: 4 }}>刷新</Text>
+                          </TouchableOpacity>
+                        </View>
+
+                        {voicesLoading && ttsVoices.length === 0 ? (
+                          <View style={styles.loadingVoices}>
+                            <ActivityIndicator size="small" color="#7c3aed" />
+                            <Text style={styles.loadingVoicesText}>加载音色中...</Text>
+                          </View>
+                        ) : ttsVoices.length === 0 ? (
+                          <View style={styles.loadingVoices}>
+                            <Text style={styles.loadingVoicesText}>暂无音色，请点击刷新重试</Text>
+                          </View>
+                        ) : (
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            {ttsVoices.map(voice => (
                               <View key={voice.id} style={styles.voiceItemWrapper}>
                                 <TouchableOpacity
                                   style={styles.voiceItem}
@@ -2310,14 +2350,9 @@ const handleGenerate = () => {
                                   </TouchableOpacity>
                                 )}
                               </View>
-                            ))
-                          ) : (
-                            <View style={styles.loadingVoices}>
-                              <ActivityIndicator size="small" color="#7c3aed" />
-                              <Text style={styles.loadingVoicesText}>加载音色中...</Text>
-                            </View>
-                          )}
-                        </ScrollView>
+                            ))}
+                          </ScrollView>
+                        )}
                       </Card>
 
                       <Card style={styles.inputCard}>
@@ -2887,10 +2922,16 @@ const handleGenerate = () => {
                 在您开始使用前，请仔细阅读并同意以下协议：
               </Text>
               <View style={styles.privacyLinks}>
-                <TouchableOpacity onPress={() => setShowPrivacyContent(true)}>
+                <TouchableOpacity onPress={() => {
+                  setShowPrivacyContent(true);
+                  setShowPrivacyModal(false);
+                }}>
                   <Text style={styles.privacyLink}>《隐私政策》</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setShowTermsContent(true)}>
+                <TouchableOpacity onPress={() => {
+                  setShowTermsContent(true);
+                  setShowPrivacyModal(false);
+                }}>
                   <Text style={styles.privacyLink}>《用户服务协议》</Text>
                 </TouchableOpacity>
               </View>
