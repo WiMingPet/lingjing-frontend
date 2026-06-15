@@ -1830,6 +1830,10 @@ const handleGenerate = () => {
                   setDigitalImage(null);
                 }
                 setActiveTab(tab.key);
+                if (tab.key === 'digital') {
+                  fetchPresetAvatars();
+                  fetchTtsVoices();
+                }
               }}
             >
               <Icon name={tab.icon} size={24} color={activeTab === tab.key ? tab.color : '#888'} />
@@ -2051,6 +2055,20 @@ const handleGenerate = () => {
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
+                
+                {/* 刷新按钮 */}
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, marginBottom: 4 }}>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      fetchPresetAvatars();
+                      fetchTtsVoices();
+                    }}
+                    style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}
+                  >
+                    <Icon name="refresh-outline" size={18} color="#7c3aed" />
+                    <Text style={{ color: '#7c3aed', fontSize: 12, marginLeft: 4 }}>刷新</Text>
+                  </TouchableOpacity>
+                </View>
 
                 {/* ========== 新增：预设形象横向滚动列表 ========== */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarScroll}>
