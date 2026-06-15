@@ -2657,35 +2657,40 @@ const handleGenerate = () => {
             )}
 
             {activeTab === 'multi' && (
-              <Card style={styles.imageCard}>
-                <Text style={styles.cardTitle}>🖼️ 上传多张照片（2-4张）</Text>
-                <View style={styles.multiImageRow}>
-                  {multiImages.map((img, idx) => (
-                    <View key={idx} style={styles.multiImageItem}>
-                      <TouchableOpacity 
-                        onPress={() => {
-                          setPreviewUrl(img.uri);
-                          setModalVisible(true);
-                        }}
-                      >
-                        {img?.uri && <Image
-                          source={{ uri: img.uri }}
-                          style={{ width: 80, height: 80, resizeMode: 'contain' }}
-                        />}
+              <>
+                <Card style={styles.imageCard}>
+                  <Text style={styles.cardTitle}>🖼️ 上传多张照片（2-4张）</Text>
+                  <View style={styles.multiImageRow}>
+                    {multiImages.map((img, idx) => (
+                      <View key={idx} style={styles.multiImageItem}>
+                        <TouchableOpacity 
+                          onPress={() => {
+                            setPreviewUrl(img.uri);
+                            setModalVisible(true);
+                          }}
+                        >
+                          {img?.uri && <Image
+                            source={{ uri: img.uri }}
+                            style={{ width: 80, height: 80, resizeMode: 'contain' }}
+                          />}
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setMultiImages(multiImages.filter((_, i) => i !== idx))} style={styles.removeMultiImage}>
+                          <Icon name="close-circle" size={24} color="#ef4444" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                    {multiImages.length < 4 && (
+                      <TouchableOpacity onPress={pickMultiImage} style={styles.addImageButton}>
+                        <Icon name="add-circle-outline" size={48} color="#666" />
+                        <Text style={styles.addImageText}>添加照片</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => setMultiImages(multiImages.filter((_, i) => i !== idx))} style={styles.removeMultiImage}>
-                        <Icon name="close-circle" size={24} color="#ef4444" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                  {multiImages.length < 4 && (
-                    <TouchableOpacity onPress={pickMultiImage} style={styles.addImageButton}>
-                      <Icon name="add-circle-outline" size={48} color="#666" />
-                      <Text style={styles.addImageText}>添加照片</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </Card>
+                    )}
+                  </View>
+                </Card>
+                <TouchableOpacity onPress={generateMultiAngle} disabled={isGenerating} style={styles.generateButton}>
+                  {isGenerating ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>开始多角度合成</Text>}
+                </TouchableOpacity>
+              </>
             )}
 
             {activeTab === 'size' && (
@@ -3011,7 +3016,7 @@ const handleGenerate = () => {
                     disabled={loginCountdown > 0}
                   >
                     <Text style={styles.getCodeText}>
-                      {loginCountdown > 0 ? `${loginCountdown}秒后重试` : '获取验证码'}
+                      {loginCountdown > 0 ? `${loginCountdown}秒后` : '获取验证码'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -3094,7 +3099,9 @@ const handleGenerate = () => {
                       onPress={sendRegisterCode}
                       disabled={countdown > 0}
                     >
-                      <Text style={styles.getCodeText}>{countdown > 0 ? `${countdown}秒后重试` : '获取验证码'}</Text>
+                      <Text style={styles.getCodeText}>
+                        {countdown > 0 ? `${countdown}秒后` : '获取验证码'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                   <View style={styles.loginButtonRow}>
@@ -3170,7 +3177,7 @@ const handleGenerate = () => {
                   disabled={resetCountdown > 0}
                 >
                   <Text style={styles.getCodeText}>
-                    {resetCountdown > 0 ? `${resetCountdown}秒后重试` : '获取验证码'}
+                    {resetCountdown > 0 ? `${resetCountdown}秒后` : '获取验证码'}
                   </Text>
                 </TouchableOpacity>
               </View>
