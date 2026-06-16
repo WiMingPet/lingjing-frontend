@@ -1345,6 +1345,7 @@ export default function App() {
         const token = accessToken;
         if (!token) {
           showToast('请先登录', true);
+          setEcommerceLoading(false);
           return;
         }
 
@@ -1378,15 +1379,16 @@ export default function App() {
         } else {
           setEcommerceImage(null);
           showToast(`解析成功，请手动上传商品图片`);
+          setEcommerceLoading(false);
         }
       } else {
         showToast(res.data.message || '解析失败', true);
+        setEcommerceLoading(false);
       }
     } catch (err) {
       console.error('解析失败:', err);
       const errorMsg = err.response?.data?.detail || err.response?.data?.message || '解析失败，请手动填写';
       showToast(errorMsg, true);
-    } finally {
       setEcommerceLoading(false);
     }
   };
@@ -1416,11 +1418,12 @@ export default function App() {
         '点击"确定"继续生成，点击"取消"返回修改'
       );
       if (!confirmed) {
-        setIsGenerating(false);
+        setEcommerceLoading(false);
         return;
       }
     }
     
+    setEcommerceLoading(true);
     setIsGenerating(true);
     setGeneratingTitle('AI正在制作带货视频');
     setGeneratingSubtitle('数字人讲解 + 商品展示');
@@ -1487,15 +1490,18 @@ export default function App() {
             showToast('视频生成成功');
             saveToHistory(videoUrl, 'AI带货视频');
           }
+          setEcommerceLoading(false);
           setIsGenerating(false);
         }
       } else {
         showToast(res.data.message || '生成失败', true);
+        setEcommerceLoading(false);
         setIsGenerating(false);
       }
     } catch (err) {
       console.error('生成带货视频失败:', err);
       showToast(err.response?.data?.detail || '生成失败', true);
+      setEcommerceLoading(false);
       setIsGenerating(false);
     }
   };
@@ -1512,7 +1518,7 @@ export default function App() {
       attempts++;
       try {
         const token = localStorage.getItem('access_token');
-        if (!token) { clearInterval(pollingRef.current); setIsGenerating(false); return; }
+        if (!token) { clearInterval(pollingRef.current); setEcommerceLoading(false); setIsGenerating(false); return; }
         
         const statusRes = await axios.get(queryUrl, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -1523,6 +1529,7 @@ export default function App() {
         
         if (task.status === 'completed') {
           clearInterval(pollingRef.current);
+          setEcommerceLoading(false);
           setIsGenerating(false);
           const videoUrl = task.video_url || task.output_data?.video_url;
           const thumbnail = task.thumbnail || null;
@@ -1533,18 +1540,21 @@ export default function App() {
           }
         } else if (task.status === 'failed') {
           clearInterval(pollingRef.current);
+          setEcommerceLoading(false);
           setIsGenerating(false);
           showToast(`${type}生成失败: ${task.message || '请重试'}`, true);
         }
         
         if (attempts >= maxAttempts) {
           clearInterval(pollingRef.current);
+          setEcommerceLoading(false);
           setIsGenerating(false);
           showToast('生成超时，请稍后在历史记录中查看', true);
         }
       } catch (err) {
         if (attempts >= maxAttempts) {
           clearInterval(pollingRef.current);
+          setEcommerceLoading(false);
           setIsGenerating(false);
         }
       }
@@ -3290,7 +3300,7 @@ const handleGenerate = () => {
             </Card>
           </View>
         </Modal>
-        {/* ========== 通用生成进度弹窗 ========== */}
+{/* ========== 通用生成进度弹窗 ========== */}
         {isGenerating && (
           <View style={styles.generatingOverlay}>
             <View style={styles.generatingBox}>
@@ -3304,6 +3314,19 @@ const handleGenerate = () => {
                 style={styles.generatingCancelBtn}
                 onPress={() => {
                   setIsGenerating(false);
+                  if (activeTab === 'digital_custom' && digitalSubTab === 'ecommerce') {
+                    setEcommerceLoading(true);
+                  } else if (activeTab === 'digital' || (activeTab === 'digital_custom' && digitalSubTab === 'avatar')) {
+                    setDigitalLoading(true);
+                  } else if (activeTab === 'video') {
+                    setVideoLoading(true);
+                  } else if (activeTab === 'image') {
+                    setImageLoading(true);
+                  } else if (activeTab === 'tryon') {
+                    setTryonLoading(true);
+                  } else if (activeTab === 'multi') {
+                    setIsGenerating(true);
+                  }
                   showToast('已切换后台生成，完成后自动保存至历史记录');
                 }}
               >
