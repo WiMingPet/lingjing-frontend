@@ -720,7 +720,6 @@ export default function App() {
 
   // 保存历史记录（改为调用后端API）
   const saveToHistory = async (url, type, thumbnail = null) => {
-    console.trace('saveToHistory 被调用:', type, url);
     if (!url) return;
     
     const token = localStorage.getItem('access_token');
@@ -730,19 +729,19 @@ export default function App() {
     }
     
     try {
-      await axios.post(`${API_URL}/history/save`, {
+      console.log('准备保存历史记录:', { url, type, thumbnail });
+      const res = await axios.post(`${API_URL}/history/save`, {
         url: url,
         type: type,
         thumbnail: thumbnail
       }, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+      console.log('保存历史记录响应:', res.data);
       await loadHistory();
-      showToast(`${type} 已保存到历史记录`);
+      console.log('历史记录已刷新');
     } catch (error) {
-      console.error('保存历史记录失败:', error, error.response?.data);
-      showToast('保存失败', true);
+      console.error('保存历史记录失败:', error.message, error.response?.status, error.response?.data);
     }
   };
   // 保存文件到本地相册（移动端）或下载（Web）
