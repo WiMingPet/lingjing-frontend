@@ -1525,6 +1525,7 @@ export default function App() {
         });
         
         const task = statusRes.data.data;
+        console.log('轮询task完整数据:', JSON.stringify(task));
         if (!task) return;
         
         if (task.status === 'succeed') {
@@ -3325,7 +3326,7 @@ const handleGenerate = () => {
                   } else if (activeTab === 'tryon') {
                     setTryonLoading(true);
                   } else if (activeTab === 'multi') {
-                    setIsGenerating(true);
+                    setIsGenerating(false);
                   }
                   showToast('已切换后台生成，完成后自动保存至历史记录');
                 }}
