@@ -87,6 +87,7 @@ export default function App() {
   const [digitalLoading, setDigitalLoading] = useState(false);
   const [customLoading, setCustomLoading] = useState(false);
   const [ecommerceLoading, setEcommerceLoading] = useState(false);
+  const [parsingLoading, setParsingLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [activeTab, setActiveTab] = useState('size');
   const [history, setHistory] = useState([]);
@@ -1339,12 +1340,12 @@ export default function App() {
         return;
       }
       
-      setEcommerceLoading(true);
+      setParsingLoading(true);
       try {
         const token = accessToken;
         if (!token) {
           showToast('请先登录', true);
-          setEcommerceLoading(false);
+          setParsingLoading(false);
           return;
         }
 
@@ -1373,23 +1374,23 @@ export default function App() {
           showToast(`解析成功，正在自动生成带货视频...`);
           // ✅ 关键：自动触发生成
           setTimeout(() => {
-            setEcommerceLoading(false);
+            setParsingLoading(false);
             generateEcommerceVideo();
           }, 500);
         } else {
           setEcommerceImage(null);
           showToast(`解析成功，请手动上传商品图片`);
-          setEcommerceLoading(false);
+          setParsingLoading(false);
         }
       } else {
         showToast(res.data.message || '解析失败', true);
-        setEcommerceLoading(false);
+        setParsingLoading(false);
       }
     } catch (err) {
       console.error('解析失败:', err);
       const errorMsg = err.response?.data?.detail || err.response?.data?.message || '解析失败，请手动填写';
       showToast(errorMsg, true);
-      setEcommerceLoading(false);
+      setParsingLoading(false);
     }
   };
 
@@ -2459,17 +2460,17 @@ const handleGenerate = () => {
                       
                       {/* 解析按钮 */}
                       <TouchableOpacity
-                        style={[styles.parseButton, ecommerceLoading && styles.disabledButton]}
+                        style={[styles.parseButton, parsingLoading && styles.disabledButton]}
                         onPress={fetchProductInfo}
-                        disabled={ecommerceLoading}
+                        disabled={parsingLoading}
                       >
-                        {ecommerceLoading ? (
+                        {parsingLoading ? (
                           <ActivityIndicator color="#fff" size="small" />
                         ) : (
                           <Text style={styles.parseButtonText}>解析链接</Text>
                         )}
                       </TouchableOpacity>
-                      
+
                       <View style={styles.divider} />
                       
                       {/* 服装类型选择 */}
