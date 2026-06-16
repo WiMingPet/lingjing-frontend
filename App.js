@@ -1528,7 +1528,7 @@ export default function App() {
         const task = statusRes.data.data;
         if (!task) return;
         
-        if (task.status === 'completed') {
+        if (task.status === 'succeed') {
           clearInterval(pollingRef.current);
           setEcommerceLoading(false);
           setIsGenerating(false);
@@ -1539,7 +1539,7 @@ export default function App() {
             showToast(`🎉 ${type}生成成功！`);
             await loadHistory();
           }
-        } else if (task.status === 'failed') {
+        } else if (task.status === 'error') {
           clearInterval(pollingRef.current);
           setEcommerceLoading(false);
           setIsGenerating(false);
