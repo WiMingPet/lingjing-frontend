@@ -1374,6 +1374,7 @@ export default function App() {
           showToast(`解析成功，正在自动生成带货视频...`);
           // ✅ 关键：自动触发生成
           setTimeout(() => {
+            setEcommerceLoading(false);
             generateEcommerceVideo();
           }, 500);
         } else {
@@ -2622,9 +2623,9 @@ const handleGenerate = () => {
                       <TouchableOpacity
                         style={[styles.generateButton, (!ecommerceImage && !ecommerceDescription) && styles.disabledButton]}
                         onPress={generateEcommerceVideo}
-                        disabled={isGenerating || (!ecommerceImage && !ecommerceDescription)}
+                        disabled={ecommerceLoading || (!ecommerceImage && !ecommerceDescription)}
                       >
-                        {isGenerating ? (
+                        {ecommerceLoading ? (
                           <ActivityIndicator color="#fff" size="small" />
                         ) : (
                           <Text style={styles.generateText}>生成带货视频</Text>
