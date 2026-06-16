@@ -1528,7 +1528,7 @@ export default function App() {
         console.log('轮询task完整数据:', JSON.stringify(task));
         if (!task) return;
         
-        if (task.status === 'succeed') {
+        if (task.status === 'completed') {
           clearInterval(pollingRef.current);
           setEcommerceLoading(false);
           setIsGenerating(false);
@@ -1539,7 +1539,7 @@ export default function App() {
             showToast(`🎉 ${type}生成成功！`);
             await loadHistory();
           }
-        } else if (task.status === 'error') {
+        } else if (task.status === 'failed') {
           clearInterval(pollingRef.current);
           setEcommerceLoading(false);
           setIsGenerating(false);
