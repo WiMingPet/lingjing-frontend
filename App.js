@@ -1533,9 +1533,8 @@ export default function App() {
           setEcommerceLoading(false);
           setIsGenerating(false);
           const videoUrl = task.video_url || task.output_data?.video_url;
-          const thumbnail = task.thumbnail || null;
           if (videoUrl) {
-            saveToHistory(videoUrl, type, thumbnail);
+            saveToHistory(videoUrl, type);
             showToast(`🎉 ${type}生成成功！`);
             await loadHistory();
           }
