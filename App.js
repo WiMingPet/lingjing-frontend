@@ -1665,7 +1665,7 @@ export default function App() {
         // 显示结果视频
         setCurrentVideoUrl(videoUrl);
         setVideoModalVisible(true);
-        saveToHistory(videoUrl, '多角度试穿');
+        saveToHistory(videoUrl, '多角度试穿', res.data?.thumbnail);
         showToast('多角度视频生成成功');
         
       } catch (err) {
