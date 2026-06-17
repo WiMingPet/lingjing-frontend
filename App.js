@@ -2798,16 +2798,16 @@ const handleGenerate = () => {
                     <TouchableOpacity
                       key={item.id}
                       onPress={() => {
-                        if (item.type === '视频生成' || item.type === '虚拟试穿' || item.type === '数字人分身' || item.type === 'AI带货视频') {
+                        if (item.type === '视频生成' || item.type === '虚拟试穿' || item.type === '数字人分身' || item.type === 'AI带货视频' || item.type === '多角度试穿') {
                           setCurrentVideoUrl(item.url);
                           setVideoModalVisible(true);
-                        } else if (item.type === '图片生成' || item.type === '多角度试穿') {
+                        } else if (item.type === '图片生成') {
                           setSelectedImage(null);
                           setModelImage(null);
                           setGarmentImage(null);
                           setDigitalImage(null);
                           setResult({ images: [{ url: item.url }] });
-                          setActiveTab(item.type === '图片生成' ? 'image' : 'multi');
+                          setActiveTab('image');
                         } else {
                           setCurrentVideoUrl(item.url);
                           setVideoModalVisible(true);
