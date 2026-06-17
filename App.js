@@ -1665,6 +1665,7 @@ export default function App() {
         // 显示结果视频
         setCurrentVideoUrl(videoUrl);
         setVideoModalVisible(true);
+        console.log('多角度封面URL:', res.data?.thumbnail);
         saveToHistory(videoUrl, '多角度试穿', res.data?.thumbnail);
         showToast('多角度视频生成成功');
         
