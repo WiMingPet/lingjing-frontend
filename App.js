@@ -1616,6 +1616,7 @@ export default function App() {
     }
       
       setMultiLoading(true);
+      setIsGenerating(true);
       setGeneratingTitle('AI正在生成多角度视频');
       setGeneratingSubtitle('多角度动态展示');
     
