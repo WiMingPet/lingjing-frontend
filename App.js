@@ -88,6 +88,7 @@ export default function App() {
   const [customLoading, setCustomLoading] = useState(false);
   const [ecommerceLoading, setEcommerceLoading] = useState(false);
   const [parsingLoading, setParsingLoading] = useState(false);
+  const [multiLoading, setMultiLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [activeTab, setActiveTab] = useState('size');
   const [history, setHistory] = useState([]);
@@ -1614,7 +1615,7 @@ export default function App() {
       return;
     }
       
-      setIsGenerating(true);
+      setMultiLoading(true);
       setGeneratingTitle('AI正在生成多角度视频');
       setGeneratingSubtitle('多角度动态展示');
     
@@ -1670,7 +1671,7 @@ export default function App() {
         console.error('多角度合成错误:', err);
         showToast(err.message || '合成失败', true);
       } finally {
-        setIsGenerating(false);
+        setMultiLoading(false);
       }
     };
 
@@ -2698,8 +2699,8 @@ const handleGenerate = () => {
                     )}
                   </View>
                 </Card>
-                <TouchableOpacity onPress={generateMultiAngle} disabled={isGenerating} style={styles.generateButton}>
-                  {isGenerating ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>开始多角度合成</Text>}
+                <TouchableOpacity onPress={generateMultiAngle} disabled={multiLoading} style={styles.generateButton}>
+                  {multiLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>开始多角度合成</Text>}
                 </TouchableOpacity>
               </>
             )}
@@ -3326,7 +3327,7 @@ const handleGenerate = () => {
                   } else if (activeTab === 'tryon') {
                     setTryonLoading(true);
                   } else if (activeTab === 'multi') {
-                    setIsGenerating(false);
+                    setMultiLoading(true);
                   }
                   showToast('已切换后台生成，完成后自动保存至历史记录');
                 }}
