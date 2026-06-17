@@ -1673,6 +1673,7 @@ export default function App() {
         showToast(err.message || '合成失败', true);
       } finally {
         setMultiLoading(false);
+        setIsGenerating(false);
       }
     };
 
