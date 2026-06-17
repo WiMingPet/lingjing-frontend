@@ -805,7 +805,7 @@ export default function App() {
           type: item.type,
           thumbnail: item.thumbnail,
           timestamp: (() => {
-            const d = new Date(item.timestamp);
+            const d = new Date(new Date(item.timestamp).getTime() + 8 * 60 * 60 * 1000);
             return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
           })()
         }));
@@ -2007,7 +2007,7 @@ const handleGenerate = () => {
                         onPress={() => setClothCategory(cat)}
                         style={{
                           paddingVertical: 8,
-                          paddingHorizontal: 20,
+                          paddingHorizontal: 14,
                           borderRadius: 20,
                           backgroundColor: clothCategory === cat ? '#FF4757' : '#f0f0f0',
                         }}
@@ -2016,7 +2016,7 @@ const handleGenerate = () => {
                           color: clothCategory === cat ? '#fff' : '#333',
                           fontWeight: 'bold',
                         }}>
-                          {cat === 'other' ? '其他服装' : cat === 'dress' ? '套装/连衣裙' : '下身服装'}
+                          {cat === 'other' ? '其他' : cat === 'dress' ? '套装/裙' : '下身'}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -2512,7 +2512,7 @@ const handleGenerate = () => {
                               onPress={() => setClothCategory(cat)}
                               style={{
                                 paddingVertical: 8,
-                                paddingHorizontal: 20,
+                                paddingHorizontal: 14,
                                 borderRadius: 20,
                                 backgroundColor: clothCategory === cat ? '#FF4757' : '#f0f0f0',
                               }}
@@ -2521,7 +2521,7 @@ const handleGenerate = () => {
                                 color: clothCategory === cat ? '#fff' : '#333',
                                 fontWeight: 'bold',
                               }}>
-                                {cat === 'other' ? '其他服装' : cat === 'dress' ? '套装/连衣裙' : '下身服装'}
+                                {cat === 'other' ? '其他' : cat === 'dress' ? '套装/裙' : '下身'}
                               </Text>
                             </TouchableOpacity>
                           ))}
@@ -2913,10 +2913,18 @@ const handleGenerate = () => {
                   ))}
                   <TouchableOpacity onPress={() => {
                     setShowSidebarMenu(false);
-                    window.open('mailto:3060302415@qq.com', '_blank');
+                    const url = 'mailto:3060302415@qq.com';
+                    if (typeof window !== 'undefined' && window.open) {
+                      window.open(url);
+                    } else {
+                      Linking.openURL(url);
+                    }
                   }}>
                     <Text style={{ color: '#fff' }}>💬 帮助与客服</Text>
-                    <Text style={{ color: '#aaa', fontSize: 12 }}>QQ: 3060302415  电话: 15920978058</Text>
+                    <Text style={{ color: '#aaa', fontSize: 12 }}>
+                      QQ: <Text style={{ color: '#7c3aed' }} onPress={() => Linking.openURL('tencent://message/?uin=3060302415')}>3060302415</Text>
+                      {'  '}电话: <Text style={{ color: '#7c3aed' }} onPress={() => Linking.openURL('tel:15920978058')}>15920978058</Text>
+                    </Text>
                   </TouchableOpacity>
                   {isLoggedIn && (
                     <TouchableOpacity onPress={handleLogout} style={{ marginTop: 12 }}>
@@ -3000,7 +3008,7 @@ const handleGenerate = () => {
                     disabled={loginCountdown > 0}
                   >
                     <Text style={styles.getCodeText}>
-                      {loginCountdown > 0 ? `${loginCountdown}秒后` : '获取验证码'}
+                      {loginCountdown > 0 ? `${loginCountdown}s` : '获取验证码'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -3084,7 +3092,7 @@ const handleGenerate = () => {
                       disabled={countdown > 0}
                     >
                       <Text style={styles.getCodeText}>
-                        {countdown > 0 ? `${countdown}秒后` : '获取验证码'}
+                        {countdown > 0 ? `${countdown}s` : '获取验证码'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -3161,7 +3169,7 @@ const handleGenerate = () => {
                   disabled={resetCountdown > 0}
                 >
                   <Text style={styles.getCodeText}>
-                    {resetCountdown > 0 ? `${resetCountdown}秒后` : '获取验证码'}
+                    {resetCountdown > 0 ? `${resetCountdown}s` : '获取验证码'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -4122,66 +4130,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
   },
-    // 隐私弹窗样式
-  privacyCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    width: '85%',
-    maxWidth: 340,
-    alignItems: 'center',
-  },
-  privacyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
-  privacyContent: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 22,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  privacyLinks: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  privacyLink: {
-    color: '#7c3aed',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginHorizontal: 10,
-    textDecorationLine: 'underline',
-  },
-  privacyButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingHorizontal: 10,
-  },
-  privacyDisagreeBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  privacyDisagreeText: {
-    color: '#666',
-    fontSize: 14,
-  },
-  privacyAgreeBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-    backgroundColor: '#7c3aed',
-  },
-  privacyAgreeText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
+
 });
