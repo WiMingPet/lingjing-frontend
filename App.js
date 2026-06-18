@@ -2922,7 +2922,10 @@ const handleGenerate = () => {
                   }}>
                     <Text style={{ color: '#fff' }}>💬 帮助与客服</Text>
                     <Text style={{ color: '#aaa', fontSize: 12 }}>
-                      QQ: <Text style={{ color: '#7c3aed' }} onPress={() => Linking.openURL('tencent://message/?uin=3060302415')}>3060302415</Text>
+                      QQ: <Text style={{ color: '#7c3aed' }} onPress={() => {
+                        navigator.clipboard.writeText('3060302415');
+                        showToast('QQ号已复制');
+                      }}>3060302415</Text>
                       {'  '}电话: <Text style={{ color: '#7c3aed' }} onPress={() => Linking.openURL('tel:15920978058')}>15920978058</Text>
                     </Text>
                   </TouchableOpacity>
@@ -3621,9 +3624,15 @@ const styles = StyleSheet.create({
   loginModeActive: { backgroundColor: '#7c3aed' },
   loginModeText: { color: '#aaa', fontSize: 14 },
   loginModeTextActive: { color: '#fff' },
-  codeRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  codeRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   codeInput: { flex: 1, backgroundColor: '#2d2d44', borderRadius: 8, padding: 12, color: '#fff' },
-  getCodeButton: { backgroundColor: '#3b3b5c', borderRadius: 8, paddingHorizontal: 16, justifyContent: 'center' },
+  getCodeButton: { 
+    backgroundColor: '#3b3b5c', 
+    borderRadius: 8, 
+    paddingHorizontal: 12, 
+    justifyContent: 'center',
+    flexShrink: 0,  // 👈 加这行
+  },
   getCodeText: { color: '#7c3aed', fontSize: 14 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginTop: 20, marginBottom: 12 },
   humanItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#2d2d44' },
