@@ -1552,7 +1552,7 @@ export default function App() {
           setIsGenerating(false);
           const videoUrl = task.video_url || task.output_data?.video_url;
           if (videoUrl) {
-            saveToHistory(videoUrl, type);
+            saveToHistory(videoUrl, type, task.thumbnail);
             showToast(`🎉 ${type}生成成功！`);
             await loadHistory();
           }
@@ -2920,10 +2920,7 @@ const handleGenerate = () => {
                     }}>
                       <Text style={{ color: '#fff' }}>💬 帮助与客服</Text>
                       <Text style={{ color: '#aaa', fontSize: 12 }}>
-                        QQ: <Text style={{ color: '#7c3aed' }} onPress={() => {
-                          navigator.clipboard.writeText('3060302415');
-                          showToast('QQ号已复制');
-                        }}>3060302415</Text>
+                        QQ: <Text style={{ color: '#7c3aed' }} onPress={() => Linking.openURL('tencent://message/?uin=3060302415')}>3060302415</Text>
                         {'  '}电话: <Text style={{ color: '#7c3aed' }} onPress={() => Linking.openURL('tel:15920978058')}>15920978058</Text>
                       </Text>
                     </TouchableOpacity>
@@ -3667,18 +3664,15 @@ const styles = StyleSheet.create({
   },
   dropdownMenu: {
     position: 'absolute',
-    top: S(50),
+    top: S(60),
     right: S(16),
     width: S(280),
     backgroundColor: '#1e1e2e',
     borderRadius: S(16),
     padding: S(16),
-    paddingBottom: S(150),
-    maxHeight: '80%',
-    overflow: 'scroll',
+    paddingBottom: S(16),
+    maxHeight: S(500),
     zIndex: 1000,
-    maxHeight: '80%',
-    overflowY: 'auto',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
