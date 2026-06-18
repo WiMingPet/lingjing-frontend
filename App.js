@@ -2911,17 +2911,15 @@ const handleGenerate = () => {
                     ))}
                     <TouchableOpacity onPress={() => {
                       setShowSidebarMenu(false);
-                      const url = 'mailto:3060302415@qq.com';
-                      if (typeof window !== 'undefined' && window.open) {
-                        window.open(url);
-                      } else {
-                        Linking.openURL(url);
-                      }
+                      const message = '📧 邮箱：3060302415@qq.com\n📱 电话：15920978058\n💬 QQ：3060302415（点击复制QQ号）';
+                      showToast(message);
+                      // 同时复制QQ号
+                      navigator.clipboard.writeText('3060302415');
                     }}>
                       <Text style={{ color: '#fff' }}>💬 帮助与客服</Text>
                       <Text style={{ color: '#aaa', fontSize: 12 }}>
-                        QQ: <Text style={{ color: '#7c3aed' }} onPress={() => Linking.openURL('tencent://message/?uin=3060302415')}>3060302415</Text>
-                        {'  '}电话: <Text style={{ color: '#7c3aed' }} onPress={() => Linking.openURL('tel:15920978058')}>15920978058</Text>
+                        QQ: <Text style={{ color: '#7c3aed' }}>3060302415</Text>
+                        {'  '}电话: <Text style={{ color: '#7c3aed' }}>15920978058</Text>
                       </Text>
                     </TouchableOpacity>
                     {isLoggedIn && (
