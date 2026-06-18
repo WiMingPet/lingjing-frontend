@@ -3565,7 +3565,7 @@ const styles = StyleSheet.create({
   removeMultiImage: { position: 'absolute', top: -8, right: -8 },
   addImageButton: { width: 80, height: 80, borderRadius: 12, backgroundColor: '#2d2d44', justifyContent: 'center', alignItems: 'center' },
   addImageText: { color: '#aaa', fontSize: 10, marginTop: 4 },
-  loginCard: { width: '80%', padding: 20 },
+  loginCard: { width: '90%', padding: 20 },
   loginInput: { backgroundColor: '#2d2d44', borderRadius: 8, padding: 12, color: '#fff', marginBottom: 12 },
   loginButtonRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
   loginCancelButton: { flex: 1, backgroundColor: '#3b3b5c', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
@@ -3627,7 +3627,7 @@ const styles = StyleSheet.create({
     marginBottom: 12 
   },
   codeInput: { 
-    flex: 0.6,  // 👈 从 1 改成 0.6，输入框只占 60%
+    flex: 1,
     backgroundColor: '#2d2d44', 
     borderRadius: 8, 
     padding: 12, 
@@ -3636,10 +3636,12 @@ const styles = StyleSheet.create({
   getCodeButton: { 
     backgroundColor: '#3b3b5c', 
     borderRadius: 8, 
-    paddingHorizontal: 12, 
+    paddingHorizontal: 12,
     justifyContent: 'center',
+    alignItems: 'center',
     flexShrink: 0,
-    minWidth: 70,
+    minWidth: 72,
+    height: 44,
   },
   getCodeText: {
     color: '#7c3aed',
