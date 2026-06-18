@@ -3625,13 +3625,20 @@ const styles = StyleSheet.create({
   loginModeText: { color: '#aaa', fontSize: 14 },
   loginModeTextActive: { color: '#fff' },
   codeRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  codeInput: { flex: 1, backgroundColor: '#2d2d44', borderRadius: 8, padding: 12, color: '#fff' },
+  codeInput: { 
+    flex: 0.6,  // 👈 从 1 改成 0.6，输入框只占 60%
+    backgroundColor: '#2d2d44', 
+    borderRadius: 8, 
+    padding: 12, 
+    color: '#fff' 
+  },
   getCodeButton: { 
     backgroundColor: '#3b3b5c', 
     borderRadius: 8, 
     paddingHorizontal: 12, 
     justifyContent: 'center',
-    flexShrink: 0,  // 👈 加这行
+    flexShrink: 0,
+    minWidth: 70,
   },
   getCodeText: { color: '#7c3aed', fontSize: 14 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginTop: 20, marginBottom: 12 },
