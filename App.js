@@ -1541,18 +1541,15 @@ export default function App() {
         const statusRes = await axios.get(queryUrl, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+        console.log('轮询返回:', JSON.stringify(statusRes.data));
         const task = statusRes.data.data;
         if (!task) return;
         
         if (task.status === 'completed') {
           clearInterval(pollingRef.current);
-          localStorage.removeItem('pending_task');
-          setEcommerceLoading(false);
           setIsGenerating(false);
           const videoUrl = task.video_url || task.output_data?.video_url;
-          const thumbnail = task.thumbnail || task.output_data?.thumbnail || null;
-          console.log('轮询成功，videoUrl:', videoUrl, 'thumbnail:', thumbnail);
+          const thumbnail = task.thumbnail || null;
           if (videoUrl) {
             saveToHistory(videoUrl, type, thumbnail);
             showToast(`🎉 ${type}生成成功！`);
