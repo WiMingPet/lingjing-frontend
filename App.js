@@ -2911,15 +2911,16 @@ const handleGenerate = () => {
                     ))}
                     <TouchableOpacity onPress={() => {
                       setShowSidebarMenu(false);
-                      const message = '📧 邮箱：3060302415@qq.com\n📱 电话：15920978058\n💬 QQ：3060302415（点击复制QQ号）';
-                      showToast(message);
-                      // 同时复制QQ号
-                      navigator.clipboard.writeText('3060302415');
+                      showToast('请联系QQ：3060302415 或拨打电话：15920978058');
                     }}>
                       <Text style={{ color: '#fff' }}>💬 帮助与客服</Text>
+                      <Text style={{ color: '#aaa', fontSize: 12 }}>请联系QQ：3060302415 或拨打电话：15920978058</Text>
                       <Text style={{ color: '#aaa', fontSize: 12 }}>
-                        QQ: <Text style={{ color: '#7c3aed' }}>3060302415</Text>
-                        {'  '}电话: <Text style={{ color: '#7c3aed' }}>15920978058</Text>
+                        QQ: <Text style={{ color: '#7c3aed' }} onPress={() => {
+                          navigator.clipboard.writeText('3060302415');
+                          showToast('QQ号已复制');
+                        }}>3060302415</Text>
+                        {'  '}电话: <Text style={{ color: '#7c3aed' }} onPress={() => Linking.openURL('tel:15920978058')}>15920978058</Text>
                       </Text>
                     </TouchableOpacity>
                     {isLoggedIn && (
