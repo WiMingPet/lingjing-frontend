@@ -3620,7 +3620,12 @@ const styles = StyleSheet.create({
   loginModeActive: { backgroundColor: '#7c3aed' },
   loginModeText: { color: '#aaa', fontSize: 14 },
   loginModeTextActive: { color: '#fff' },
-  codeRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  codeRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center',
+    gap: 8, 
+    marginBottom: 12 
+  },
   codeInput: { 
     flex: 0.6,  // 👈 从 1 改成 0.6，输入框只占 60%
     backgroundColor: '#2d2d44', 
@@ -3636,7 +3641,10 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     minWidth: 70,
   },
-  getCodeText: { color: '#7c3aed', fontSize: 14 },
+  getCodeText: {
+    color: '#7c3aed',
+    fontSize: 14,
+  },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginTop: 20, marginBottom: 12 },
   humanItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#2d2d44' },
   humanInfo: { marginLeft: 12, flex: 1 },
