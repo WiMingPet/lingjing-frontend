@@ -63,14 +63,6 @@ export default function App() {
     };
   }, []);
 
-
-  // 首次启动隐私政策确认
-  useEffect(() => {
-    const privacyAgreed = localStorage.getItem('privacy_agreed');
-    if (!privacyAgreed) {
-      setShowPrivacyModal(true);
-    }
-  }, []);
   const [videoModalVisible, setVideoModalVisible] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
   const fullscreenVideoRef = useRef(null);
@@ -212,6 +204,12 @@ export default function App() {
       startPollingTask(taskId, type, queryUrl);
     }
     
+    // 小屏幕自动缩放
+    if (window.innerWidth < 400) {
+      document.body.style.transform = 'scale(0.8)';
+      document.body.style.transformOrigin = 'top center';
+    }
+    
     // 初始化音频模式
     Audio.setAudioModeAsync({
       allowsRecordingIOS: false,
@@ -225,11 +223,10 @@ export default function App() {
       setIsLoggedIn(true);
       setAccessToken(token);
       fetchDigitalHumans();
-      fetchUserCredits();  // ✅ 添加这一行
+      fetchUserCredits();
       fetchPresetAvatars();
       fetchTtsVoices();
-      loadHistory();  // 加载历史记录
-      
+      loadHistory();
     }
     
     // 组件卸载时清理音频资源
@@ -2869,94 +2866,93 @@ const handleGenerate = () => {
                 </ScrollView>
               </Card>
             )}
+
+            {/* 我的页面 - 移到这里 */}
+            {activeTab === 'profile' && (
+              <View style={{ flex: 1, position: 'relative' }}>
+                <View style={styles.profileHeaderBar}>
+                  <View style={{ width: 40 }} />
+                  <Text style={styles.headerTitle}>我的</Text>
+                  <TouchableOpacity onPress={() => setShowSidebarMenu(!showSidebarMenu)} style={styles.menuButton}>
+                    <Icon name="menu-outline" size={24} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+
+                {showSidebarMenu && (
+                  <>
+                    <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setShowSidebarMenu(false)} />
+                    <View style={styles.dropdownMenu}>
+                      <View style={styles.dropdownUserInfo}>
+                        <Icon name="person-circle" size={50} color="#7c3aed" />
+                        <Text style={styles.dropdownUserName}>{isLoggedIn ? (loginPhone || '用户') : '未登录'}</Text>
+                        {isLoggedIn && <Text style={styles.dropdownUserPhone}>{loginPhone}</Text>}
+                      </View>
+                      <View style={styles.dropdownCredits}>
+                        <Text style={styles.dropdownCreditsLabel}>灵境点余额</Text>
+                        <Text style={styles.dropdownCreditsValue}>{userCredits}</Text>
+                        <TouchableOpacity onPress={() => setShowRechargeModal(true)}>
+                          <Text style={styles.dropdownRechargeText}>充值</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <View style={styles.dropdownMembership}>
+                        <Text style={{ color: '#fff' }}>
+                          当前会员：{membershipLevel === 'free' ? '免费版' : membershipLevel === 'gold' ? '黄金会员' : membershipLevel === 'platinum' ? '铂金会员' : '钻石会员'}
+                        </Text>
+                      </View>
+                      <Text style={[styles.dropdownSectionTitle, { color: '#aaa' }]}>我的数字人</Text>
+                      {digitalHumans.filter(d => !d.is_default).map(human => (
+                        <View key={human.id} style={styles.dropdownHumanItem}>
+                          <Text style={{ color: '#fff' }}>{human.name}</Text>
+                          <Text style={{ color: '#aaa' }}>{human.is_active ? '✅' : '⏳'}</Text>
+                        </View>
+                      ))}
+                      <TouchableOpacity onPress={() => {
+                        setShowSidebarMenu(false);
+                        const url = 'mailto:3060302415@qq.com';
+                        if (typeof window !== 'undefined' && window.open) {
+                          window.open(url);
+                        } else {
+                          Linking.openURL(url);
+                        }
+                      }}>
+                        <Text style={{ color: '#fff' }}>💬 帮助与客服</Text>
+                        <Text style={{ color: '#aaa', fontSize: 12 }}>
+                          QQ: <Text style={{ color: '#7c3aed' }} onPress={() => {
+                            navigator.clipboard.writeText('3060302415');
+                            showToast('QQ号已复制');
+                          }}>3060302415</Text>
+                          {'  '}电话: <Text style={{ color: '#7c3aed' }} onPress={() => Linking.openURL('tel:15920978058')}>15920978058</Text>
+                        </Text>
+                      </TouchableOpacity>
+                      {isLoggedIn && (
+                        <TouchableOpacity onPress={handleLogout} style={{ marginTop: 12 }}>
+                          <Text style={{ color: '#ef4444' }}>退出登录</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </>
+                )}
+                {isLoggedIn ? (
+                  <View style={styles.profileContent}>
+                    <Text style={styles.welcomeText}>欢迎回来</Text>
+                    <Text style={styles.welcomeSubText}>灵境点余额: {userCredits}</Text>
+                    <TouchableOpacity style={styles.rechargeButton} onPress={() => setShowRechargeModal(true)}>
+                      <Text style={styles.rechargeButtonText}>充值</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.loginPrompt}>
+                    <Icon name="person-circle-outline" size={80} color="#666" />
+                    <Text style={styles.loginPromptText}>登录后享受更多功能</Text>
+                    <TouchableOpacity style={styles.loginButton} onPress={() => setShowLoginModal(true)}>
+                      <Text style={styles.loginButtonText}>立即登录</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            )}
           </ScrollView>
         )}
-
-        {/* 我的页面 - 单独放在外面 */}
-        {activeTab === 'profile' && (
-          <View style={{ flex: 1, position: 'relative' }}>
-            <View style={styles.profileHeaderBar}>
-              <View style={{ width: 40 }} />
-              <Text style={styles.headerTitle}>我的</Text>
-              <TouchableOpacity onPress={() => setShowSidebarMenu(!showSidebarMenu)} style={styles.menuButton}>
-                <Icon name="menu-outline" size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
-
-            {showSidebarMenu && (
-              <>
-                <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setShowSidebarMenu(false)} />
-                <View style={styles.dropdownMenu}>
-                  <View style={styles.dropdownUserInfo}>
-                    <Icon name="person-circle" size={50} color="#7c3aed" />
-                    <Text style={styles.dropdownUserName}>{isLoggedIn ? (loginPhone || '用户') : '未登录'}</Text>
-                    {isLoggedIn && <Text style={styles.dropdownUserPhone}>{loginPhone}</Text>}
-                  </View>
-                  <View style={styles.dropdownCredits}>
-                    <Text style={styles.dropdownCreditsLabel}>灵境点余额</Text>
-                    <Text style={styles.dropdownCreditsValue}>{userCredits}</Text>
-                    <TouchableOpacity onPress={() => setShowRechargeModal(true)}>
-                      <Text style={styles.dropdownRechargeText}>充值</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <View style={styles.dropdownMembership}>
-                    <Text style={{ color: '#fff' }}>
-                      当前会员：{membershipLevel === 'free' ? '免费版' : membershipLevel === 'gold' ? '黄金会员' : membershipLevel === 'platinum' ? '铂金会员' : '钻石会员'}
-                    </Text>
-                  </View>
-                  <Text style={[styles.dropdownSectionTitle, { color: '#aaa' }]}>我的数字人</Text>
-                  {digitalHumans.filter(d => !d.is_default).map(human => (
-                    <View key={human.id} style={styles.dropdownHumanItem}>
-                      <Text style={{ color: '#fff' }}>{human.name}</Text>
-                      <Text style={{ color: '#aaa' }}>{human.is_active ? '✅' : '⏳'}</Text>
-                    </View>
-                  ))}
-                  <TouchableOpacity onPress={() => {
-                    setShowSidebarMenu(false);
-                    const url = 'mailto:3060302415@qq.com';
-                    if (typeof window !== 'undefined' && window.open) {
-                      window.open(url);
-                    } else {
-                      Linking.openURL(url);
-                    }
-                  }}>
-                    <Text style={{ color: '#fff' }}>💬 帮助与客服</Text>
-                    <Text style={{ color: '#aaa', fontSize: 12 }}>
-                      QQ: <Text style={{ color: '#7c3aed' }} onPress={() => {
-                        navigator.clipboard.writeText('3060302415');
-                        showToast('QQ号已复制');
-                      }}>3060302415</Text>
-                      {'  '}电话: <Text style={{ color: '#7c3aed' }} onPress={() => Linking.openURL('tel:15920978058')}>15920978058</Text>
-                    </Text>
-                  </TouchableOpacity>
-                  {isLoggedIn && (
-                    <TouchableOpacity onPress={handleLogout} style={{ marginTop: 12 }}>
-                      <Text style={{ color: '#ef4444' }}>退出登录</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </>
-            )}
-            {isLoggedIn ? (
-              <View style={styles.profileContent}>
-                <Text style={styles.welcomeText}>欢迎回来</Text>
-                <Text style={styles.welcomeSubText}>灵境点余额: {userCredits}</Text>
-                <TouchableOpacity style={styles.rechargeButton} onPress={() => setShowRechargeModal(true)}>
-                  <Text style={styles.rechargeButtonText}>充值</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.loginPrompt}>
-                <Icon name="person-circle-outline" size={80} color="#666" />
-                <Text style={styles.loginPromptText}>登录后享受更多功能</Text>
-                <TouchableOpacity style={styles.loginButton} onPress={() => setShowLoginModal(true)}>
-                  <Text style={styles.loginButtonText}>立即登录</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        )}
-
 
         {/* 登录弹窗 */}
         <Modal visible={showLoginModal} transparent={true} animationType="slide">
