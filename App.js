@@ -2909,19 +2909,49 @@ const handleGenerate = () => {
                         <Text style={{ color: '#aaa' }}>{human.is_active ? '✅' : '⏳'}</Text>
                       </View>
                     ))}
-                    <TouchableOpacity onPress={() => {
-                      setShowSidebarMenu(false);
-                      showToast('请联系QQ：3060302415 或拨打电话：15920978058');
-                    }}>
-                      <Text style={{ color: '#fff' }}>💬 帮助与客服</Text>
-                      <Text style={{ color: '#aaa', fontSize: 12 }}>请联系QQ：3060302415 或拨打电话：15920978058</Text>
-                      <Text style={{ color: '#aaa', fontSize: 12 }}>
-                        QQ: <Text style={{ color: '#7c3aed' }} onPress={() => {
-                          navigator.clipboard.writeText('3060302415');
-                          showToast('QQ号已复制');
-                        }}>3060302415</Text>
-                        {'  '}电话: <Text style={{ color: '#7c3aed' }} onPress={() => Linking.openURL('tel:15920978058')}>15920978058</Text>
+                    <TouchableOpacity 
+                      onPress={() => {
+                        setShowSidebarMenu(false);
+                        showToast('请联系QQ：3060302415 或 拨打：15920978058');
+                      }}
+                      style={{ 
+                        backgroundColor: '#2d2d44', 
+                        borderRadius: S(12), 
+                        padding: S(16),
+                        marginBottom: S(12),
+                      }}
+                    >
+                      <Text style={{ color: '#fff', fontSize: S(15), fontWeight: 'bold', marginBottom: S(6) }}>
+                        💬 帮助与客服
                       </Text>
+                      <Text style={{ color: '#999', fontSize: S(12), marginBottom: S(10) }}>
+                        点击下方联系客服
+                      </Text>
+                      {/* 这里不能放 TouchableOpacity 嵌套了，因为父级已经拦截了点击 */}
+                      {/* 改为普通 View + 单独处理点击 */}
+                      <View style={{ flexDirection: 'row', gap: S(10) }}>
+                        <TouchableOpacity 
+                          onPress={(e) => {
+                            e.stopPropagation(); // 阻止冒泡到父级
+                            navigator.clipboard.writeText('3060302415');
+                            showToast('✅ QQ已复制');
+                          }}
+                          style={{ flex: 1, backgroundColor: '#3b3b5c', borderRadius: S(8), padding: S(10), alignItems: 'center' }}
+                        >
+                          <Text style={{ color: '#7c3aed', fontSize: S(13) }}>QQ 3060302415</Text>
+                          <Text style={{ color: '#666', fontSize: S(10) }}>点击复制</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            Linking.openURL('tel:15920978058');
+                          }}
+                          style={{ flex: 1, backgroundColor: '#3b3b5c', borderRadius: S(8), padding: S(10), alignItems: 'center' }}
+                        >
+                          <Text style={{ color: '#10b981', fontSize: S(13) }}>📞 15920978058</Text>
+                          <Text style={{ color: '#666', fontSize: S(10) }}>点击拨打</Text>
+                        </TouchableOpacity>
+                      </View>
                     </TouchableOpacity>
                     {isLoggedIn && (
                       <TouchableOpacity onPress={handleLogout} style={{ marginTop: 12 }}>
