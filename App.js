@@ -1547,6 +1547,8 @@ export default function App() {
         
         if (task.status === 'completed') {
           clearInterval(pollingRef.current);
+          localStorage.removeItem('pending_task'); // 👈 清除
+          setEcommerceLoading(false);
           setIsGenerating(false);
           const videoUrl = task.video_url || task.output_data?.video_url;
           const thumbnail = task.thumbnail || null;
