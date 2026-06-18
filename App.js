@@ -1547,12 +1547,14 @@ export default function App() {
         
         if (task.status === 'completed') {
           clearInterval(pollingRef.current);
-          localStorage.removeItem('pending_task'); // 👈 清除
+          localStorage.removeItem('pending_task');
           setEcommerceLoading(false);
           setIsGenerating(false);
           const videoUrl = task.video_url || task.output_data?.video_url;
+          const thumbnail = task.thumbnail || task.output_data?.thumbnail || null;
+          console.log('轮询成功，videoUrl:', videoUrl, 'thumbnail:', thumbnail);
           if (videoUrl) {
-            saveToHistory(videoUrl, type, task.thumbnail);
+            saveToHistory(videoUrl, type, thumbnail);
             showToast(`🎉 ${type}生成成功！`);
             await loadHistory();
           }
