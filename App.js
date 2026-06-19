@@ -440,55 +440,121 @@ export default function App() {
   };
 
   const handleRecharge = async (pkg) => {
-      if (!accessToken) {
-        showToast('请先登录', true);
-        setShowRechargeModal(false);
-        setShowLoginModal(true);
+    if (!accessToken) {
+      showToast('请先登录', true);
+      setShowRechargeModal(false);
+      setShowLoginModal(true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API_URL}/payment/create_order`, {
+        package_id: pkg.id,
+        amount: pkg.price,
+        credits: pkg.credits
+      }, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+
+      const { pay_url, qr_code, out_trade_no } = res.data;
+      setShowRechargeModal(false);
+      setPendingOrderId(out_trade_no || '');
+      setPaymentLink('');
+      setPaymentQRCode('');
+
+      if (pay_url) {
+        Linking.openURL(pay_url);
+        // 支付跳转后轮询检查支付状态
+        startPaymentPolling(out_trade_no);
         return;
       }
 
-      setLoading(true);
+      if (qr_code) {
+        setPaymentQRCode(qr_code);
+        setShowPaymentModal(true);
+        // 展示二维码时也启动轮询
+        startPaymentPolling(out_trade_no);
+        return;
+      }
+
+      showToast('支付链接获取失败', true);
+    } catch (err) {
+      showToast(err.response?.data?.detail || '创建订单失败', true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 支付状态轮询
+  const startPaymentPolling = (orderId) => {
+    let attempts = 0;
+    const maxAttempts = 30;
+    const timer = setInterval(async () => {
+      attempts++;
       try {
-        const res = await axios.post(`${API_URL}/payment/create_order`, {
-          package_id: pkg.id,
-          amount: pkg.price,
-          credits: pkg.credits
-        }, {
+        const res = await axios.get(`${API_URL}/payment/order_status/${orderId}`, {
           headers: { 'Authorization': `Bearer ${accessToken}` }
         });
-
-        const { pay_url, qr_code, channel, out_trade_no } = res.data;
-
-        setShowRechargeModal(false);
-        setPendingOrderId(out_trade_no || '');
-        setPaymentLink('');
-        setPaymentQRCode('');
-        setShowPaymentModal(false);
-
-        // ＝＝＝ 核心修改：优先跳转，移动端用 pay_url，桌面端用 qr_code ＝＝＝
-        if (pay_url) {
-          Linking.openURL(pay_url);
-          return;
+        if (res.data.status === 'paid') {
+          clearInterval(timer);
+          await fetchUserCredits();
+          setShowPaymentModal(false);
+          setPendingOrderId('');
+          showToast('支付成功，余额已更新');
         }
-
-        // 只有在没有 pay_url 的情况下，才展示二维码
-        if (qr_code) {
-          setPaymentQRCode(qr_code);
-          setShowPaymentModal(true);
-          return;
-        }
-
-        showToast('支付链接获取失败', true);
       } catch (err) {
-        showToast(err.response?.data?.detail || '创建订单失败', true);
-      } finally {
-        setLoading(false);
+        // 忽略轮询错误
       }
-    };
-
-  const handleMembership = async (pkg) => {
-    showToast(`开通 ${pkg.name}，功能开发中`);
+      if (attempts >= maxAttempts) {
+        clearInterval(timer);
+      }
+    }, 2000);
   };
+
+const handleMembership = async (pkg) => {
+  if (!accessToken) {
+    showToast('请先登录', true);
+    setShowRechargeModal(false);
+    setShowLoginModal(true);
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const res = await axios.post(`${API_URL}/payment/create_order`, {
+      package_id: pkg.id,
+      amount: pkg.price,
+      credits: pkg.monthlyCredits,
+      type: 'membership'
+    }, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+
+    const { pay_url, qr_code, out_trade_no } = res.data;
+    setShowRechargeModal(false);
+    setPendingOrderId(out_trade_no || '');
+    setPaymentLink('');
+    setPaymentQRCode('');
+
+    if (pay_url) {
+      Linking.openURL(pay_url);
+      return;
+    }
+
+    if (qr_code) {
+      setPaymentQRCode(qr_code);
+      setShowPaymentModal(true);
+      return;
+    }
+
+    showToast('支付链接获取失败', true);
+  } catch (err) {
+    showToast(err.response?.data?.detail || '创建订单失败', true);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const fetchDigitalHumans = async () => {
     const token = localStorage.getItem('access_token');
@@ -502,38 +568,25 @@ export default function App() {
       console.log('获取数字人列表失败', err);
     }
   };
-    // 获取预设形象列表
+  // 获取预设形象列表
   const fetchPresetAvatars = async () => {
-    setAvatarsLoading(true);
     try {
-      const cached = localStorage.getItem('preset_avatars');
-      if (cached) {
-        setPresetAvatars(JSON.parse(cached));
-      }
-      
       const token = localStorage.getItem('access_token');
       const response = await axios.get(`${API_URL}/preset-avatars`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.data) {
         setPresetAvatars(response.data);
-        localStorage.setItem('preset_avatars', JSON.stringify(response.data));
       }
     } catch (error) {
       console.error('获取预设形象失败:', error);
-    } finally {
-      setAvatarsLoading(false);
     }
   };
 
   const fetchTtsVoices = async () => {
-    setVoicesLoading(true);
     try {
       const token = localStorage.getItem('access_token');
-      if (!token) {
-        setVoicesLoading(false);
-        return;
-      }
+      if (!token) return;
 
       const officialResponse = await axios.get(`${API_URL}/tts/voices`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -544,7 +597,6 @@ export default function App() {
       const filteredOfficial = officialVoices.filter(v => !manualNames.has(v.name));
       const allVoices = [...manualVoices, ...filteredOfficial];
       
-      localStorage.setItem('tts_voices', JSON.stringify(allVoices));
       setTtsVoices(allVoices);
 
       if (allVoices.length > 0 && !selectedVoiceId) {
@@ -552,17 +604,12 @@ export default function App() {
         setDigitalVoice(allVoices[0].name);
       }
     } catch (error) {
-      const cached = localStorage.getItem('tts_voices');
-      if (cached) {
-        setTtsVoices(JSON.parse(cached));
-      } else {
-        setTtsVoices(MANUAL_VOICES);
-      }
-    } finally {
-      setVoicesLoading(false);
+      console.error('获取音色列表失败:', error);
+      setTtsVoices(MANUAL_VOICES);
     }
   };
-    // 试听音色
+
+  // 试听音色
   const playVoicePreview = async (voiceId, previewUrl) => {
     if (!previewUrl) {
       console.log('无预览链接');
@@ -574,33 +621,26 @@ export default function App() {
       return;
     }
     
-    // 如果正在播放同一个音色，则停止
     if (playingVoiceId === voiceId) {
       if (soundRef.current) {
         try {
           await soundRef.current.stopAsync();
           await soundRef.current.unloadAsync();
-        } catch (e) {
-          console.log('停止播放出错:', e);
-        }
+        } catch (e) {}
         soundRef.current = null;
       }
       setPlayingVoiceId(null);
       return;
     }
     
-    // 停止当前播放的
     if (soundRef.current) {
       try {
         await soundRef.current.stopAsync();
         await soundRef.current.unloadAsync();
-      } catch (e) {
-        console.log('停止播放出错:', e);
-      }
+      } catch (e) {}
       soundRef.current = null;
     }
     
-    // 播放新的
     try {
       const { sound } = await Audio.Sound.createAsync(
         { uri: previewUrl },
