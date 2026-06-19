@@ -238,6 +238,18 @@ export default function App() {
     setPrompt('');
     setHeight('170');
     setResult(null);
+    
+    // 离开数字人相关模块时停止音色播放
+    if (activeTab !== 'digital' && activeTab !== 'digital_custom') {
+      if (soundRef.current) {
+        try {
+          soundRef.current.stopAsync();
+          soundRef.current.unloadAsync();
+        } catch (e) {}
+        soundRef.current = null;
+        setPlayingVoiceId(null);
+      }
+    }
   }, [activeTab]);
 
   // 检查是否从支付宝支付页面返回，刷新余额
@@ -2157,12 +2169,7 @@ const handleGenerate = () => {
                 </View>
 
                 {/* ========== 预设形象横向滚动列表 ========== */}
-                {presetAvatars.length === 0 ? (
-                  <View style={{ padding: 20, alignItems: 'center' }}>
-                    <ActivityIndicator size="small" color="#7c3aed" />
-                    <Text style={{ color: '#aaa', marginTop: 8 }}>加载形象中，请稍后...</Text>
-                  </View>
-                ) : (
+
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarScroll}>
                     {presetAvatars
                       .filter(avatar => avatarCategory === 'all' || avatar.category === avatarCategory)
@@ -2185,7 +2192,7 @@ const handleGenerate = () => {
                         </TouchableOpacity>
                       ))}
                   </ScrollView>
-                )}
+               
 
                 {/* 原有的上传照片卡片 */}
                 <Card style={styles.imageCard}>
@@ -2241,16 +2248,6 @@ const handleGenerate = () => {
                     </TouchableOpacity>
                   </View>
 
-                  {voicesLoading && ttsVoices.length === 0 ? (
-                    <View style={styles.loadingVoices}>
-                      <ActivityIndicator size="small" color="#7c3aed" />
-                      <Text style={styles.loadingVoicesText}>加载音色中...</Text>
-                    </View>
-                  ) : ttsVoices.length === 0 ? (
-                    <View style={styles.loadingVoices}>
-                      <Text style={styles.loadingVoicesText}>暂无音色，请点击刷新重试</Text>
-                    </View>
-                  ) : (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                       {ttsVoices.map(voice => (
                         <View key={voice.id} style={styles.voiceItemWrapper}>
@@ -2285,7 +2282,6 @@ const handleGenerate = () => {
                         </View>
                       ))}
                     </ScrollView>
-                  )}
                 </Card>
 
                 {/* 数字人名称（可选） */}
@@ -2386,16 +2382,7 @@ const handleGenerate = () => {
                           </TouchableOpacity>
                         </View>
 
-                        {voicesLoading && ttsVoices.length === 0 ? (
-                          <View style={styles.loadingVoices}>
-                            <ActivityIndicator size="small" color="#7c3aed" />
-                            <Text style={styles.loadingVoicesText}>加载音色中...</Text>
-                          </View>
-                        ) : ttsVoices.length === 0 ? (
-                          <View style={styles.loadingVoices}>
-                            <Text style={styles.loadingVoicesText}>暂无音色，请点击刷新重试</Text>
-                          </View>
-                        ) : (
+
                           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                             {ttsVoices.map(voice => (
                               <View key={voice.id} style={styles.voiceItemWrapper}>
@@ -2430,7 +2417,7 @@ const handleGenerate = () => {
                               </View>
                             ))}
                           </ScrollView>
-                        )}
+                     
                       </Card>
 
                       <Card style={styles.inputCard}>
