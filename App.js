@@ -239,16 +239,14 @@ export default function App() {
     setHeight('170');
     setResult(null);
     
-    // 离开数字人相关模块时停止音色播放
-    if (activeTab !== 'digital' && activeTab !== 'digital_custom') {
-      if (soundRef.current) {
-        try {
-          soundRef.current.stopAsync();
-          soundRef.current.unloadAsync();
-        } catch (e) {}
-        soundRef.current = null;
-        setPlayingVoiceId(null);
-      }
+    // 切换任何模块都停止音色
+    if (soundRef.current) {
+      try {
+        soundRef.current.stopAsync();
+        soundRef.current.unloadAsync();
+      } catch (e) {}
+      soundRef.current = null;
+      setPlayingVoiceId(null);
     }
   }, [activeTab]);
 
