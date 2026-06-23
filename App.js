@@ -263,32 +263,27 @@ export default function App() {
     }
   }, []);
 
-  // 👇 👇 👇 新增：监听页面可见性变化（放在最后）
+  // 监听页面可见性，支付返回后自动刷新余额
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('🔄 页面重新可见，刷新余额');
-        const token = localStorage.getItem('access_token');
-        if (token) {
-          fetchUserCredits();
-        }
-      }
-    };
-
-    const handleFocus = () => {
-      console.log('🔄 窗口获得焦点，刷新余额');
+    const refreshData = () => {
       const token = localStorage.getItem('access_token');
       if (token) {
+        console.log('🔄 检测到页面返回，刷新余额');
         fetchUserCredits();
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        refreshData();
+      }
+    });
+
+    window.addEventListener('focus', refreshData);
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', refreshData);
+      window.removeEventListener('focus', refreshData);
     };
   }, []);
 
