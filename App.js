@@ -383,17 +383,32 @@ export default function App() {
       return;
     }
 
+    console.log('🔍 doAlipayPay - 支付链接:', payUrl);
+    console.log('🔍 doAlipayPay - channel:', channel);
+    console.log('🔍 doAlipayPay - 是否在支付宝内:', isInsideAlipay);
+
+    // 1. PC端二维码支付
     if (channel === 'pc_qr') {
-      Linking.openURL(payUrl);
+      // PC端用 window.open 打开新窗口
+      if (isDesktopBrowser) {
+        window.open(payUrl, '_blank');
+      } else {
+        window.location.href = payUrl;
+      }
       return;
     }
 
+    // 2. 移动端 H5 支付（主要场景）
     if (channel === 'mobile_wap') {
+      // 直接使用 window.location.href，在鸿蒙 WebView 中会被 onLoadIntercept 拦截
+      console.log('✅ 移动端H5支付，使用 window.location.href');
       window.location.href = payUrl;
       return;
     }
 
+    // 3. 在支付宝 APP 内嵌浏览器中（AlipayJSBridge）
     if (isInsideAlipay && window.AlipayJSBridge) {
+      console.log('✅ 在支付宝APP内，使用 AlipayJSBridge');
       const tradePayPayload = /^https?:\/\//i.test(payUrl)
         ? { url: payUrl }
         : { orderStr: payUrl };
@@ -402,29 +417,30 @@ export default function App() {
         if (result?.resultCode === '9000') {
           showToast('支付成功');
           setTimeout(() => {
-            console.log('支付成功，开始刷新余额');
             fetchUserCredits();
-            console.log('余额刷新完成，准备刷新页面');
             window.location.reload();
           }, 2000);
           return;
         }
-
         if (result?.resultCode === '6001') {
           showToast('已取消支付', true);
           return;
         }
-
         showToast('支付未完成，请稍后查询订单状态', true);
       });
       return;
     }
 
+    // 4. 桌面浏览器 - 使用 window.open
     if (isDesktopBrowser) {
-      Linking.openURL(payUrl);
-    } else {
-      Linking.openURL(payUrl);
+      console.log('✅ 桌面浏览器，使用 window.open');
+      window.open(payUrl, '_blank');
+      return;
     }
+
+    // 5. 其他情况 - 统一使用 window.location.href（兼容鸿蒙 WebView）
+    console.log('✅ 默认使用 window.location.href');
+    window.location.href = payUrl;
   };
 
   // 发送找回密码验证码
@@ -507,25 +523,25 @@ export default function App() {
         return;
       }
 
-      // 如果没有二维码，才尝试用 pay_url 支付
+      // ========== 如果没有二维码，用 pay_url 支付 ==========
       if (pay_url) {
-        // 判断是不是网页链接，如果是，尝试用 Linking 打开
-        if (pay_url.startsWith('http')) {
+        console.log('🔍 handleRecharge - 支付链接:', pay_url);
+        console.log('🔍 是否以 http 开头:', pay_url.startsWith('http'));
+        
+        try {
+          // 👇 核心修改：使用 window.location.href 替代 Linking.openURL
+          // 在鸿蒙 WebView 中会被 onLoadIntercept 拦截并拉起支付宝
+          // 在普通浏览器中会正常跳转
+          window.location.href = pay_url;
+          startPaymentPolling(out_trade_no);
+        } catch (err) {
+          console.log('支付跳转失败:', err);
+          // 降级：尝试使用 Linking
           try {
             await Linking.openURL(pay_url);
             startPaymentPolling(out_trade_no);
-          } catch (err) {
-            console.log('打开支付链接失败:', err);
+          } catch (e) {
             showToast('支付跳转失败，请重试', true);
-          }
-        } else {
-          // 如果不是网页链接，也尝试用 Linking 打开
-          try {
-            await Linking.openURL(pay_url);
-            startPaymentPolling(out_trade_no);
-          } catch (err) {
-            console.log('唤起支付宝失败:', err);
-            showToast('无法唤起支付宝，请确认已安装支付宝App', true);
           }
         }
         return;
@@ -565,50 +581,52 @@ export default function App() {
     }, 2000);
   };
 
-const handleMembership = async (pkg) => {
-  if (!accessToken) {
-    showToast('请先登录', true);
-    setShowRechargeModal(false);
-    setShowLoginModal(true);
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const res = await axios.post(`${API_URL}/payment/create_order`, {
-      package_id: pkg.id,
-      amount: pkg.price,
-      credits: pkg.monthlyCredits,
-      type: 'membership'
-    }, {
-      headers: { 'Authorization': `Bearer ${accessToken}` }
-    });
-
-    const { pay_url, qr_code, out_trade_no } = res.data;
-    setShowRechargeModal(false);
-    setPendingOrderId(out_trade_no || '');
-    setPaymentLink('');
-    setPaymentQRCode('');
-
-    if (pay_url) {
-      Linking.openURL(pay_url);
+  const handleMembership = async (pkg) => {
+    if (!accessToken) {
+      showToast('请先登录', true);
+      setShowRechargeModal(false);
+      setShowLoginModal(true);
       return;
     }
 
-    if (qr_code) {
-      setPaymentQRCode(qr_code);
-      setShowPaymentModal(true);
-      return;
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API_URL}/payment/create_order`, {
+        package_id: pkg.id,
+        amount: pkg.price,
+        credits: pkg.monthlyCredits,
+        type: 'membership'
+      }, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+
+      const { pay_url, qr_code, out_trade_no } = res.data;
+      setShowRechargeModal(false);
+      setPendingOrderId(out_trade_no || '');
+      setPaymentLink('');
+      setPaymentQRCode('');
+
+      // ========== 修改：使用 window.location.href 替代 Linking.openURL ==========
+      if (pay_url) {
+        console.log('🔍 handleMembership - 支付链接:', pay_url);
+        // 在鸿蒙 WebView 中会被 onLoadIntercept 拦截并拉起支付宝
+        window.location.href = pay_url;
+        return;
+      }
+
+      if (qr_code) {
+        setPaymentQRCode(qr_code);
+        setShowPaymentModal(true);
+        return;
+      }
+
+      showToast('支付链接获取失败', true);
+    } catch (err) {
+      showToast(err.response?.data?.detail || '创建订单失败', true);
+    } finally {
+      setLoading(false);
     }
-
-    showToast('支付链接获取失败', true);
-  } catch (err) {
-    showToast(err.response?.data?.detail || '创建订单失败', true);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
   const fetchDigitalHumans = async () => {
     const token = localStorage.getItem('access_token');
     if (!token) return;
