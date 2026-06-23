@@ -263,6 +263,35 @@ export default function App() {
     }
   }, []);
 
+  // 👇 👇 👇 新增：监听页面可见性变化（放在最后）
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('🔄 页面重新可见，刷新余额');
+        const token = localStorage.getItem('access_token');
+        if (token) {
+          fetchUserCredits();
+        }
+      }
+    };
+
+    const handleFocus = () => {
+      console.log('🔄 窗口获得焦点，刷新余额');
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        fetchUserCredits();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
   const handleLogin = async () => {
     if (!loginPhone.trim()) return showToast('请输入手机号');
     if (loginMode === 'password' && !loginPassword.trim()) return showToast('请输入密码');
