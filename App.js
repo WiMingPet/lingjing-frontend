@@ -468,23 +468,42 @@ export default function App() {
       });
 
       const { pay_url, qr_code, out_trade_no } = res.data;
+
       setShowRechargeModal(false);
       setPendingOrderId(out_trade_no || '');
-      setPaymentLink('');
+      setPaymentLink(pay_url || ''); 
       setPaymentQRCode('');
 
-      if (pay_url) {
-        Linking.openURL(pay_url);
-        // 支付跳转后轮询检查支付状态
+      // 核心改动：优先展示二维码，这是最稳妥的支付方式
+      if (qr_code) {
+        setPaymentQRCode(qr_code);
+        setShowPaymentModal(true);
+        // 启动支付状态轮询
         startPaymentPolling(out_trade_no);
         return;
       }
 
-      if (qr_code) {
-        setPaymentQRCode(qr_code);
-        setShowPaymentModal(true);
-        // 展示二维码时也启动轮询
-        startPaymentPolling(out_trade_no);
+      // 如果没有二维码，才尝试用 pay_url 支付
+      if (pay_url) {
+        // 判断是不是网页链接，如果是，尝试用 Linking 打开
+        if (pay_url.startsWith('http')) {
+          try {
+            await Linking.openURL(pay_url);
+            startPaymentPolling(out_trade_no);
+          } catch (err) {
+            console.log('打开支付链接失败:', err);
+            showToast('支付跳转失败，请重试', true);
+          }
+        } else {
+          // 如果不是网页链接，也尝试用 Linking 打开
+          try {
+            await Linking.openURL(pay_url);
+            startPaymentPolling(out_trade_no);
+          } catch (err) {
+            console.log('唤起支付宝失败:', err);
+            showToast('无法唤起支付宝，请确认已安装支付宝App', true);
+          }
+        }
         return;
       }
 
@@ -2953,12 +2972,10 @@ const handleGenerate = () => {
                       <Text style={{ color: '#999', fontSize: S(12), marginBottom: S(10) }}>
                         点击下方联系客服
                       </Text>
-                      {/* 这里不能放 TouchableOpacity 嵌套了，因为父级已经拦截了点击 */}
-                      {/* 改为普通 View + 单独处理点击 */}
                       <View style={{ flexDirection: 'row', gap: S(10) }}>
                         <TouchableOpacity 
                           onPress={(e) => {
-                            e.stopPropagation(); // 阻止冒泡到父级
+                            e.stopPropagation();
                             navigator.clipboard.writeText('3060302415');
                             showToast('✅ QQ已复制');
                           }}
@@ -2970,12 +2987,13 @@ const handleGenerate = () => {
                         <TouchableOpacity 
                           onPress={(e) => {
                             e.stopPropagation();
-                            Linking.openURL('tel:15920978058');
+                            navigator.clipboard.writeText('15920978058');
+                            showToast('手机号已复制，请到拨号盘拨打');
                           }}
                           style={{ flex: 1, backgroundColor: '#3b3b5c', borderRadius: S(8), padding: S(10), alignItems: 'center' }}
                         >
                           <Text style={{ color: '#10b981', fontSize: S(13) }}>📞 15920978058</Text>
-                          <Text style={{ color: '#666', fontSize: S(10) }}>点击拨打</Text>
+                          <Text style={{ color: '#666', fontSize: S(10) }}>点击复制</Text>
                         </TouchableOpacity>
                       </View>
                     </TouchableOpacity>
