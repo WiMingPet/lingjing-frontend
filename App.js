@@ -1892,9 +1892,13 @@ const handleMembership = async (pkg) => {
       return (
         <Card style={styles.resultCard}>
           <Text style={styles.resultTitle}>{activeTab === 'image' ? '✨ 生成图片' : '🔄 多角度合成'}</Text>
-          <TouchableOpacity onPress={() => { setPreviewUrl(imageUrl); setModalVisible(true); }}>
+          <View style={{ position: 'relative' }}>
             <Image source={{ uri: imageUrl }} style={styles.resultImage} resizeMode="contain" />
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+              onPress={() => { setPreviewUrl(imageUrl); setModalVisible(true); }}
+            />
+          </View>
           <View style={styles.buttonGroup}>
             <TouchableOpacity onPress={(e) => { e.stopPropagation(); navigator.clipboard.writeText(imageUrl); showToast('链接已复制'); }} style={styles.actionButton}>
               <Icon name="copy-outline" size={18} color="#7c3aed" />
@@ -1960,7 +1964,7 @@ const handleMembership = async (pkg) => {
             
             <TouchableOpacity 
               onPress={(e) => {
-                if (e && e.stopPropagation) e.stopPropagation();
+                e.stopPropagation();
                 downloadFile(videoUrl, filename);
               }} 
               style={styles.actionButton}
@@ -1968,10 +1972,10 @@ const handleMembership = async (pkg) => {
               <Icon name="download-outline" size={18} color="#10b981" />
               <Text style={styles.actionText}>下载</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity 
               onPress={(e) => {
-                if (e && e.stopPropagation) e.stopPropagation();
+                e.stopPropagation();
                 saveToGallery(videoUrl, 'video');
               }} 
               style={styles.actionButton}
