@@ -1812,6 +1812,14 @@ const handleGenerate = () => {
     // 通用下载函数
     const downloadFile = async (url, filename) => {
       try {
+        // ✅ 检测鸿蒙环境 → 调用原生桥接
+        if (window.harmonyBridge?.saveFile) {
+          console.log('📥 鸿蒙下载:', url, filename);
+          window.harmonyBridge.saveFile(url, filename);
+          showToast('正在下载...');
+          return; // ✅ 直接返回，由原生处理
+        }
+        // ✅ 非鸿蒙环境：执行原有逻辑
         const response = await fetch(url);
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
