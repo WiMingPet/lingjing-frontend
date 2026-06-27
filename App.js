@@ -853,7 +853,7 @@ const handleMembership = async (pkg) => {
   // 保存文件到本地相册（移动端）或下载（Web）
   const saveToGallery = async (url, type) => {
     try {
-      // ✅ 检测鸿蒙环境 → 调用原生桥接
+      // ✅ 鸿蒙环境 → 调用原生桥接
       if (window.harmonyBridge?.saveFile) {
         const fileName = `${type}_${Date.now()}.${type === 'image' ? 'png' : 'mp4'}`;
         console.log('📥 鸿蒙保存:', url, fileName);
@@ -862,23 +862,33 @@ const handleMembership = async (pkg) => {
         return;
       }
 
-      // ✅ 非鸿蒙环境：执行原有逻辑
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const filename = `${type}_${Date.now()}.${type === 'image' ? 'png' : 'mp4'}`;
+      // ✅ 浏览器环境：直接使用 a 标签下载（不通过 fetch）
+      console.log('📥 浏览器保存:', url);
+      
+      // 检查 URL 是否有效
+      if (!url || !url.startsWith('http')) {
+        showToast('链接无效，请重新生成', true);
+        return;
+      }
 
-      // Web端下载
+      const filename = `${type}_${Date.now()}.${type === 'image' ? 'png' : 'mp4'}`;
       const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
+      link.href = url;
       link.download = filename;
+      link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
       showToast('下载已开始');
     } catch (err) {
       console.error('保存失败:', err);
-      showToast('保存失败，请重试', true);
+      // 降级方案：新窗口打开
+      try {
+        window.open(url, '_blank');
+        showToast('已在新窗口打开，请右键保存');
+      } catch (e) {
+        showToast('保存失败，请重试', true);
+      }
     }
   };
   // 从后端加载历史记录
@@ -1800,49 +1810,61 @@ const handleMembership = async (pkg) => {
       }
     };
 
-const handleGenerate = () => {
-      switch (activeTab) {
-        case 'size': recommendSize(); break;
-        case 'image': generateImage(); break;
-        case 'video': generateVideo(); break;
-        case 'tryon': generateTryon(); break;
-        case 'multi': generateMultiAngle(); break;  // ✅ 新增多角度
-        case 'digital': generateDigitalHuman(); break;
-        case 'digital_custom': generateDigitalHumanCustom(); break;
-        default: break;
-      }
-    };
+  const handleGenerate = () => {
+        switch (activeTab) {
+          case 'size': recommendSize(); break;
+          case 'image': generateImage(); break;
+          case 'video': generateVideo(); break;
+          case 'tryon': generateTryon(); break;
+          case 'multi': generateMultiAngle(); break;  // ✅ 新增多角度
+          case 'digital': generateDigitalHuman(); break;
+          case 'digital_custom': generateDigitalHumanCustom(); break;
+          default: break;
+        }
+      };
 
   const renderResult = () => {
     if (!result) return null;
 
-    // 通用下载函数
-    const downloadFile = async (url, filename) => {
+  // 通用下载函数
+  const downloadFile = async (url, filename) => {
+    try {
+      // ✅ 鸿蒙环境 → 调用原生桥接
+      if (window.harmonyBridge?.saveFile) {
+        console.log('📥 鸿蒙下载:', url, filename);
+        window.harmonyBridge.saveFile(url, filename);
+        showToast('正在下载...');
+        return;
+      }
+
+      // ✅ 浏览器环境：直接使用 a 标签下载（不通过 fetch）
+      console.log('📥 浏览器下载:', url);
+      
+      // 检查 URL 是否有效
+      if (!url || !url.startsWith('http')) {
+        showToast('链接无效，请重新生成', true);
+        return;
+      }
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('下载已开始');
+    } catch (err) {
+      console.error('下载失败:', err);
+      // 降级方案：新窗口打开
       try {
-        // ✅ 检测鸿蒙环境 → 调用原生桥接
-        if (window.harmonyBridge?.saveFile) {
-          console.log('📥 鸿蒙下载:', url, filename);
-          window.harmonyBridge.saveFile(url, filename);
-          showToast('正在下载...');
-          return; // ✅ 直接返回，由原生处理
-        }
-        // ✅ 非鸿蒙环境：执行原有逻辑
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(blobUrl);
-        showToast('下载已开始');
-      } catch (err) {
-        console.error('下载失败:', err);
+        window.open(url, '_blank');
+        showToast('已在新窗口打开，请右键保存');
+      } catch (e) {
         showToast('下载失败，请重试', true);
       }
-    };
+    }
+  };
 
     // 尺码推荐
     if (activeTab === 'size') {
