@@ -1832,32 +1832,20 @@ const handleMembership = async (pkg) => {
         return;
       }
 
-      // ✅ 浏览器环境：直接使用 a 标签下载（不通过 fetch）
-      console.log('📥 浏览器下载:', url);
-      
-      // 检查 URL 是否有效
-      if (!url || !url.startsWith('http')) {
-        showToast('链接无效，请重新生成', true);
-        return;
-      }
-
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
+      link.href = blobUrl;
       link.download = filename;
-      link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
       showToast('下载已开始');
     } catch (err) {
       console.error('下载失败:', err);
-      // 降级方案：新窗口打开
-      try {
-        window.open(url, '_blank');
-        showToast('已在新窗口打开，请右键保存');
-      } catch (e) {
-        showToast('下载失败，请重试', true);
-      }
+      showToast('下载失败，请重试', true);
     }
   };
 
@@ -1892,13 +1880,9 @@ const handleMembership = async (pkg) => {
       return (
         <Card style={styles.resultCard}>
           <Text style={styles.resultTitle}>{activeTab === 'image' ? '✨ 生成图片' : '🔄 多角度合成'}</Text>
-          <View style={{ position: 'relative' }}>
+          <TouchableOpacity onPress={() => { setPreviewUrl(imageUrl); setModalVisible(true); }}>
             <Image source={{ uri: imageUrl }} style={styles.resultImage} resizeMode="contain" />
-            <TouchableOpacity 
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-              onPress={() => { setPreviewUrl(imageUrl); setModalVisible(true); }}
-            />
-          </View>
+          </TouchableOpacity>
           <View style={styles.buttonGroup}>
             <TouchableOpacity onPress={(e) => { e.stopPropagation(); navigator.clipboard.writeText(imageUrl); showToast('链接已复制'); }} style={styles.actionButton}>
               <Icon name="copy-outline" size={18} color="#7c3aed" />
