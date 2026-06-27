@@ -2916,51 +2916,85 @@ const handleGenerate = () => {
                 <Text style={styles.cardTitle}>📜 历史记录</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {history.map((item) => (
-                    <TouchableOpacity
-                      key={item.id}
-                      onPress={() => {
-                        if (item.type === '视频生成' || item.type === '虚拟试穿' || item.type === '数字人分身' || item.type === 'AI带货视频' || item.type === '多角度试穿') {
-                          setCurrentVideoUrl(item.url);
-                          setVideoModalVisible(true);
-                        } else if (item.type === '图片生成') {
-                          setSelectedImage(null);
-                          setModelImage(null);
-                          setGarmentImage(null);
-                          setDigitalImage(null);
-                          setResult({ images: [{ url: item.url }] });
-                          setActiveTab('image');
-                        } else {
-                          setCurrentVideoUrl(item.url);
-                          setVideoModalVisible(true);
-                        }
-                      }}
-                      style={styles.historyItem}
-                    >
-                      <View style={{ position: 'relative' }}>
-                        <Image
-                          source={{ uri: item.thumbnail || item.url }}
-                          style={styles.historyImage}
-                          onError={(e) => {
-                            if (e.nativeEvent?.error) {
-                              // 加载失败，可以设置一个备用 source
-                            }
-                          }}
-                        />
-                        <View style={{
-                          position: 'absolute',
-                          bottom: 4,
-                          right: 4,
-                          backgroundColor: 'rgba(0,0,0,0.6)',
-                          paddingHorizontal: 4,
-                          paddingVertical: 2,
-                          borderRadius: 2,
-                        }}>
-                          <Text style={{ color: '#fff', fontSize: 10 }}>AI生成</Text>
+                    <View key={item.id} style={styles.historyItemContainer}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (item.type === '视频生成' || item.type === '虚拟试穿' || item.type === '数字人分身' || item.type === 'AI带货视频' || item.type === '多角度试穿') {
+                            setCurrentVideoUrl(item.url);
+                            setVideoModalVisible(true);
+                          } else if (item.type === '图片生成') {
+                            setSelectedImage(null);
+                            setModelImage(null);
+                            setGarmentImage(null);
+                            setDigitalImage(null);
+                            setResult({ images: [{ url: item.url }] });
+                            setActiveTab('image');
+                          } else {
+                            setCurrentVideoUrl(item.url);
+                            setVideoModalVisible(true);
+                          }
+                        }}
+                        style={styles.historyItem}
+                      >
+                        <View style={{ position: 'relative' }}>
+                          <Image
+                            source={{ uri: item.thumbnail || item.url }}
+                            style={styles.historyImage}
+                            onError={(e) => {
+                              if (e.nativeEvent?.error) {
+                                // 加载失败，可以设置一个备用 source
+                              }
+                            }}
+                          />
+                          <View style={{
+                            position: 'absolute',
+                            bottom: 4,
+                            right: 4,
+                            backgroundColor: 'rgba(0,0,0,0.6)',
+                            paddingHorizontal: 4,
+                            paddingVertical: 2,
+                            borderRadius: 2,
+                          }}>
+                            <Text style={{ color: '#fff', fontSize: 10 }}>AI生成</Text>
+                          </View>
                         </View>
-                      </View>
-                      <Text style={styles.historyText}>{item.type}</Text>
-                      <Text style={styles.historyTime}>{item.timestamp}</Text>
-                    </TouchableOpacity>
+                        <Text style={styles.historyText}>{item.type}</Text>
+                        <Text style={styles.historyTime}>{item.timestamp}</Text>
+                      </TouchableOpacity>
+
+                      {/* ✅ 新增：下载按钮 */}
+                      <TouchableOpacity
+                        style={styles.historyDownloadBtn}
+                        onPress={(e) => {
+                          if (e && e.stopPropagation) {
+                            e.stopPropagation();
+                            e.preventDefault();
+                          }
+                          
+                          // 判断文件类型
+                          const isVideo = item.type === '视频生成' || 
+                                          item.type === '虚拟试穿' || 
+                                          item.type === '数字人分身' || 
+                                          item.type === 'AI带货视频' || 
+                                          item.type === '多角度试穿';
+                          const fileType = isVideo ? 'video' : 'image';
+                          const extension = isVideo ? 'mp4' : 'png';
+                          const fileName = `${item.type}_${Date.now()}.${extension}`;
+                          
+                          // ✅ 鸿蒙环境调用原生保存
+                          if (window.harmonyBridge?.saveFile) {
+                            window.harmonyBridge.saveFile(item.url, fileName);
+                            showToast('正在下载...');
+                          } else {
+                            // 非鸿蒙环境使用原有下载函数
+                            downloadFile(item.url, fileName);
+                          }
+                        }}
+                      >
+                        <Icon name="download-outline" size={16} color="#10b981" />
+                        <Text style={styles.downloadBtnText}>下载</Text>
+                      </TouchableOpacity>
+                    </View>
                   ))}
                 </ScrollView>
               </Card>
@@ -4251,5 +4285,25 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: S(13),
     lineHeight: S(20),
+  },
+  historyItemContainer: {
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  historyDownloadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 2,
+    borderWidth: 0.5,
+    borderColor: '#10b981',
+  },
+  downloadBtnText: {
+    color: '#10b981',
+    fontSize: 10,
+    marginLeft: 2,
   },
 });
