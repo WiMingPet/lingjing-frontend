@@ -846,27 +846,29 @@ const handleMembership = async (pkg) => {
   // 保存文件到本地相册（移动端）或下载（Web）
   const saveToGallery = async (url, type) => {
     try {
+      // ✅ 检测鸿蒙环境 → 调用原生桥接
+      if (window.harmonyBridge?.saveFile) {
+        const fileName = `${type}_${Date.now()}.${type === 'image' ? 'png' : 'mp4'}`;
+        console.log('📥 鸿蒙保存:', url, fileName);
+        window.harmonyBridge.saveFile(url, fileName);
+        showToast('正在保存...');
+        return;
+      }
+
+      // ✅ 非鸿蒙环境：执行原有逻辑
       const response = await fetch(url);
       const blob = await response.blob();
       const filename = `${type}_${Date.now()}.${type === 'image' ? 'png' : 'mp4'}`;
 
-      if (Platform.OS === 'web') {
-        // Web端：触发下载
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(link.href);
-        showToast('文件已下载，请手动保存到相册');
-      } else {
-        // 移动端：保存到相册
-        const fileInfo = await FileSystem.downloadAsync(url, FileSystem.documentDirectory + filename);
-        const asset = await MediaLibrary.createAssetAsync(fileInfo.uri);
-        await MediaLibrary.saveToLibraryAsync(asset);
-        showToast('已保存到相册');
-      }
+      // Web端下载
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      showToast('下载已开始');
     } catch (err) {
       console.error('保存失败:', err);
       showToast('保存失败，请重试', true);
@@ -1883,7 +1885,7 @@ const handleGenerate = () => {
     if ((activeTab === 'video' || activeTab === 'tryon' || activeTab === 'digital') && result.video_url) {
       const videoUrl = result.video_url;
       const filename = `${activeTab === 'video' ? 'video' : activeTab === 'tryon' ? 'tryon' : 'digital'}_${Date.now()}.mp4`;
-  
+
       return (
         <Card style={styles.resultCard}>
           <Text style={styles.resultTitle}>
@@ -1913,15 +1915,35 @@ const handleGenerate = () => {
             </View>
           </View>
           <View style={styles.buttonGroup}>
-            <TouchableOpacity onPress={() => { navigator.clipboard.writeText(videoUrl); showToast('链接已复制'); }} style={styles.actionButton}>
+            <TouchableOpacity 
+              onPress={() => { 
+                navigator.clipboard.writeText(videoUrl); 
+                showToast('链接已复制'); 
+              }} 
+              style={styles.actionButton}
+            >
               <Icon name="copy-outline" size={18} color="#7c3aed" />
               <Text style={styles.actionText}>复制链接</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => downloadFile(videoUrl, filename)} style={styles.actionButton}>
+            
+            <TouchableOpacity 
+              onPress={(e) => {
+                if (e && e.stopPropagation) e.stopPropagation();
+                downloadFile(videoUrl, filename);
+              }} 
+              style={styles.actionButton}
+            >
               <Icon name="download-outline" size={18} color="#10b981" />
               <Text style={styles.actionText}>下载</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => saveToGallery(videoUrl, 'video')} style={styles.actionButton}>
+            
+            <TouchableOpacity 
+              onPress={(e) => {
+                if (e && e.stopPropagation) e.stopPropagation();
+                saveToGallery(videoUrl, 'video');
+              }} 
+              style={styles.actionButton}
+            >
               <Icon name="videocam-outline" size={18} color="#f59e0b" />
               <Text style={styles.actionText}>保存相册</Text>
             </TouchableOpacity>
