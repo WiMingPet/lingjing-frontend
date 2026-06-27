@@ -862,33 +862,28 @@ const handleMembership = async (pkg) => {
         return;
       }
 
-      // ✅ 浏览器环境：直接使用 a 标签下载（不通过 fetch）
-      console.log('📥 浏览器保存:', url);
-      
-      // 检查 URL 是否有效
-      if (!url || !url.startsWith('http')) {
-        showToast('链接无效，请重新生成', true);
-        return;
-      }
-
+      const response = await fetch(url);
+      const blob = await response.blob();
       const filename = `${type}_${Date.now()}.${type === 'image' ? 'png' : 'mp4'}`;
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      showToast('下载已开始');
+
+      if (Platform.OS === 'web') {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+        showToast('文件已下载，请手动保存到相册');
+      } else {
+        const fileInfo = await FileSystem.downloadAsync(url, FileSystem.documentDirectory + filename);
+        const asset = await MediaLibrary.createAssetAsync(fileInfo.uri);
+        await MediaLibrary.saveToLibraryAsync(asset);
+        showToast('已保存到相册');
+      }
     } catch (err) {
       console.error('保存失败:', err);
-      // 降级方案：新窗口打开
-      try {
-        window.open(url, '_blank');
-        showToast('已在新窗口打开，请右键保存');
-      } catch (e) {
-        showToast('保存失败，请重试', true);
-      }
+      showToast('保存失败，请重试', true);
     }
   };
   // 从后端加载历史记录
@@ -1901,15 +1896,15 @@ const handleMembership = async (pkg) => {
             <Image source={{ uri: imageUrl }} style={styles.resultImage} resizeMode="contain" />
           </TouchableOpacity>
           <View style={styles.buttonGroup}>
-            <TouchableOpacity onPress={() => { navigator.clipboard.writeText(imageUrl); showToast('链接已复制'); }} style={styles.actionButton}>
+            <TouchableOpacity onPress={(e) => { e.stopPropagation(); navigator.clipboard.writeText(imageUrl); showToast('链接已复制'); }} style={styles.actionButton}>
               <Icon name="copy-outline" size={18} color="#7c3aed" />
               <Text style={styles.actionText}>复制链接</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => downloadFile(imageUrl, filename)} style={styles.actionButton}>
+            <TouchableOpacity onPress={(e) => { e.stopPropagation(); downloadFile(imageUrl, filename); }} style={styles.actionButton}>
               <Icon name="download-outline" size={18} color="#10b981" />
               <Text style={styles.actionText}>下载</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => saveToGallery(imageUrl, 'image')} style={styles.actionButton}>
+            <TouchableOpacity onPress={(e) => { e.stopPropagation(); saveToGallery(imageUrl, 'image'); }} style={styles.actionButton}>
               <Icon name="image-outline" size={18} color="#f59e0b" />
               <Text style={styles.actionText}>保存相册</Text>
             </TouchableOpacity>
@@ -2995,28 +2990,26 @@ const handleMembership = async (pkg) => {
                       <TouchableOpacity
                         style={styles.historyDownloadBtn}
                         onPress={(e) => {
-                          if (e && e.stopPropagation) {
-                            e.stopPropagation();
-                            e.preventDefault();
-                          }
+                          e.stopPropagation();
                           
-                          // 判断文件类型
                           const isVideo = item.type === '视频生成' || 
                                           item.type === '虚拟试穿' || 
                                           item.type === '数字人分身' || 
                                           item.type === 'AI带货视频' || 
                                           item.type === '多角度试穿';
-                          const fileType = isVideo ? 'video' : 'image';
                           const extension = isVideo ? 'mp4' : 'png';
                           const fileName = `${item.type}_${Date.now()}.${extension}`;
                           
-                          // ✅ 鸿蒙环境调用原生保存
                           if (window.harmonyBridge?.saveFile) {
                             window.harmonyBridge.saveFile(item.url, fileName);
                             showToast('正在下载...');
                           } else {
-                            // 非鸿蒙环境使用原有下载函数
-                            downloadFile(item.url, fileName);
+                            const link = document.createElement('a');
+                            link.href = item.url;
+                            link.download = fileName;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
                           }
                         }}
                       >
