@@ -61,6 +61,13 @@ export default function App() {
       }
     `;
     document.head.appendChild(style);
+    // ===== ✅ 新增：注册全局 Toast =====
+    window.showToast = (message) => {
+      // 使用您现有的 Toast 状态
+      setToastMessage(message);
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 3000);
+    };
     return () => {
       document.head.removeChild(style);
     };
