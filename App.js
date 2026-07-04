@@ -1126,9 +1126,8 @@ const handleMembership = async (pkg) => {
       console.log('图片生成响应:', res);
     
       // 提取图片 URL
-      const imgUrl = res.data?.data?.output_data?.images?.[0]?.url ||
-                     res.data?.output_data?.images?.[0]?.url ||
-                     res.data?.images?.[0]?.url;
+      const outputData = res.data?.output_data;
+      const imgUrl = outputData?.images?.[0]?.url;
     
       if (!imgUrl) {
         console.error('无法提取图片 URL:', res);
