@@ -1099,7 +1099,7 @@ const handleMembership = async (pkg) => {
     setIsGenerating(true);
     setGeneratingTitle('AI正在生成图片');
     setGeneratingSubtitle('文生图 / 图生图');
-  
+
     const formData = new FormData();
     const file = await convertToFile(selectedImage);
     const ext = file.name?.split('.').pop() || 'jpg';
@@ -1124,24 +1124,29 @@ const handleMembership = async (pkg) => {
 
       const res = await response.json();
       console.log('图片生成响应:', res);
-    
-      // 提取图片 URL
-      const outputData = res.data?.output_data;
-      const imgUrl = outputData?.images?.[0]?.url;
-    
-      if (!imgUrl) {
-        console.error('无法提取图片 URL:', res);
-        showToast('图片生成成功，但无法获取链接', true);
+
+      // ✅ 获取 task_id
+      const taskId = res.data?.id;
+      if (!taskId) {
+        console.error('无法获取 task_id:', res);
+        showToast('图片任务提交失败', true);
         return;
       }
-    
-      setResult(res.data?.data?.output_data || res.data?.output_data);
-      saveToHistory(imgUrl, '图片生成');
-      showToast('图片生成成功');
+
+      // ✅ 使用轮询机制（和视频模块一致）
+      const queryUrl = `${API_URL}/image/task/${taskId}`;
+      startPollingTask(taskId, '图片生成', queryUrl, {
+        setImageLoading: setImageLoading
+      });
+
+      // ✅ 关闭加载状态，轮询会接管后续处理
+      setImageLoading(false);
+      setIsGenerating(false);
+      showToast('图片任务已提交，正在后台处理...');
+
     } catch (err) {
-      console.error('图片生成错误:', err);
-      showToast(err.message || '生成失败', true);
-    } finally {
+      console.error('图片生成提交错误:', err);
+      showToast(err.message || '提交失败', true);
       setImageLoading(false);
       setIsGenerating(false);
     }
@@ -1279,24 +1284,28 @@ const handleMembership = async (pkg) => {
 
       const res = await response.json();
       console.log('虚拟试穿响应:', res);
-    
-      const tryonUrl = res.data?.data?.output_data?.video_url ||
-                       res.data?.output_data?.video_url ||
-                       res.data?.video_url;
-    
-      if (!tryonUrl) {
-        console.error('无法提取视频 URL:', res);
-        showToast('试穿生成成功，但无法获取链接', true);
+
+      // ✅ 获取 task_id
+      const taskId = res.data?.id || res.data?.task_id;
+      if (!taskId) {
+        console.error('无法获取 task_id:', res);
+        showToast('试穿任务提交失败', true);
         return;
       }
-    
-      setResult(res.data?.data?.output_data || res.data?.output_data);
-      saveToHistory(tryonUrl, '虚拟试穿');
-      showToast('试穿视频生成成功');
+
+      // ✅ 使用轮询机制
+      const queryUrl = `${API_URL}/tryon/task/${taskId}`;
+      startPollingTask(taskId, '虚拟试穿', queryUrl, {
+        setTryonLoading: setTryonLoading
+      });
+
+      setTryonLoading(false);
+      setIsGenerating(false);
+      showToast('试穿任务已提交，正在后台处理...');
+
     } catch (err) {
-      console.error('虚拟试穿错误:', err);
-      showToast(err.message || '试穿失败', true);
-    } finally {
+      console.error('虚拟试穿提交错误:', err);
+      showToast(err.message || '试穿提交失败', true);
       setTryonLoading(false);
       setIsGenerating(false);
     }
@@ -1622,11 +1631,9 @@ const handleMembership = async (pkg) => {
   };
 
   // 通用后台轮询：完成后自动保存历史记录
-  const startPollingTask = (taskId, type, queryUrl) => {
-    // 👇 新增：持久化任务信息
+  const startPollingTask = (taskId, type, queryUrl, loadingSetters = {}) => {
     localStorage.setItem('pending_task', JSON.stringify({ taskId, type, queryUrl }));
     
-    const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
     let attempts = 0;
     const maxAttempts = 60;
     
@@ -1638,8 +1645,9 @@ const handleMembership = async (pkg) => {
         const token = localStorage.getItem('access_token');
         if (!token) { 
           clearInterval(pollingRef.current); 
-          localStorage.removeItem('pending_task'); // 👈 清除
-          setEcommerceLoading(false); 
+          localStorage.removeItem('pending_task');
+          // ✅ 通用清理
+          Object.values(loadingSetters).forEach(setter => setter && setter(false));
           setIsGenerating(false); 
           return; 
         }
@@ -1653,42 +1661,53 @@ const handleMembership = async (pkg) => {
         
         if (task.status === 'completed') {
           clearInterval(pollingRef.current);
-          localStorage.removeItem('pending_task'); // 👈 清除
-          setEcommerceLoading(false);
+          localStorage.removeItem('pending_task');
+          // ✅ 通用清理
+          Object.values(loadingSetters).forEach(setter => setter && setter(false));
           setIsGenerating(false);
-          const videoUrl = task.video_url || task.output_data?.video_url;
-          const thumbnail = task.thumbnail || null;
-          if (videoUrl) {
-            saveToHistory(videoUrl, type, thumbnail);
+          
+          // ✅ 提取 URL（支持图片和视频）
+          const outputData = task.output_data || {};
+          const resultUrl = outputData.video_url || 
+                            outputData.images?.[0]?.url || 
+                            task.video_url ||
+                            task.image_url;
+          
+          // ✅ 提取封面图
+          const thumbnail = outputData.thumbnail || 
+                            outputData.images?.[0]?.url || 
+                            task.thumbnail;
+          
+          if (resultUrl) {
+            saveToHistory(resultUrl, type, thumbnail);
             showToast(`🎉 ${type}生成成功！`);
             await loadHistory();
           }
         } else if (task.status === 'failed') {
           clearInterval(pollingRef.current);
-          localStorage.removeItem('pending_task'); // 👈 清除
-          setEcommerceLoading(false);
+          localStorage.removeItem('pending_task');
+          Object.values(loadingSetters).forEach(setter => setter && setter(false));
           setIsGenerating(false);
           showToast(`${type}生成失败: ${task.message || '请重试'}`, true);
         }
         
         if (attempts >= maxAttempts) {
           clearInterval(pollingRef.current);
-          localStorage.removeItem('pending_task'); // 👈 清除
-          setEcommerceLoading(false);
+          localStorage.removeItem('pending_task');
+          Object.values(loadingSetters).forEach(setter => setter && setter(false));
           setIsGenerating(false);
           showToast('生成超时，请稍后在历史记录中查看', true);
         }
       } catch (err) {
         if (attempts >= maxAttempts) {
           clearInterval(pollingRef.current);
-          localStorage.removeItem('pending_task'); // 👈 清除
-          setEcommerceLoading(false);
+          localStorage.removeItem('pending_task');
+          Object.values(loadingSetters).forEach(setter => setter && setter(false));
           setIsGenerating(false);
         }
       }
     }, 10000);
 
-    // 保存引用以便清除
     return () => {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
