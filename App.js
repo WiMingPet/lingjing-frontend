@@ -43,6 +43,11 @@ const checkPhoneVerified = () => {
   return !!token;
 };
 
+const extractUrl = (text) => {
+  const match = text.match(/https?:\/\/[^\s]+/);
+  return match ? match[0] : text;
+};
+
 export default function App() {
   // 注入全局样式，禁止移动端浏览器自动缩放字体
   useEffect(() => {
@@ -1445,7 +1450,7 @@ const handleMembership = async (pkg) => {
 
       const res = await axios.post(
         `${BACKEND_URL}/ecommerce/parse_url`,
-        { url: ecommerceUrl },
+        { url: extractUrl(ecommerceUrl) },
         {
           headers: {
             'Authorization': `Bearer ${token}`,
