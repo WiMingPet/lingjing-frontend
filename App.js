@@ -1901,14 +1901,14 @@ const handleMembership = async (pkg) => {
             )}
             <View style={{
               position: 'absolute',
-              bottom: 8,
-              right: 8,
-              backgroundColor: 'rgba(0,0,0,0.6)',
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: 4,
+              bottom: 4,
+              right: 4,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              paddingHorizontal: 4,
+              paddingVertical: 2,
+              borderRadius: 3,
             }}>
-              <Text style={{ color: '#fff', fontSize: 12 }}>AI生成</Text>
+              <Text style={{ color: '#fff', fontSize: 9 }}>AI生成</Text>
             </View>
           </View>
           <View style={styles.buttonGroup}>
@@ -2757,14 +2757,14 @@ const handleMembership = async (pkg) => {
                           />
                           <View style={{
                             position: 'absolute',
-                            bottom: 8,
-                            right: 8,
-                            backgroundColor: 'rgba(0,0,0,0.6)',
-                            paddingHorizontal: 8,
-                            paddingVertical: 4,
-                            borderRadius: 4,
+                            bottom: 4,
+                            right: 4,
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            paddingHorizontal: 4,
+                            paddingVertical: 2,
+                            borderRadius: 3,
                           }}>
-                            <Text style={{ color: '#fff', fontSize: 12 }}>AI生成</Text>
+                            <Text style={{ color: '#fff', fontSize: 9 }}>AI生成</Text>
                           </View>
 
                           <TouchableOpacity
@@ -2937,14 +2937,14 @@ const handleMembership = async (pkg) => {
                           />
                           <View style={{
                             position: 'absolute',
-                            bottom: 4,
-                            right: 4,
-                            backgroundColor: 'rgba(0,0,0,0.6)',
-                            paddingHorizontal: 4,
-                            paddingVertical: 2,
+                            bottom: 2,
+                            right: 2,
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            paddingHorizontal: 3,
+                            paddingVertical: 1,
                             borderRadius: 2,
                           }}>
-                            <Text style={{ color: '#fff', fontSize: 10 }}>AI生成</Text>
+                            <Text style={{ color: '#fff', fontSize: 8 }}>AI生成</Text>
                           </View>
                         </View>
                         <Text style={styles.historyText}>{item.type}</Text>
@@ -3515,15 +3515,15 @@ const handleMembership = async (pkg) => {
             {/* AI生成 - 右下角，视频内部 */}
             <View style={{
               position: 'absolute',
-              bottom: 60,
-              right: 40,
-              backgroundColor: 'rgba(0,0,0,0.6)',
-              paddingHorizontal: 16,
-              paddingVertical: 10,
+              bottom: 10,
+              right: 10,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              paddingHorizontal: 8,
+              paddingVertical: 4,
               borderRadius: 4,
               zIndex: 10,
             }}>
-              <Text style={{ color: '#fff', fontSize: 13, fontWeight: 'bold' }}>AI生成</Text>
+              <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>AI生成</Text>
             </View>
 
           </View>
