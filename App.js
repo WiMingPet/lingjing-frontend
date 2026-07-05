@@ -1125,20 +1125,8 @@ const handleMembership = async (pkg) => {
       const res = await response.json();
       console.log('图片生成响应:', res);
     
-      // 提取图片 URL
-      const imgUrl = res.data?.data?.output_data?.images?.[0]?.url ||
-                     res.data?.output_data?.images?.[0]?.url ||
-                     res.data?.images?.[0]?.url;
-    
-      if (!imgUrl) {
-        console.error('无法提取图片 URL:', res);
-        showToast('图片生成成功，但无法获取链接', true);
-        return;
-      }
-    
-      setResult(res.data?.data?.output_data || res.data?.output_data);
-      saveToHistory(imgUrl, '图片生成');
       showToast('图片生成成功');
+      await loadHistory();
     } catch (err) {
       console.error('图片生成错误:', err);
       showToast(err.message || '生成失败', true);
@@ -1281,19 +1269,8 @@ const handleMembership = async (pkg) => {
       const res = await response.json();
       console.log('虚拟试穿响应:', res);
     
-      const tryonUrl = res.data?.data?.output_data?.video_url ||
-                       res.data?.output_data?.video_url ||
-                       res.data?.video_url;
-    
-      if (!tryonUrl) {
-        console.error('无法提取视频 URL:', res);
-        showToast('试穿生成成功，但无法获取链接', true);
-        return;
-      }
-    
-      setResult(res.data?.data?.output_data || res.data?.output_data);
-      saveToHistory(tryonUrl, '虚拟试穿');
       showToast('试穿视频生成成功');
+      await loadHistory();
     } catch (err) {
       console.error('虚拟试穿错误:', err);
       showToast(err.message || '试穿失败', true);
