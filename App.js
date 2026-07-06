@@ -44,8 +44,15 @@ const checkPhoneVerified = () => {
 };
 
 const extractUrl = (text) => {
-  const match = text.match(/https?:\/\/[^\s]+/);
-  return match ? match[0] : text;
+  // 先尝试提取 http/https 链接
+  const httpMatch = text.match(/https?:\/\/[^\s]+/);
+  if (httpMatch) return httpMatch[0];
+  
+  // 如果是 aweme:// 协议，尝试提取嵌套的 url 参数
+  const awemeMatch = text.match(/url=(https?%3A%2F%2F[^&]+)/);
+  if (awemeMatch) return decodeURIComponent(awemeMatch[1]);
+  
+  return text;
 };
 
 export default function App() {
