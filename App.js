@@ -2575,7 +2575,7 @@ const handleMembership = async (pkg) => {
                       <Text style={styles.cardTitle}>🚀 AI 带货视频</Text>
                       
                       {/* 商品链接（必填） */}
-                      <Text style={styles.label}>抖音商品链接</Text>
+                      <Text style={styles.label}>仅支持抖音商城链接</Text>
                       <TextInput
                         style={styles.input}
                         placeholder="粘贴抖音商品链接"
