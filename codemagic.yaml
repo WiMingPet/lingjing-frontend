@@ -12,7 +12,7 @@ workflows:
       - name: Install npm dependencies
         script: npm install
       - name: Build Expo Web
-        script: npx expo export:web
+        script: npx expo export --platform web
       - name: Sync Capacitor
         script: npx cap sync ios
       - name: Enable IAP capability
