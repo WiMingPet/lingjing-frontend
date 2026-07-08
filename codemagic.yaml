@@ -4,7 +4,7 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.lingjingmedia.app
+        bundle_identifier: com.lingjing-media.app
       vars:
         BUILD_NUMBER: 1
         MARKETING_VERSION: 1.0.0

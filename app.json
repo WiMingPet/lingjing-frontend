@@ -14,7 +14,14 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.lingjing-media.app",
+      "buildNumber": "1",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "需要访问相册以选择图片生成AI内容",
+        "NSCameraUsageDescription": "需要相机拍摄照片用于AI生成",
+        "NSMicrophoneUsageDescription": "需要麦克风录制音频用于数字人功能"
+      }
     },
     "android": {
       "adaptiveIcon": {
