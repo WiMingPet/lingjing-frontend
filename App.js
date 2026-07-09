@@ -154,7 +154,7 @@ export default function App() {
   const [loginMode, setLoginMode] = useState('password');
   const [loginCode, setLoginCode] = useState('');
   const [digitalHumans, setDigitalHumans] = useState([]);
-  const [membershipLevel, setMembershipLevel] = useState('free');
+
   const [showSidebarMenu, setShowSidebarMenu] = useState(false);
   
   // 找回密码相关 state
@@ -169,11 +169,7 @@ export default function App() {
     { id: 3, name: '专业玩家', credits: 900, price: 69.9, discount: 100, bonus: 100 },
     { id: 4, name: '商业大师', credits: 2000, price: 149.9, discount: 300, bonus: 300 },
   ]);
-  const [membershipPackages, setMembershipPackages] = useState([
-    { id: 1, name: '黄金会员', price: 29, monthlyCredits: 600, originalPrice: 58, features: ['无水印', '优先队列', '基础模式'] },
-    { id: 2, name: '铂金会员', price: 69, monthlyCredits: 1800, originalPrice: 138, features: ['高清模式', '优先队列', '首尾帧控制'] },
-    { id: 3, name: '钻石会员', price: 129, monthlyCredits: 4500, originalPrice: 258, features: ['专业模式', '最高优先级', '视频延长', '商业授权'] },
-  ]);
+
   // 注册三步流程状态
   const [registerStep, setRegisterStep] = useState('phone'); // 'phone', 'code', 'password'
   const [registerPhone, setRegisterPhone] = useState('');
@@ -584,49 +580,6 @@ export default function App() {
     }, 2000);
   };
 
-const handleMembership = async (pkg) => {
-  if (!accessToken) {
-    showToast('请先登录', true);
-    setShowRechargeModal(false);
-    setShowLoginModal(true);
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const res = await axios.post(`${API_URL}/payment/create_order`, {
-      package_id: pkg.id,
-      amount: pkg.price,
-      credits: pkg.monthlyCredits,
-      type: 'membership'
-    }, {
-      headers: { 'Authorization': `Bearer ${accessToken}` }
-    });
-
-    const { pay_url, qr_code, out_trade_no } = res.data;
-    setShowRechargeModal(false);
-    setPendingOrderId(out_trade_no || '');
-    setPaymentLink('');
-    setPaymentQRCode('');
-
-    if (pay_url) {
-      Linking.openURL(pay_url);
-      return;
-    }
-
-    if (qr_code) {
-      setPaymentQRCode(qr_code);
-      setShowPaymentModal(true);
-      return;
-    }
-
-    showToast('支付链接获取失败', true);
-  } catch (err) {
-    showToast(err.response?.data?.detail || '创建订单失败', true);
-  } finally {
-    setLoading(false);
-  }
-};
 
   const fetchDigitalHumans = async () => {
     const token = localStorage.getItem('access_token');
@@ -3029,11 +2982,7 @@ const handleMembership = async (pkg) => {
                         <Text style={styles.dropdownRechargeText}>充值</Text>
                       </TouchableOpacity>
                     </View>
-                    <View style={styles.dropdownMembership}>
-                      <Text style={{ color: '#fff' }}>
-                        当前会员：{membershipLevel === 'free' ? '免费版' : membershipLevel === 'gold' ? '黄金会员' : membershipLevel === 'platinum' ? '铂金会员' : '钻石会员'}
-                      </Text>
-                    </View>
+
                     <Text style={[styles.dropdownSectionTitle, { color: '#aaa' }]}>我的数字人</Text>
                     {digitalHumans.filter(d => !d.is_default).map(human => (
                       <View key={human.id} style={styles.dropdownHumanItem}>
@@ -3375,20 +3324,6 @@ const handleMembership = async (pkg) => {
                     </View>
                     <View style={styles.rechargeItemRight}>
                       <Text style={styles.rechargeItemPrice}>¥{pkg.price}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-                <Text style={styles.sectionTitle}>会员套餐</Text>
-                {membershipPackages.map(pkg => (
-                  <TouchableOpacity key={pkg.id} style={styles.membershipItem} onPress={() => handleMembership(pkg)}>
-                    <View style={styles.membershipItemLeft}>
-                      <Text style={styles.membershipItemName}>{pkg.name}</Text>
-                      <Text style={styles.membershipItemPrice}>¥{pkg.price}/月</Text>
-                      <Text style={styles.membershipItemCredits}>送 {pkg.monthlyCredits} 灵境点/月</Text>
-                    </View>
-                    <View style={styles.membershipItemRight}>
-                      <Text style={styles.membershipItemDiscount}>原价 ¥{pkg.originalPrice}</Text>
-                      <View style={styles.membershipItemTag}>推荐</View>
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -3846,7 +3781,7 @@ const styles = StyleSheet.create({
   dropdownCreditsLabel: { color: '#ddd', fontSize: S(12) },
   dropdownCreditsValue: { color: '#fff', fontSize: S(24), fontWeight: 'bold' },
   dropdownRechargeText: { color: '#fff', fontSize: S(12), marginTop: S(8) },
-  dropdownMembership: { backgroundColor: '#2d2d44', borderRadius: S(8), padding: S(8), marginBottom: S(16) },
+
   dropdownSectionTitle: { fontSize: S(14), fontWeight: 'bold', color: '#aaa', marginBottom: S(8) },
   dropdownHumanItem: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: S(6) },
   rechargeCard: { width: '90%', maxHeight: '80%', padding: S(20) },
@@ -3859,15 +3794,8 @@ const styles = StyleSheet.create({
   rechargeItemBonus: { fontSize: S(12), color: '#10b981', marginTop: S(2) },
   rechargeItemRight: { alignItems: 'flex-end' },
   rechargeItemPrice: { fontSize: S(18), fontWeight: 'bold', color: '#7c3aed' },
-  membershipItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: S(16), borderBottomWidth: 1, borderBottomColor: '#2d2d44' },
-  membershipItemLeft: { flex: 1 },
-  membershipItemName: { fontSize: S(16), fontWeight: 'bold', color: '#fff' },
-  membershipItemPrice: { fontSize: S(14), color: '#f59e0b', marginTop: S(4) },
-  membershipItemCredits: { fontSize: S(12), color: '#aaa', marginTop: S(2) },
-  membershipItemRight: { alignItems: 'flex-end' },
-  membershipItemDiscount: { fontSize: S(12), color: '#888', textDecorationLine: 'line-through' },
-  membershipItemTag: { backgroundColor: '#f59e0b', borderRadius: S(4), paddingHorizontal: S(8), paddingVertical: S(2), marginTop: S(4) },
-  paymentCard: {
+
+   paymentCard: {
     width: '80%',
     padding: S(20),
     alignItems: 'center',
