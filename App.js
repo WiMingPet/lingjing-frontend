@@ -519,7 +519,7 @@ export default function App() {
       return;
     }
     // ========== iOS 走 IAP ==========
-    if (Capacitor.isNativePlatform()) {
+    if (true) {
       await purchaseIAP(pkg);
       return;
     }
