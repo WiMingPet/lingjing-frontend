@@ -24,8 +24,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { Audio, Video } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
-import 'capacitor-plugin-purchase';
-const { StoreKit } = window;
+import { Capacitor } from '@capacitor/core';
+import { NativePurchases } from '@capgo/native-purchases';
 
 const { width, height } = Dimensions.get('window');
 const isSmallScreen = height <= 2100;
@@ -71,22 +71,8 @@ const purchaseIAP = async (pkg) => {
     return;
   }
   try {
-    await StoreKit.refreshReceipt();
-    const result = await StoreKit.purchase({ productId });
-    if (result.code === 0 || result.transactionState === 'purchased') {
-      const receipt = await StoreKit.getReceipt();
-      const token = localStorage.getItem('access_token');
-      const res = await axios.post(`${API_URL}/payment/iap_verify`, {
-        receipt: receipt.receiptData,
-        package_id: pkg.id,
-        credits: pkg.credits,
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.data.code === 200) {
-        alert(`充值成功 +${pkg.credits}灵境点`);
-      }
-    }
+    await NativePurchases.purchase({ productId });
+    alert(`充值成功 +${pkg.credits}灵境点`);
   } catch (err) {
     console.log('IAP错误:', JSON.stringify(err));
   }
@@ -526,27 +512,17 @@ export default function App() {
   };
 
   const handleRecharge = async (pkg) => {
-      alert('进入handleRecharge');
-      if (window.webkit) {
-        await purchaseIAP(pkg);
-        return;
-      }
-      if (!accessToken) {
-        showToast('请先登录', true);
-        setShowRechargeModal(false);
-        setShowLoginModal(true);
-        return;
-      }
-      // ========== iOS 走 IAP ==========
-      alert('Platform.OS: ' + Platform.OS);
-      if (Platform.OS === 'ios') {
-        try {
-          await purchaseIAP(pkg);
-        } catch (err) {
-          showToast(err.message || '支付失败', true);
-        }
-        return;
-      }
+    if (!accessToken) {
+      showToast('请先登录', true);
+      setShowRechargeModal(false);
+      setShowLoginModal(true);
+      return;
+    }
+    // ========== iOS 走 IAP ==========
+    if (Capacitor.isNativePlatform()) {
+      await purchaseIAP(pkg);
+      return;
+    }
       setLoading(true);
       try {
         const res = await axios.post(`${API_URL}/payment/create_order`, {
