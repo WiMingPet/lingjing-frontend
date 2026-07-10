@@ -66,16 +66,12 @@ const IAP_PRODUCTS = {
 
 const purchaseIAP = async (pkg) => {
   const productId = IAP_PRODUCTS[pkg.id];
-  if (!productId) {
-    alert('商品ID不存在');
-    return;
-  }
-  try {
-    await NativePurchases.purchase({ productId });
-    alert(`充值成功 +${pkg.credits}灵境点`);
-  } catch (err) {
-    console.log('IAP错误:', JSON.stringify(err));
-  }
+  if (!productId) { alert('商品ID不存在'); return; }
+  
+  window.webkit.messageHandlers.purchase.postMessage({
+    productId,
+    credits: pkg.credits
+  });
 };
 
 export default function App() {
