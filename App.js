@@ -24,6 +24,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { Audio, Video } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
+import 'capacitor-plugin-purchase';
+const { StoreKit } = window;
 
 const { width, height } = Dimensions.get('window');
 const isSmallScreen = height <= 2100;
@@ -53,6 +55,41 @@ const extractUrl = (text) => {
   if (awemeMatch) return decodeURIComponent(awemeMatch[1]);
   
   return text;
+};
+
+const IAP_PRODUCTS = {
+  1: 'com.lingjing_media.app.credits_100',
+  2: 'com.lingjing_media.app.credits_350',
+  3: 'com.lingjing_media.app.credits_900',
+  4: 'com.lingjing_media.app.credits_2000',
+};
+
+const purchaseIAP = async (pkg) => {
+  const productId = IAP_PRODUCTS[pkg.id];
+  if (!productId) {
+    alert('商品ID不存在');
+    return;
+  }
+  try {
+    await StoreKit.refreshReceipt();
+    const result = await StoreKit.purchase({ productId });
+    if (result.code === 0 || result.transactionState === 'purchased') {
+      const receipt = await StoreKit.getReceipt();
+      const token = localStorage.getItem('access_token');
+      const res = await axios.post(`${API_URL}/payment/iap_verify`, {
+        receipt: receipt.receiptData,
+        package_id: pkg.id,
+        credits: pkg.credits,
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.data.code === 200) {
+        alert(`充值成功 +${pkg.credits}灵境点`);
+      }
+    }
+  } catch (err) {
+    console.log('IAP错误:', JSON.stringify(err));
+  }
 };
 
 export default function App() {
@@ -489,19 +526,33 @@ export default function App() {
   };
 
   const handleRecharge = async (pkg) => {
-    if (!accessToken) {
-      showToast('请先登录', true);
-      setShowRechargeModal(false);
-      setShowLoginModal(true);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await axios.post(`${API_URL}/payment/create_order`, {
-        package_id: pkg.id,
-        amount: pkg.price,
-        credits: pkg.credits
+      alert('进入handleRecharge');
+      if (window.webkit) {
+        await purchaseIAP(pkg);
+        return;
+      }
+      if (!accessToken) {
+        showToast('请先登录', true);
+        setShowRechargeModal(false);
+        setShowLoginModal(true);
+        return;
+      }
+      // ========== iOS 走 IAP ==========
+      alert('Platform.OS: ' + Platform.OS);
+      if (Platform.OS === 'ios') {
+        try {
+          await purchaseIAP(pkg);
+        } catch (err) {
+          showToast(err.message || '支付失败', true);
+        }
+        return;
+      }
+      setLoading(true);
+      try {
+        const res = await axios.post(`${API_URL}/payment/create_order`, {
+          package_id: pkg.id,
+          amount: pkg.price,
+          credits: pkg.credits
       }, {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });

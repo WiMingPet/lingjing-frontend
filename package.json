@@ -13,6 +13,7 @@
     "@capacitor/core": "^8.4.1",
     "@capacitor/ios": "^8.4.1",
     "axios": "^1.14.0",
+    "capacitor-plugin-purchase": "^0.1.0",
     "expo": "~54.0.33",
     "expo-av": "^16.0.8",
     "expo-build-properties": "^56.0.13",
