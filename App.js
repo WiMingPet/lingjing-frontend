@@ -510,17 +510,17 @@ export default function App() {
   };
 
   const handleRecharge = async (pkg) => {
-    if (!accessToken) {
-      showToast('请先登录', true);
-      setShowRechargeModal(false);
-      setShowLoginModal(true);
-      return;
-    }
-    // ========== iOS 走 IAP ==========
-    if (true) {
-      await purchaseIAP(pkg);
-      return;
-    }
+      if (!accessToken) {
+        showToast('请先登录', true);
+        setShowRechargeModal(false);
+        setShowLoginModal(true);
+        return;
+      }
+      // ========== iOS 走 IAP ==========
+      if (Capacitor.getPlatform() === 'ios') {
+        await purchaseIAP(pkg);
+        return;
+      }
       setLoading(true);
       try {
         const res = await axios.post(`${API_URL}/payment/create_order`, {
