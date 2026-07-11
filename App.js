@@ -526,7 +526,7 @@ export default function App() {
         return;
       }
       alert('准备判断IAP分支, Platform.OS === ios ? ' + (Platform.OS === 'ios'));
-      if (Platform.OS === 'ios') {
+      if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
         alert('进入IAP分支');
         await purchaseIAP(pkg);
         return;
