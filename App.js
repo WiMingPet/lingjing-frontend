@@ -68,7 +68,7 @@ const purchaseIAP = async (pkg) => {
     showToast('商品ID不存在', true);
     return;
   }
-  window.location.href = 'iap://' + productId;
+  window.webkit.messageHandlers.iapPurchase.postMessage(productId);
 };
 
 export default function App() {
