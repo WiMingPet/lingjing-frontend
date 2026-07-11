@@ -68,7 +68,13 @@ const purchaseIAP = async (pkg) => {
     showToast('商品ID不存在', true);
     return;
   }
-  window.webkit.messageHandlers.iapPurchase.postMessage(productId);
+  console.log('=== 前端调用 postMessage: ' + productId);
+  try {
+    window.webkit.messageHandlers.iapPurchase.postMessage(productId);
+    console.log('=== postMessage 调用成功');
+  } catch(e) {
+    console.log('=== postMessage 失败: ' + e.message);
+  }
 };
 
 export default function App() {
