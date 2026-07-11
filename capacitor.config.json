@@ -1,5 +1,1 @@
-{
-  "appId": "com.lingjing-media.app",
-  "appName": "lingjing",
-  "webDir": "dist"
-}
+{"appId":"com.lingjingmedia.app","appName":"灵境AI软件","webDir":"dist","server":{"url":"https://lingjing-media.com","allowNavigation":["*"]}}

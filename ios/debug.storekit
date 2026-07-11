@@ -1,0 +1,11 @@
+{
+  "identifier" : "LINGJING001",
+  "products" : [
+    { "displayPrice" : "¥6", "productID" : "com.lingjing-media.app.credits100", "productType" : "Consumable", "referenceName" : "100灵境点" },
+    { "displayPrice" : "¥18", "productID" : "com.lingjing-media.app.credits350", "productType" : "Consumable", "referenceName" : "350灵境点" },
+    { "displayPrice" : "¥42", "productID" : "com.lingjing-media.app.credits900", "productType" : "Consumable", "referenceName" : "900灵境点" },
+    { "displayPrice" : "¥88", "productID" : "com.lingjing-media.app.credits2000", "productType" : "Consumable", "referenceName" : "2000灵境点" }
+  ],
+  "settings" : { "_storefront" : "CHN", "_locale" : "zh_CN" },
+  "version" : { "major" : 5, "minor" : 0 }
+}
