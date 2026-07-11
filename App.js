@@ -66,13 +66,43 @@ const IAP_PRODUCTS = {
 
 const purchaseIAP = async (pkg) => {
   const productId = IAP_PRODUCTS[pkg.id];
-  if (!productId) { alert('商品ID不存在'); return; }
+  if (!productId) {
+    showToast('商品ID不存在', true);
+    return;
+  }
+
+  const { NativePurchases } = window.Capacitor?.Plugins || {};
+  if (!NativePurchases) {
+    showToast('支付插件未加载', true);
+    return;
+  }
+
   try {
-    alert('调用前: NativePurchases=' + typeof NativePurchases);
-    const result = await NativePurchases.purchase({ productId });
-    alert('调用后: ' + JSON.stringify(result));
+    const result = await NativePurchases.purchaseProduct({ productIdentifier: productId });
+    
+    if (result?.success) {
+      const verifyRes = await axios.post(`${API_URL}/payment/iap_verify`, {
+        receipt: result.transactionReceipt || '',
+        package_id: pkg.id,
+        credits: pkg.credits,
+      }, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+
+      if (verifyRes.data?.code === 200) {
+        showToast('购买成功！');
+        refreshBalance();
+        setShowRechargeModal(false);
+      } else {
+        showToast('验证失败: ' + (verifyRes.data?.message || ''), true);
+      }
+    } else if (result?.state === 'cancelled') {
+      showToast('已取消', true);
+    } else {
+      showToast(result?.message || '购买失败', true);
+    }
   } catch (err) {
-    alert('异常: ' + err.message);
+    showToast('支付失败: ' + (err.message || '未知错误'), true);
   }
 };
 
