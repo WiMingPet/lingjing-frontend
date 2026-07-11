@@ -68,10 +68,11 @@ const purchaseIAP = async (pkg) => {
   const productId = IAP_PRODUCTS[pkg.id];
   if (!productId) { alert('商品ID不存在'); return; }
   try {
-    await NativePurchases.purchase({ productId });
-    alert('支付成功');
+    alert('调用前: NativePurchases=' + typeof NativePurchases);
+    const result = await NativePurchases.purchase({ productId });
+    alert('调用后: ' + JSON.stringify(result));
   } catch (err) {
-    alert('支付失败: ' + JSON.stringify(err));
+    alert('异常: ' + err.message);
   }
 };
 
