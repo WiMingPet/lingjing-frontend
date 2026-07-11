@@ -63,17 +63,24 @@ const IAP_PRODUCTS = {
 };
 
 const purchaseIAP = async (pkg) => {
+  console.log('=== purchaseIAP被调用, pkg:', JSON.stringify(pkg));
   const productId = IAP_PRODUCTS[pkg.id];
+  console.log('=== productId:', productId);
   if (!productId) {
-    showToast('商品ID不存在', true);
+    alert('商品ID不存在');
     return;
   }
-  console.log('=== 前端调用 postMessage: ' + productId);
+  console.log('=== 准备调原生, typeof webkit:', typeof window.webkit);
+  if (!window.webkit) {
+    alert('window.webkit不存在');
+    return;
+  }
+  console.log('=== messageHandlers:', JSON.stringify(Object.keys(window.webkit.messageHandlers || {})));
   try {
     window.webkit.messageHandlers.iapPurchase.postMessage(productId);
-    console.log('=== postMessage 调用成功');
+    console.log('=== postMessage成功');
   } catch(e) {
-    console.log('=== postMessage 失败: ' + e.message);
+    alert('postMessage异常: ' + e.message + ' | stack: ' + e.stack);
   }
 };
 
@@ -511,17 +518,20 @@ export default function App() {
   };
 
   const handleRecharge = async (pkg) => {
+      alert('handleRecharge进入, Platform.OS=' + Platform.OS + ', navigator.platform=' + navigator.platform);
       if (!accessToken) {
         showToast('请先登录', true);
         setShowRechargeModal(false);
         setShowLoginModal(true);
         return;
       }
-      // ========== iOS 走 IAP ==========
+      alert('准备判断IAP分支, Platform.OS === ios ? ' + (Platform.OS === 'ios'));
       if (Platform.OS === 'ios') {
+        alert('进入IAP分支');
         await purchaseIAP(pkg);
         return;
       }
+      alert('进入支付宝分支');
       setLoading(true);
       try {
         const res = await axios.post(`${API_URL}/payment/create_order`, {
