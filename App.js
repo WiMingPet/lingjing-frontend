@@ -68,6 +68,36 @@ const purchaseIAP = async (pkg) => {
     showToast('商品ID不存在', true);
     return;
   }
+  
+  // 设置原生回调
+  window.iapSuccess = () => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      // 已登录，调后端充值
+      axios.post(`${API_URL}/payment/iap_verify`, {
+        receipt: 'sandbox',
+        package_id: pkg.id,
+        credits: pkg.credits,
+        user_id: JSON.parse(atob(token.split('.')[1])).sub
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).then(() => {
+        refreshBalance();
+        showToast(`充值成功 +${pkg.credits}灵境点`);
+      });
+    } else {
+      // 未登录，暂存
+      let pending = JSON.parse(localStorage.getItem('pending_credits') || '0');
+      pending += pkg.credits;
+      localStorage.setItem('pending_credits', JSON.stringify(pending));
+      showToast('购买成功，登录后自动到账');
+    }
+  };
+  
+  window.iapError = (msg) => {
+    showToast('支付失败: ' + msg, true);
+  };
+  
   window.webkit.messageHandlers.iapPurchase.postMessage(productId);
 };
 
@@ -394,6 +424,42 @@ export default function App() {
     showToast('已退出登录');
   };
 
+const handleLogout = () => {
+    setAccessToken('');
+    localStorage.removeItem('access_token');
+    setIsLoggedIn(false);
+    setUserCredits(0);
+    setDigitalHumans([]);
+    setShowSidebarMenu(false);
+    showToast('已退出登录');
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      '注销账户',
+      '注销后所有数据将被永久删除，无法恢复。确定要注销吗？',
+      [
+        { text: '取消' },
+        { 
+          text: '确认注销', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = localStorage.getItem('access_token');
+              await axios.post(`${API_URL}/auth/delete_account`, {}, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              localStorage.clear();
+              showToast('账户已注销');
+              window.location.reload();
+            } catch (err) {
+              showToast('注销失败', true);
+            }
+          }
+        }
+      ]
+    );
+  };
 
   const isWeb = Platform.OS === 'web';
   const isMobileBrowser = isWeb && /Android|iPhone|iPad|iPod|Mobile/i.test(window.navigator.userAgent);
@@ -505,18 +571,19 @@ export default function App() {
   };
 
   const handleRecharge = async (pkg) => {
+      // ========== iOS 走 IAP（不需要登录） ==========
+      if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
+        await purchaseIAP(pkg);
+        return;
+      }
+      // ========== 其他平台需要登录 ==========
       if (!accessToken) {
         showToast('请先登录', true);
         setShowRechargeModal(false);
         setShowLoginModal(true);
         return;
       }
-      // ========== iOS 走 IAP ==========
-      if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
-        await purchaseIAP(pkg);
-        return;
-      }
-      // ========== 其他平台走支付宝 ==========
+      // ========== 支付宝逻辑 ==========
       setLoading(true);
       try {
         const res = await axios.post(`${API_URL}/payment/create_order`, {
@@ -3055,9 +3122,14 @@ export default function App() {
                       </View>
                     </TouchableOpacity>
                     {isLoggedIn && (
-                      <TouchableOpacity onPress={handleLogout} style={{ marginTop: 12 }}>
-                        <Text style={{ color: '#ef4444' }}>退出登录</Text>
-                      </TouchableOpacity>
+                      <>
+                        <TouchableOpacity onPress={handleLogout} style={{ marginTop: 12 }}>
+                          <Text style={{ color: '#ef4444' }}>退出登录</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={handleDeleteAccount} style={{ marginTop: 8 }}>
+                          <Text style={{ color: '#ff6666', fontSize: 12 }}>注销账户</Text>
+                        </TouchableOpacity>
+                      </>
                     )}
                   </View>
                 </>
@@ -3076,6 +3148,10 @@ export default function App() {
                   <Text style={styles.loginPromptText}>登录后享受更多功能</Text>
                   <TouchableOpacity style={styles.loginButton} onPress={() => setShowLoginModal(true)}>
                     <Text style={styles.loginButtonText}>立即登录</Text>
+                  </TouchableOpacity>
+                  {/* ========== 新增：未登录也可充值 ========== */}
+                  <TouchableOpacity style={[styles.loginButton, { backgroundColor: '#f59e0b', marginTop: 10 }]} onPress={() => setShowRechargeModal(true)}>
+                    <Text style={styles.loginButtonText}>购买灵境点</Text>
                   </TouchableOpacity>
                 </View>
               )}
