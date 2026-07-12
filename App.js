@@ -424,15 +424,6 @@ export default function App() {
     showToast('已退出登录');
   };
 
-const handleLogout = () => {
-    setAccessToken('');
-    localStorage.removeItem('access_token');
-    setIsLoggedIn(false);
-    setUserCredits(0);
-    setDigitalHumans([]);
-    setShowSidebarMenu(false);
-    showToast('已退出登录');
-  };
 
   const handleDeleteAccount = () => {
     Alert.alert(
