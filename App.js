@@ -426,22 +426,30 @@ export default function App() {
 
 
   const handleDeleteAccount = () => {
-    if (!confirm('注销后所有数据将被永久删除，无法恢复。确定要注销吗？')) return;
-    
-    try {
-      const token = localStorage.getItem('access_token');
-      axios.post(`${API_URL}/auth/delete_account`, {}, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }).then(() => {
-        localStorage.clear();
-        showToast('账户已注销');
-        window.location.reload();
-      }).catch(() => {
-        showToast('注销失败', true);
-      });
-    } catch (err) {
-      showToast('注销失败', true);
-    }
+    Alert.alert(
+      '注销账户',
+      '注销后所有数据将被永久删除，无法恢复。确定要注销吗？',
+      [
+        { text: '取消', style: 'cancel' },
+        { 
+          text: '确认注销', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = localStorage.getItem('access_token');
+              await axios.post(`${API_URL}/auth/delete_account`, {}, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              localStorage.clear();
+              showToast('账户已注销');
+              window.location.reload();
+            } catch (err) {
+              showToast('注销失败', true);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const isWeb = Platform.OS === 'web';
