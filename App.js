@@ -3040,21 +3040,20 @@ export default function App() {
               {showSidebarMenu && (
                 <>
                   <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setShowSidebarMenu(false)} />
-                  <View style={styles.dropdownMenu} onStartShouldSetResponder={() => true}>
+                  <View style={styles.dropdownMenu}>
                     <View style={styles.dropdownUserInfo}>
                       <Icon name="person-circle" size={50} color="#7c3aed" />
                       <Text style={styles.dropdownUserName}>{isLoggedIn ? (loginPhone || '用户') : '未登录'}</Text>
                       {isLoggedIn && <Text style={styles.dropdownUserPhone}>{loginPhone}</Text>}
                     </View>
-                    <View style={[styles.dropdownCredits, { borderWidth: 2, borderColor: 'red' }]}>
+                    <View style={styles.dropdownCredits}>
                       <Text style={styles.dropdownCreditsLabel}>灵境点余额</Text>
                       <Text style={styles.dropdownCreditsValue}>{userCredits}</Text>
                       <TouchableOpacity 
-                        style={{ backgroundColor: '#7c3aed', borderRadius: 4, paddingHorizontal: 12, paddingVertical: 6, marginTop: 6, alignSelf: 'flex-start' }}
-                        onPress={() => { alert('onPress触发'); setShowRechargeModal(true); }}
-                        pointerEvents="auto"
+                        style={styles.rechargeButton}
+                        onPress={() => setShowRechargeModal(true)}
                       >
-                        <Text style={{ color: '#fff', fontSize: 14 }}>充值</Text>
+                        <Text style={styles.rechargeButtonText}>充值</Text>
                       </TouchableOpacity>
                     </View>
 
