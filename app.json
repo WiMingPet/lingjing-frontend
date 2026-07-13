@@ -37,10 +37,6 @@
     },
     "static": [
       {
-        "source": "privacy.html",
-        "target": "privacy.html"
-      },
-      {
         "source": "terms.html",
         "target": "terms.html"
       }
