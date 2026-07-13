@@ -898,6 +898,13 @@ export default function App() {
         return;
       }
 
+      // ✅ iOS → 用原生下载协议
+      if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
+        window.location.href = 'lingjing-download://' + encodeURIComponent(url);
+        showToast('正在下载...');
+        return;
+      }
+
       const response = await fetch(url);
       const blob = await response.blob();
       const filename = `${type}_${Date.now()}.${type === 'image' ? 'png' : 'mp4'}`;
@@ -1711,25 +1718,37 @@ export default function App() {
   };
 
 
-  // 保存视频到相册（新增）
   const handleSaveEcommerceVideo = async () => {
     if (!ecommerceVideoUrl) {
       showToast('没有可保存的视频', true);
       return;
     }
     
+    // iOS 走原生下载
+    if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
+      window.location.href = 'lingjing-download://' + encodeURIComponent(ecommerceVideoUrl);
+      showToast('正在下载...');
+      return;
+    }
+    
+    // 鸿蒙
+    if (window.harmonyBridge?.saveFile) {
+      window.harmonyBridge.saveFile(ecommerceVideoUrl, `lingjing_ecommerce_${Date.now()}.mp4`);
+      showToast('正在保存...');
+      return;
+    }
+
+    // 其他平台
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('需要权限', '请允许保存到相册');
         return;
       }
-      
       const filename = `lingjing_ecommerce_${Date.now()}.mp4`;
       const fileUri = FileSystem.documentDirectory + filename;
       const download = FileSystem.createDownloadResumable(ecommerceVideoUrl, fileUri);
       const { uri } = await download.downloadAsync();
-      
       await MediaLibrary.saveToLibraryAsync(uri);
       showToast('视频已保存到相册');
     } catch (error) {
@@ -3001,17 +3020,27 @@ export default function App() {
                           const extension = isVideo ? 'mp4' : 'png';
                           const fileName = `${item.type}_${Date.now()}.${extension}`;
                           
+                          // 鸿蒙
                           if (window.harmonyBridge?.saveFile) {
                             window.harmonyBridge.saveFile(item.url, fileName);
                             showToast('正在下载...');
-                          } else {
-                            const link = document.createElement('a');
-                            link.href = item.url;
-                            link.download = fileName;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
+                            return;
                           }
+                          
+                          // iOS
+                          if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
+                            window.location.href = 'lingjing-download://' + encodeURIComponent(item.url);
+                            showToast('正在下载...');
+                            return;
+                          }
+                          
+                          // 其他平台
+                          const link = document.createElement('a');
+                          link.href = item.url;
+                          link.download = fileName;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
                         }}
                       >
                         <Icon name="download-outline" size={16} color="#10b981" />
