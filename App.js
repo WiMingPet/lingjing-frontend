@@ -3048,15 +3048,14 @@ export default function App() {
                     </View>
                     <View style={styles.dropdownCredits}>
                       <Text style={styles.dropdownCreditsLabel}>灵境点余额</Text>
-                      <Text style={styles.dropdownCreditsValue}>{userCredits}</Text>
-                      <TouchableOpacity 
-                        style={styles.rechargeButton}
-                        onPress={() => setShowRechargeModal(true)}
-                      >
-                        <Text style={styles.rechargeButtonText}>充值</Text>
-                      </TouchableOpacity>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Text style={styles.dropdownCreditsValue}>{userCredits}</Text>
+                        <TouchableOpacity onPress={() => setShowRechargeModal(true)}>
+                          <Text style={{ color: '#a78bfa', fontSize: 13, fontWeight: '600' }}>充值</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-
+                  
                     <Text style={[styles.dropdownSectionTitle, { color: '#aaa' }]}>我的数字人</Text>
                     {digitalHumans.filter(d => !d.is_default).map(human => (
                       <View key={human.id} style={styles.dropdownHumanItem}>
