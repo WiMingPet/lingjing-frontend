@@ -3048,12 +3048,13 @@ export default function App() {
                     </View>
                     <View style={styles.dropdownCredits}>
                       <Text style={styles.dropdownCreditsLabel}>灵境点余额</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <TouchableOpacity 
+                        onPress={() => setShowRechargeModal(true)}
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                      >
                         <Text style={styles.dropdownCreditsValue}>{userCredits}</Text>
-                        <TouchableOpacity onPress={() => setShowRechargeModal(true)}>
-                          <Text style={{ color: '#a78bfa', fontSize: 13, fontWeight: '600' }}>充值</Text>
-                        </TouchableOpacity>
-                      </View>
+                        <Text style={{ color: '#a78bfa', fontSize: 13, fontWeight: '600' }}>充值</Text>
+                      </TouchableOpacity>
                     </View>
                   
                     <Text style={[styles.dropdownSectionTitle, { color: '#aaa' }]}>我的数字人</Text>
