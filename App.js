@@ -3049,9 +3049,12 @@ export default function App() {
                     <View style={styles.dropdownCredits}>
                       <Text style={styles.dropdownCreditsLabel}>灵境点余额</Text>
                       <Text style={styles.dropdownCreditsValue}>{userCredits}</Text>
-                      <div onClick={() => setShowRechargeModal(true)} style={{ cursor: 'pointer' }}>
-                        <Text style={styles.dropdownRechargeText}>充值</Text>
-                      </div>
+                      <TouchableOpacity 
+                        style={{ backgroundColor: '#7c3aed', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 4, marginTop: 4, alignSelf: 'flex-start' }}
+                        onPress={() => setShowRechargeModal(true)}
+                      >
+                        <Text style={{ color: '#fff', fontSize: 12 }}>充值</Text>
+                      </TouchableOpacity>
                     </View>
 
                     <Text style={[styles.dropdownSectionTitle, { color: '#aaa' }]}>我的数字人</Text>
