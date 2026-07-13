@@ -3135,7 +3135,7 @@ export default function App() {
                         <TouchableOpacity onPress={handleLogout} style={{ marginTop: 12 }}>
                           <Text style={{ color: '#ef4444' }}>退出登录</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={handleDeleteAccount} style={{ marginTop: 8 }}>
+                        <TouchableOpacity onPress={() => setShowDeleteConfirm(true)} style={{ marginTop: 8 }}>
                           <Text style={{ color: '#ff6666', fontSize: 12 }}>注销账户</Text>
                         </TouchableOpacity>
                       </>
