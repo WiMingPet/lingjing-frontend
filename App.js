@@ -900,8 +900,7 @@ export default function App() {
 
       // ✅ iOS → 用原生下载协议
       if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
-        window.location.href = 'lingjing-download://' + encodeURIComponent(url);
-        showToast('正在下载...');
+        window.webkit.messageHandlers.iosDownload.postMessage(item.url || ecommerceVideoUrl);
         return;
       }
 
@@ -1726,8 +1725,7 @@ export default function App() {
     
     // iOS 走原生下载
     if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
-      window.location.href = 'lingjing-download://' + encodeURIComponent(ecommerceVideoUrl);
-      showToast('正在下载...');
+      window.webkit.messageHandlers.iosDownload.postMessage(item.url || ecommerceVideoUrl);
       return;
     }
     
@@ -3029,8 +3027,7 @@ export default function App() {
                           
                           // iOS
                           if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
-                            window.location.href = 'lingjing-download://' + encodeURIComponent(item.url);
-                            showToast('正在下载...');
+                            window.webkit.messageHandlers.iosDownload.postMessage(item.url || ecommerceVideoUrl);
                             return;
                           }
                           
