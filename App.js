@@ -3040,7 +3040,7 @@ export default function App() {
               {showSidebarMenu && (
                 <>
                   <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setShowSidebarMenu(false)} />
-                  <View style={styles.dropdownMenu}>
+                  <View style={styles.dropdownMenu} onStartShouldSetResponder={() => true}>
                     <View style={styles.dropdownUserInfo}>
                       <Icon name="person-circle" size={50} color="#7c3aed" />
                       <Text style={styles.dropdownUserName}>{isLoggedIn ? (loginPhone || '用户') : '未登录'}</Text>
@@ -3051,17 +3051,10 @@ export default function App() {
                       <Text style={styles.dropdownCreditsValue}>{userCredits}</Text>
                       <TouchableOpacity 
                         style={{ backgroundColor: '#7c3aed', borderRadius: 4, paddingHorizontal: 12, paddingVertical: 6, marginTop: 6, alignSelf: 'flex-start' }}
-                        onPress={() => { alert('onPress触发'); }}
-                        onTouchStart={() => { alert('onTouchStart触发'); }}
-                        onTouchEnd={() => { alert('onTouchEnd触发'); }}
-                        onLayout={() => { console.log('按钮已渲染'); }}
+                        onPress={() => { alert('onPress触发'); setShowRechargeModal(true); }}
                         pointerEvents="auto"
                       >
-                        <Text 
-                          style={{ color: '#fff', fontSize: 14 }}
-                          onClick={() => { alert('Text onClick触发'); }}
-                          onTouchStart={() => { alert('Text onTouchStart触发'); }}
-                        >充值</Text>
+                        <Text style={{ color: '#fff', fontSize: 14 }}>充值</Text>
                       </TouchableOpacity>
                     </View>
 
