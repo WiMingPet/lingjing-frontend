@@ -3049,9 +3049,9 @@ export default function App() {
                     <View style={styles.dropdownCredits}>
                       <Text style={styles.dropdownCreditsLabel}>灵境点余额</Text>
                       <Text style={styles.dropdownCreditsValue}>{userCredits}</Text>
-                      <TouchableOpacity onPress={() => setShowRechargeModal(true)}>
+                      <div onClick={() => setShowRechargeModal(true)} style={{ cursor: 'pointer' }}>
                         <Text style={styles.dropdownRechargeText}>充值</Text>
-                      </TouchableOpacity>
+                      </div>
                     </View>
 
                     <Text style={[styles.dropdownSectionTitle, { color: '#aaa' }]}>我的数字人</Text>
