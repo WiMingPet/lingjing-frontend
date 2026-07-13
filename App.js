@@ -3046,14 +3046,22 @@ export default function App() {
                       <Text style={styles.dropdownUserName}>{isLoggedIn ? (loginPhone || '用户') : '未登录'}</Text>
                       {isLoggedIn && <Text style={styles.dropdownUserPhone}>{loginPhone}</Text>}
                     </View>
-                    <View style={styles.dropdownCredits}>
+                    <View style={[styles.dropdownCredits, { borderWidth: 2, borderColor: 'red' }]}>
                       <Text style={styles.dropdownCreditsLabel}>灵境点余额</Text>
                       <Text style={styles.dropdownCreditsValue}>{userCredits}</Text>
                       <TouchableOpacity 
-                        style={{ backgroundColor: '#7c3aed', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 4, marginTop: 4, alignSelf: 'flex-start' }}
-                        onPress={() => setShowRechargeModal(true)}
+                        style={{ backgroundColor: '#7c3aed', borderRadius: 4, paddingHorizontal: 12, paddingVertical: 6, marginTop: 6, alignSelf: 'flex-start' }}
+                        onPress={() => { alert('onPress触发'); }}
+                        onTouchStart={() => { alert('onTouchStart触发'); }}
+                        onTouchEnd={() => { alert('onTouchEnd触发'); }}
+                        onLayout={() => { console.log('按钮已渲染'); }}
+                        pointerEvents="auto"
                       >
-                        <Text style={{ color: '#fff', fontSize: 12 }}>充值</Text>
+                        <Text 
+                          style={{ color: '#fff', fontSize: 14 }}
+                          onClick={() => { alert('Text onClick触发'); }}
+                          onTouchStart={() => { alert('Text onTouchStart触发'); }}
+                        >充值</Text>
                       </TouchableOpacity>
                     </View>
 
