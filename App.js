@@ -479,10 +479,7 @@ export default function App() {
         if (result?.resultCode === '9000') {
           showToast('支付成功');
           setTimeout(() => {
-            console.log('支付成功，开始刷新余额');
             fetchUserCredits();
-            console.log('余额刷新完成，准备刷新页面');
-            window.location.reload();
           }, 2000);
           return;
         }
@@ -3473,7 +3470,7 @@ export default function App() {
                 onPress={async () => {
                   await fetchUserCredits();
                   setShowPaymentModal(false);
-                  window.location.reload();
+                  showToast('余额已更新');
                 }}
                 style={styles.closePaymentButton}
               >
