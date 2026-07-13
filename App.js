@@ -184,6 +184,7 @@ export default function App() {
   const [accessToken, setAccessToken] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [loginPhone, setLoginPhone] = useState('');
@@ -425,19 +426,19 @@ export default function App() {
   };
 
 
-  const handleDeleteAccount = () => {
-    if (window.confirm('注销后所有数据将被永久删除，无法恢复。确定要注销吗？')) {
+  const confirmDeleteAccount = async () => {
+    try {
       const token = localStorage.getItem('access_token');
-      axios.post(`${API_URL}/auth/delete_account`, {}, {
+      await axios.post(`${API_URL}/auth/delete_account`, {}, {
         headers: { 'Authorization': `Bearer ${token}` }
-      }).then(() => {
-        localStorage.clear();
-        showToast('账户已注销');
-        window.location.reload();
-      }).catch(() => {
-        showToast('注销失败', true);
       });
+      localStorage.clear();
+      showToast('账户已注销');
+      window.location.reload();
+    } catch (err) {
+      showToast('注销失败', true);
     }
+    setShowDeleteConfirm(false);
   };
 
   const isWeb = Platform.OS === 'web';
@@ -3479,6 +3480,24 @@ export default function App() {
                 <Text style={styles.closePaymentText}>我已完成支付</Text>
               </TouchableOpacity>
             </Card>
+          </View>
+        </Modal>
+
+        {/* 注销确认弹窗 */}
+        <Modal visible={showDeleteConfirm} transparent={true} animationType="fade">
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.7)' }}>
+            <View style={{ backgroundColor: '#1e1e2e', borderRadius: 16, padding: 24, width: 300 }}>
+              <Text style={{ color: '#fff', fontSize: 16, textAlign: 'center', marginBottom: 16 }}>注销账户</Text>
+              <Text style={{ color: '#aaa', fontSize: 14, textAlign: 'center', marginBottom: 20 }}>注销后所有数据将被永久删除，无法恢复。确定要注销吗？</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <TouchableOpacity onPress={() => setShowDeleteConfirm(false)} style={{ flex: 1, padding: 12, backgroundColor: '#2d2d44', borderRadius: 8, marginRight: 8 }}>
+                  <Text style={{ color: '#fff', textAlign: 'center' }}>取消</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={confirmDeleteAccount} style={{ flex: 1, padding: 12, backgroundColor: '#ef4444', borderRadius: 8 }}>
+                  <Text style={{ color: '#fff', textAlign: 'center' }}>确认注销</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </Modal>
 {/* ========== 通用生成进度弹窗 ========== */}
