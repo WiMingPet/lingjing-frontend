@@ -2901,6 +2901,9 @@ export default function App() {
                   placeholderTextColor="#888"
                   multiline
                 />
+                <Text style={{ color: '#ff6b6b', fontSize: 11, marginTop: 6, lineHeight: 16 }}>
+                  请遵守平台规范，勿生成违法违规、色情暴力、政治敏感等不当内容
+                </Text>
               </Card>
             )}
 
