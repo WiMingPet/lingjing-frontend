@@ -645,6 +645,26 @@ export default function App() {
     }, 2000);
   };
 
+  const checkAIPrivacyConsent = () => {
+  return new Promise((resolve) => {
+    const consented = localStorage.getItem('ai_privacy_consent');
+    if (consented) {
+      resolve(true);
+      return;
+    }
+    Alert.alert(
+      'AI服务数据使用声明',
+      '使用此功能时，您的以下数据将发送至第三方服务：\n\n📷 上传的图片\n📝 输入的提示词\n\n第三方服务：\n• 可灵AI（Kling）- 图片/视频生成\n• 阿里云通义千问 - 内容识别\n• 腾讯云TTS - 语音合成\n\n数据仅用于本次生成，不会存储或用于其他目的。',
+      [
+        { text: '不同意', style: 'cancel', onPress: () => resolve(false) },
+        { text: '同意并继续', onPress: () => {
+          localStorage.setItem('ai_privacy_consent', 'true');
+          resolve(true);
+        }}
+      ]
+    );
+  });
+};
 
   const fetchDigitalHumans = async () => {
     const token = localStorage.getItem('access_token');
@@ -1066,6 +1086,8 @@ export default function App() {
   };
 
   const recommendSize = async () => {
+    const consented = await checkAIPrivacyConsent();
+    if (!consented) return;
     // 实名认证检查
     const isVerified = await checkPhoneVerified();
     if (!isVerified) {
@@ -1123,6 +1145,8 @@ export default function App() {
   };
 
   const generateImage = async () => {
+    const consented = await checkAIPrivacyConsent();
+    if (!consented) return;
     const isVerified = await checkPhoneVerified();
     if (!isVerified) {
       showToast('根据法规要求，使用AI功能前需完成手机号认证');
@@ -1173,6 +1197,8 @@ export default function App() {
   };
 
   const generateVideo = async () => {
+    const consented = await checkAIPrivacyConsent();
+    if (!consented) return;
     const isVerified = await checkPhoneVerified();
     if (!isVerified) {
       showToast('根据法规要求，使用AI功能前需完成手机号认证');
@@ -1239,6 +1265,8 @@ export default function App() {
   };
 
   const generateTryon = async () => {
+    const consented = await checkAIPrivacyConsent();
+    if (!consented) return;
     const isVerified = await checkPhoneVerified();
     if (!isVerified) {
       showToast('根据法规要求，使用AI功能前需完成手机号认证');
@@ -1317,6 +1345,8 @@ export default function App() {
   };
 
   const generateDigitalHuman = async () => {
+    const consented = await checkAIPrivacyConsent();
+    if (!consented) return;
     const isVerified = await checkPhoneVerified();
     if (!isVerified) {
       showToast('根据法规要求，使用AI功能前需完成手机号认证');
@@ -1524,6 +1554,8 @@ export default function App() {
 
   // 生成带货视频 - 异步后台版本
     const generateEcommerceVideo = async () => {
+      const consented = await checkAIPrivacyConsent();
+      if (!consented) return;
       const isVerified = await checkPhoneVerified();
       if (!isVerified) {
         showToast('根据法规要求，使用AI功能前需完成手机号认证');
@@ -1750,6 +1782,8 @@ export default function App() {
   };
 
   const generateMultiAngle = async () => {
+    const consented = await checkAIPrivacyConsent();
+    if (!consented) return;
     const isVerified = await checkPhoneVerified();
     if (!isVerified) {
       showToast('根据法规要求，使用AI功能前需完成手机号认证');
