@@ -2437,6 +2437,9 @@ export default function App() {
                 <TouchableOpacity onPress={generateDigitalHuman} disabled={digitalLoading} style={styles.generateButton}>
                   {digitalLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>生成数字人视频</Text>}
                 </TouchableOpacity>
+                <Text style={{ color: '#ff6b6b', fontSize: 11, marginTop: 6, textAlign: 'center' }}>
+                  请遵守平台规范，勿生成违法违规、色情暴力、政治敏感等不当内容
+                </Text>
               </>
             )}
 
@@ -2571,6 +2574,9 @@ export default function App() {
                       <TouchableOpacity onPress={generateDigitalHuman} disabled={digitalLoading} style={styles.generateButton}>
                         {digitalLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>生成数字人视频</Text>}
                       </TouchableOpacity>
+                      <Text style={{ color: '#ff6b6b', fontSize: 11, marginTop: 6, textAlign: 'center' }}>
+                        请遵守平台规范，勿生成违法违规、色情暴力、政治敏感等不当内容
+                      </Text>
                     </>
                   )}
 
@@ -2631,6 +2637,9 @@ export default function App() {
                       <TouchableOpacity onPress={generateDigitalHumanCustom} disabled={customLoading} style={styles.generateButton}>
                         {customLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>开始定制数字人</Text>}
                       </TouchableOpacity>
+                      <Text style={{ color: '#ff6b6b', fontSize: 11, marginTop: 6, textAlign: 'center' }}>
+                        请遵守平台规范，勿生成违法违规、色情暴力、政治敏感等不当内容
+                      </Text>
                     </>
                   )}
 
@@ -2822,6 +2831,9 @@ export default function App() {
                           <Text style={styles.generateText}>生成带货视频</Text>
                         )}
                       </TouchableOpacity>
+                      <Text style={{ color: '#ff6b6b', fontSize: 11, marginTop: 6, textAlign: 'center' }}>
+                        请遵守平台规范，勿生成违法违规、色情暴力、政治敏感等不当内容
+                      </Text>
                       
                       {/* 视频结果 */}
                       {ecommerceVideoUrl ? (
