@@ -984,6 +984,19 @@ export default function App() {
     }
   };
 
+  const deleteHistoryItem = async (historyId) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      await axios.delete(`${API_URL}/history/${historyId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      showToast('已删除');
+      loadHistory();
+    } catch (err) {
+      showToast('删除失败', true);
+    }
+  };
+
   const pickImage = () => {
     ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
       if (res.assets && res.assets[0]) {
@@ -3081,6 +3094,17 @@ export default function App() {
                       >
                         <Icon name="download-outline" size={16} color="#10b981" />
                         <Text style={styles.downloadBtnText}>下载</Text>
+                      </TouchableOpacity>
+                      {/* 删除按钮 */}
+                      <TouchableOpacity
+                        style={styles.historyDownloadBtn}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          deleteHistoryItem(item.id);
+                        }}
+                      >
+                        <Icon name="trash-outline" size={16} color="#ef4444" />
+                        <Text style={[styles.downloadBtnText, { color: '#ef4444' }]}>删除</Text>
                       </TouchableOpacity>
                     </View>
                   ))}
