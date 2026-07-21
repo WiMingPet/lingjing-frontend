@@ -652,24 +652,25 @@ export default function App() {
         resolve(true);
         return;
       }
-      // 只有 iOS 弹窗
-      if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
-        Alert.alert(
-          'AI服务数据使用声明',
-          '使用此功能时，您的上传图片和提示词将发送至可灵AI、通义千问、腾讯云TTS处理。数据仅用于本次生成。是否同意？',
-          [
-            { text: '不同意', onPress: () => resolve(false) },
-            { text: '同意并继续', onPress: () => {
-              localStorage.setItem('ai_privacy_consent', 'true');
-              resolve(true);
-            }}
-          ]
-        );
-      } else {
-        // 其他平台直接放行
+      const isIOS = navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1;
+      if (!isIOS) {
+        // 非iOS平台直接放行
         localStorage.setItem('ai_privacy_consent', 'true');
         resolve(true);
+        return;
       }
+      // iOS/iPad弹窗
+      Alert.alert(
+        'AI服务数据使用声明',
+        '使用此功能时，您的上传图片和提示词将发送至可灵AI、通义千问、腾讯云TTS处理。数据仅用于本次生成。是否同意？',
+        [
+          { text: '不同意', onPress: () => resolve(false) },
+          { text: '同意并继续', onPress: () => {
+            localStorage.setItem('ai_privacy_consent', 'true');
+            resolve(true);
+          }}
+        ]
+      );
     });
   };
 
