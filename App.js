@@ -1955,14 +1955,18 @@ export default function App() {
               <Icon name="copy-outline" size={18} color="#7c3aed" />
               <Text style={styles.actionText}>复制链接</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={(e) => { e.stopPropagation(); downloadFile(imageUrl, filename); }} style={styles.actionButton}>
-              <Icon name="download-outline" size={18} color="#10b981" />
-              <Text style={styles.actionText}>下载</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={(e) => { e.stopPropagation(); saveToGallery(imageUrl, 'image'); }} style={styles.actionButton}>
-              <Icon name="image-outline" size={18} color="#f59e0b" />
-              <Text style={styles.actionText}>保存相册</Text>
-            </TouchableOpacity>
+            {navigator.platform.indexOf('iPhone') === -1 && navigator.platform.indexOf('iPad') === -1 && (
+              <TouchableOpacity onPress={(e) => { e.stopPropagation(); downloadFile(imageUrl, filename); }} style={styles.actionButton}>
+                <Icon name="download-outline" size={18} color="#10b981" />
+                <Text style={styles.actionText}>下载</Text>
+              </TouchableOpacity>
+            )}
+            {navigator.platform.indexOf('iPhone') === -1 && navigator.platform.indexOf('iPad') === -1 && (
+              <TouchableOpacity onPress={(e) => { e.stopPropagation(); saveToGallery(imageUrl, 'image'); }} style={styles.actionButton}>
+                <Icon name="image-outline" size={18} color="#f59e0b" />
+                <Text style={styles.actionText}>保存相册</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </Card>
       );
