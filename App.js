@@ -3191,10 +3191,10 @@ export default function App() {
                     </TouchableOpacity>
                     {isLoggedIn && (
                       <>
-                        <TouchableOpacity onPress={handleLogout} style={{ marginTop: 12 }}>
+                        <TouchableOpacity onPress={handleLogout} style={{ marginTop: 12, alignSelf: 'flex-start', paddingRight: 20 }}>
                           <Text style={{ color: '#ef4444' }}>退出登录</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setShowDeleteConfirm(true)} style={{ marginTop: 8 }}>
+                        <TouchableOpacity onPress={() => setShowDeleteConfirm(true)} style={{ marginTop: 8, alignSelf: 'flex-start', paddingRight: 20 }}>
                           <Text style={{ color: '#ff6666', fontSize: 12 }}>注销账户</Text>
                         </TouchableOpacity>
                       </>
@@ -3932,14 +3932,14 @@ const styles = StyleSheet.create({
   humanStatus: { color: '#aaa', fontSize: S(12), marginTop: S(2) },
   emptyText: { color: '#666', fontSize: S(14), textAlign: 'center', paddingVertical: S(20) },
   menuOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    zIndex: 999,
-  },
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.3)',
+      zIndex: 999,
+    },
   dropdownMenu: {
       position: 'absolute',
       top: S(60),
