@@ -652,25 +652,13 @@ export default function App() {
         resolve(true);
         return;
       }
-      const isIOS = navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1;
-      if (!isIOS) {
-        // 非iOS平台直接放行
-        localStorage.setItem('ai_privacy_consent', 'true');
-        resolve(true);
-        return;
-      }
-      // iOS/iPad弹窗
-      Alert.alert(
-        'AI服务数据使用声明',
-        '使用此功能时，您的上传图片和提示词将发送至可灵AI、通义千问、腾讯云TTS处理。数据仅用于本次生成。是否同意？',
-        [
-          { text: '不同意', onPress: () => resolve(false) },
-          { text: '同意并继续', onPress: () => {
-            localStorage.setItem('ai_privacy_consent', 'true');
-            resolve(true);
-          }}
-        ]
+      const result = window.confirm(
+        'AI服务数据使用声明\n\n使用此功能时，您的上传图片和提示词将发送至以下第三方服务处理：\n\n• 可灵AI（Kling）- 图片/视频生成\n• 阿里云通义千问 - 内容识别\n• 腾讯云TTS - 语音合成\n\n数据仅用于本次生成，不会存储或用于其他目的。\n\n是否同意？'
       );
+      if (result) {
+        localStorage.setItem('ai_privacy_consent', 'true');
+      }
+      resolve(result);
     });
   };
 
@@ -3956,9 +3944,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#1e1e2e',
     borderRadius: S(16),
     padding: S(16),
-    paddingBottom: S(16),
-    maxHeight: S(500),
+    maxHeight: S(700),
     zIndex: 1000,
+    overflow: 'scroll',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
