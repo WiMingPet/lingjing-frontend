@@ -3119,6 +3119,89 @@ export default function App() {
                 </TouchableOpacity>
               </View>
 
+              {showSidebarMenu && (
+                <>
+                  <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={(e) => { e.stopPropagation(); setShowSidebarMenu(false); }} />
+                  <View style={styles.dropdownMenu}>
+                    <View style={styles.dropdownUserInfo}>
+                      <Icon name="person-circle" size={50} color="#7c3aed" />
+                      <Text style={styles.dropdownUserName}>{isLoggedIn ? (loginPhone || '用户') : '未登录'}</Text>
+                      {isLoggedIn && <Text style={styles.dropdownUserPhone}>{loginPhone}</Text>}
+                    </View>
+                    <View style={styles.dropdownCredits}>
+                      <Text style={styles.dropdownCreditsLabel}>灵境点余额</Text>
+                      <TouchableOpacity 
+                        onPress={() => setShowRechargeModal(true)}
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                      >
+                        <Text style={styles.dropdownCreditsValue}>{userCredits}</Text>
+                        <Text style={{ color: '#a78bfa', fontSize: 13, fontWeight: '600' }}>充值</Text>
+                      </TouchableOpacity>
+                    </View>
+                  
+                    <Text style={[styles.dropdownSectionTitle, { color: '#aaa' }]}>我的数字人</Text>
+                    {digitalHumans.filter(d => !d.is_default).map(human => (
+                      <View key={human.id} style={styles.dropdownHumanItem}>
+                        <Text style={{ color: '#fff' }}>{human.name}</Text>
+                        <Text style={{ color: '#aaa' }}>{human.is_active ? '✅' : '⏳'}</Text>
+                      </View>
+                    ))}
+                    <TouchableOpacity 
+                      onPress={() => {
+                        setShowSidebarMenu(false);
+                        showToast('请联系QQ：3060302415 或 拨打：15920978058');
+                      }}
+                      style={{ 
+                        backgroundColor: '#2d2d44', 
+                        borderRadius: S(12), 
+                        padding: S(16),
+                        marginBottom: S(12),
+                      }}
+                    >
+                      <Text style={{ color: '#fff', fontSize: S(15), fontWeight: 'bold', marginBottom: S(6) }}>
+                        💬 帮助与客服
+                      </Text>
+                      <Text style={{ color: '#999', fontSize: S(12), marginBottom: S(10) }}>
+                        点击下方联系客服
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: S(10) }}>
+                        <TouchableOpacity 
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText('3060302415');
+                            showToast('✅ QQ已复制');
+                          }}
+                          style={{ flex: 1, backgroundColor: '#3b3b5c', borderRadius: S(8), padding: S(10), alignItems: 'center' }}
+                        >
+                          <Text style={{ color: '#7c3aed', fontSize: S(13) }}>QQ 3060302415</Text>
+                          <Text style={{ color: '#666', fontSize: S(10) }}>点击复制</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText('15920978058');
+                            showToast('手机号已复制，请到拨号盘拨打');
+                          }}
+                          style={{ flex: 1, backgroundColor: '#3b3b5c', borderRadius: S(8), padding: S(10), alignItems: 'center' }}
+                        >
+                          <Text style={{ color: '#10b981', fontSize: S(13) }}>📞 15920978058</Text>
+                          <Text style={{ color: '#666', fontSize: S(10) }}>点击复制</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+                    {isLoggedIn && (
+                      <>
+                        <TouchableOpacity onPress={handleLogout} style={{ marginTop: 12 }}>
+                          <Text style={{ color: '#ef4444' }}>退出登录</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setShowDeleteConfirm(true)} style={{ marginTop: 8 }}>
+                          <Text style={{ color: '#ff6666', fontSize: 12 }}>注销账户</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
+                  </View>
+                </>
+              )}
               {isLoggedIn ? (
                 <View style={styles.profileContent}>
                   <Text style={styles.welcomeText}>欢迎回来</Text>
@@ -3144,90 +3227,6 @@ export default function App() {
           </ScrollView>
         )}
 
-        {/* 三横菜单 - 移到 ScrollView 外面 */}
-        {showSidebarMenu && (
-          <>
-            <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setShowSidebarMenu(false)} />
-            <View style={styles.dropdownMenu}>
-              <View style={styles.dropdownUserInfo}>
-                <Icon name="person-circle" size={50} color="#7c3aed" />
-                <Text style={styles.dropdownUserName}>{isLoggedIn ? (loginPhone || '用户') : '未登录'}</Text>
-                {isLoggedIn && <Text style={styles.dropdownUserPhone}>{loginPhone}</Text>}
-              </View>
-              <View style={styles.dropdownCredits}>
-                <Text style={styles.dropdownCreditsLabel}>灵境点余额</Text>
-                <TouchableOpacity 
-                  onPress={() => setShowRechargeModal(true)}
-                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <Text style={styles.dropdownCreditsValue}>{userCredits}</Text>
-                  <Text style={{ color: '#a78bfa', fontSize: 13, fontWeight: '600' }}>充值</Text>
-                </TouchableOpacity>
-              </View>
-            
-              <Text style={[styles.dropdownSectionTitle, { color: '#aaa' }]}>我的数字人</Text>
-              {digitalHumans.filter(d => !d.is_default).map(human => (
-                <View key={human.id} style={styles.dropdownHumanItem}>
-                  <Text style={{ color: '#fff' }}>{human.name}</Text>
-                  <Text style={{ color: '#aaa' }}>{human.is_active ? '✅' : '⏳'}</Text>
-                </View>
-              ))}
-              <TouchableOpacity 
-                onPress={() => {
-                  setShowSidebarMenu(false);
-                  showToast('请联系QQ：3060302415 或 拨打：15920978058');
-                }}
-                style={{ 
-                  backgroundColor: '#2d2d44', 
-                  borderRadius: S(12), 
-                  padding: S(16),
-                  marginBottom: S(12),
-                }}
-              >
-                <Text style={{ color: '#fff', fontSize: S(15), fontWeight: 'bold', marginBottom: S(6) }}>
-                  💬 帮助与客服
-                </Text>
-                <Text style={{ color: '#999', fontSize: S(12), marginBottom: S(10) }}>
-                  点击下方联系客服
-                </Text>
-                <View style={{ flexDirection: 'row', gap: S(10) }}>
-                  <TouchableOpacity 
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      navigator.clipboard.writeText('3060302415');
-                      showToast('✅ QQ已复制');
-                    }}
-                    style={{ flex: 1, backgroundColor: '#3b3b5c', borderRadius: S(8), padding: S(10), alignItems: 'center' }}
-                  >
-                    <Text style={{ color: '#7c3aed', fontSize: S(13) }}>QQ 3060302415</Text>
-                    <Text style={{ color: '#666', fontSize: S(10) }}>点击复制</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      navigator.clipboard.writeText('15920978058');
-                      showToast('手机号已复制，请到拨号盘拨打');
-                    }}
-                    style={{ flex: 1, backgroundColor: '#3b3b5c', borderRadius: S(8), padding: S(10), alignItems: 'center' }}
-                  >
-                    <Text style={{ color: '#10b981', fontSize: S(13) }}>📞 15920978058</Text>
-                    <Text style={{ color: '#666', fontSize: S(10) }}>点击复制</Text>
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-              {isLoggedIn && (
-                <>
-                  <TouchableOpacity onPress={handleLogout} style={{ marginTop: 12, alignSelf: 'flex-start' }}>
-                    <Text style={{ color: '#ef4444' }}>退出登录</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => setShowDeleteConfirm(true)} style={{ marginTop: 8, alignSelf: 'flex-start' }}>
-                    <Text style={{ color: '#ff6666', fontSize: 12 }}>注销账户</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          </>
-        )}
 
         {/* 登录弹窗 */}
         <Modal visible={showLoginModal} transparent={true} animationType="slide">
