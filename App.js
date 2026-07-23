@@ -652,13 +652,16 @@ export default function App() {
         resolve(true);
         return;
       }
-      const result = window.confirm(
-        'AI服务数据使用声明\n\n使用此功能时，您的上传图片和提示词将发送至以下第三方服务处理：\n\n• 可灵AI（Kling）- 图片/视频生成\n• 阿里云通义千问 - 内容识别\n• 腾讯云TTS - 语音合成\n\n数据仅用于本次生成，不会存储或用于其他目的。\n\n是否同意？'
-      );
-      if (result) {
-        localStorage.setItem('ai_privacy_consent', 'true');
+      // 只有 iOS/iPad 弹窗
+      if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
+        const result = window.confirm('使用此功能时，您的上传图片和提示词将发送至可灵AI、通义千问、腾讯云TTS处理。数据仅用于本次生成。是否同意？');
+        if (result) localStorage.setItem('ai_privacy_consent', 'true');
+        resolve(result);
+        return;
       }
-      resolve(result);
+      // 其他平台直接放行
+      localStorage.setItem('ai_privacy_consent', 'true');
+      resolve(true);
     });
   };
 
