@@ -194,7 +194,7 @@ export default function App() {
   const [parsingLoading, setParsingLoading] = useState(false);
   const [multiLoading, setMultiLoading] = useState(false);
   const [result, setResult] = useState(null);
-  const [activeTab, setActiveTab] = useState('size');
+  const [activeTab, setActiveTab] = useState('image');
   const [history, setHistory] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -2251,7 +2251,7 @@ export default function App() {
 
   const handleGenerate = () => {
         switch (activeTab) {
-          case 'size': recommendSize(); break;
+          // case 'size': recommendSize(); break;
           case 'image': generateImage(); break;
           case 'video': generateVideo(); break;
           case 'tryon': generateTryon(); break;
@@ -2344,28 +2344,28 @@ export default function App() {
       };
 
     // 尺码推荐
-    if (activeTab === 'size') {
-      return (
-        <Card style={styles.resultCard}>
-          <Text style={styles.resultTitle}>📏 尺码推荐</Text>
-          <View style={styles.sizeRow}>
-            <View style={styles.sizeItem}>
-              <Text style={styles.sizeLabel}>胸围</Text>
-              <Text style={styles.sizeValue}>{result.bust} cm</Text>
-            </View>
-            <View style={styles.sizeItem}>
-              <Text style={styles.sizeLabel}>腰围</Text>
-              <Text style={styles.sizeValue}>{result.waist} cm</Text>
-            </View>
-            <View style={styles.sizeItem}>
-              <Text style={styles.sizeLabel}>臀围</Text>
-              <Text style={styles.sizeValue}>{result.hip} cm</Text>
-            </View>
-          </View>
-          <Text style={styles.recommendSize}>推荐尺码: {result.recommended_size}</Text>
-        </Card>
-      );
-    }
+    // if (activeTab === 'size') {
+    //   return (
+    //     <Card style={styles.resultCard}>
+    //       <Text style={styles.resultTitle}>📏 尺码推荐</Text>
+    //       <View style={styles.sizeRow}>
+    //         <View style={styles.sizeItem}>
+    //           <Text style={styles.sizeLabel}>胸围</Text>
+    //           <Text style={styles.sizeValue}>{result.bust} cm</Text>
+    //         </View>
+    //         <View style={styles.sizeItem}>
+    //           <Text style={styles.sizeLabel}>腰围</Text>
+    //           <Text style={styles.sizeValue}>{result.waist} cm</Text>
+    //         </View>
+    //         <View style={styles.sizeItem}>
+    //           <Text style={styles.sizeLabel}>臀围</Text>
+    //           <Text style={styles.sizeValue}>{result.hip} cm</Text>
+    //         </View>
+    //       </View>
+    //       <Text style={styles.recommendSize}>推荐尺码: {result.recommended_size}</Text>
+    //     </Card>
+    //   );
+    // }
 
     // 图片或图片数组
     if ((activeTab === 'image' || activeTab === 'multi') && result.images) {
@@ -2512,7 +2512,7 @@ export default function App() {
   };
 
   const tabs = [
-    { key: 'size', icon: 'body-outline', label: '尺码', color: '#7c3aed' },
+    // { key: 'size', icon: 'body-outline', label: '尺码', color: '#7c3aed' },
     { key: 'image', icon: 'image-outline', label: '图片', color: '#10b981' },
     { key: 'video', icon: 'videocam-outline', label: '视频', color: '#f59e0b' },
     { key: 'tryon', icon: 'shirt-outline', label: '试穿', color: '#ef4444' },
@@ -3379,7 +3379,7 @@ export default function App() {
               </>
             )}
 
-            {activeTab === 'size' && (
+            {/* activeTab === 'size' && (
               <Card style={styles.inputCard}>
                 <Text style={styles.cardTitle}>📏 身高</Text>
                 <View style={styles.heightRow}>
@@ -3394,7 +3394,7 @@ export default function App() {
                   <Text style={styles.heightUnit}>cm</Text>
                 </View>
               </Card>
-            )}
+            ) */}
 
 
             {(activeTab === 'image' || activeTab === 'video' || activeTab === 'tryon' || activeTab === 'multi') && (
@@ -3439,11 +3439,11 @@ export default function App() {
               </Card>
             )}
 
-            {activeTab === 'size' && (
+            {/* activeTab === 'size' && (
               <TouchableOpacity onPress={recommendSize} disabled={sizeLoading} style={styles.generateButton}>
                 {sizeLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>开始尺码推荐</Text>}
               </TouchableOpacity>
-            )}
+            ) */}
 
             {activeTab === 'image' && (
               <TouchableOpacity onPress={generateImage} disabled={imageLoading} style={styles.generateButton}>
