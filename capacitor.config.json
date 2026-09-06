@@ -1,1 +1,9 @@
-{"appId":"com.lingjingmedia.app","appName":"灵境AI软件","webDir":"dist","server":{"url":"https://lingjing-media.com","allowNavigation":["*"]}}
+{
+  "appId": "com.lingjing_media.app",
+  "appName": "灵境AI软件",
+  "webDir": "dist",
+  "server": {
+    "url": "https://lingjing-media.com",
+    "allowNavigation": ["*"]
+  }
+}
