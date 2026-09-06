@@ -1,6 +1,9 @@
 import 'formdata-polyfill';
 import React, { useState, useEffect, useRef } from 'react';
 import { MANUAL_VOICES } from './src/data/manualVoices.js';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+
 import {
   StyleSheet,
   Text,
@@ -31,7 +34,6 @@ const SCALE = isSmallScreen ? 0.72 : 1;
 const S = (n) => n * SCALE;
 const API_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
 const HISTORY_KEY = 'lingjing_image_history'; 
-
 
 const Card = ({ children, style }) => (
   <View style={[styles.card, style]}>{children}</View>
@@ -126,6 +128,35 @@ export default function App() {
       setToastVisible(true);
       setTimeout(() => setToastVisible(false), 3000);
     };
+
+    // 首次启动隐私弹窗
+    if (!localStorage.getItem('privacy_agreed')) {
+      setTimeout(() => {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;';
+        overlay.innerHTML = `
+          <div style="background:#1e1e2e;border-radius:16px;padding:24px;width:300px;text-align:center;">
+            <div style="color:#fff;font-size:18px;margin-bottom:16px;">欢迎使用灵境AI</div>
+            <div style="color:#aaa;font-size:13px;text-align:left;line-height:1.8;margin-bottom:20px;">
+              请阅读并同意以下协议：<br>
+              <a href="https://media.lingjing-media.com/privact.html" target="_blank" style="color:#7c3aed;">《隐私政策》</a><br>
+              <a href="https://media.lingjing-media.com/terms.html" target="_blank" style="color:#7c3aed;">《用户协议》</a>
+            </div>
+            <div style="display:flex;gap:12px;">
+              <button id="privacy-reject" style="flex:1;padding:10px;border-radius:8px;border:1px solid #666;background:transparent;color:#fff;">拒绝</button>
+              <button id="privacy-agree" style="flex:1;padding:10px;border-radius:8px;border:none;background:#7c3aed;color:#fff;">同意</button>
+            </div>
+          </div>`;
+        document.body.appendChild(overlay);
+        document.getElementById('privacy-agree').onclick = () => {
+          localStorage.setItem('privacy_agreed', 'true');
+          overlay.remove();
+        };
+        document.getElementById('privacy-reject').onclick = () => {
+          overlay.remove();
+        };
+      }, 500);
+    }
     return () => {
       document.head.removeChild(style);
     };
@@ -134,6 +165,19 @@ export default function App() {
   const [videoModalVisible, setVideoModalVisible] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
   const fullscreenVideoRef = useRef(null);
+
+  // ========== 商家工作台状态 ==========
+  const [merchantImages, setMerchantImages] = useState([]);
+  const [merchantTemplate, setMerchantTemplate] = useState('white_bg');
+  const [merchantProductType, setMerchantProductType] = useState('clothing');
+  const [sceneCount, setSceneCount] = useState(1);
+  const [sceneText, setSceneText] = useState('');
+  const [merchantHeight, setMerchantHeight] = useState('');
+  const [merchantWeight, setMerchantWeight] = useState('');
+  const [merchantLoading, setMerchantLoading] = useState(false);
+  const [merchantResult, setMerchantResult] = useState(null);
+  const [merchantGender, setMerchantGender] = useState('female');
+  
   // 形象预览视频 Modal 状态
   const [previewVideoVisible, setPreviewVideoVisible] = useState(false);
   const [currentPreviewVideoUrl, setCurrentPreviewVideoUrl] = useState('');
@@ -350,6 +394,10 @@ export default function App() {
   }, []);
 
   const handleLogin = async () => {
+    if (!document.getElementById('loginAgree')?.checked) {
+      showToast('请先阅读并同意隐私政策和用户协议', true);
+      return;
+    }
     if (!loginPhone.trim()) return showToast('请输入手机号');
     if (loginMode === 'password' && !loginPassword.trim()) return showToast('请输入密码');
     if (loginMode === 'code' && !loginCode.trim()) return showToast('请输入验证码');
@@ -819,6 +867,10 @@ export default function App() {
 
   // 完成注册
   const completeRegister = async () => {
+    if (!document.getElementById('registerAgree')?.checked) {
+      showToast('请先阅读并同意隐私政策和用户协议', true);
+      return;
+    }
     if (!registerPassword.trim()) return showToast('请输入密码');
     if (registerPassword.length < 6) return showToast('密码至少6位');
     setLoading(true);
@@ -899,48 +951,159 @@ export default function App() {
       console.error('保存历史记录失败:', error.message, error.response?.status, error.response?.data);
     }
   };
-  // 保存文件到本地相册（移动端）或下载（Web）
-  const saveToGallery = async (url, type) => {
-    try {
-      // ✅ 鸿蒙环境 → 调用原生桥接
-      if (window.harmonyBridge?.saveFile) {
-        const fileName = `${type}_${Date.now()}.${type === 'image' ? 'png' : 'mp4'}`;
-        console.log('📥 鸿蒙保存:', url, fileName);
-        window.harmonyBridge.saveFile(url, fileName);
-        showToast('正在保存...');
-        return;
+  
+  const addWatermarkToImage = async (url) => {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const originalBytes = new Uint8Array(await blob.arrayBuffer());
+    
+    // 提取原图的文本块
+    const textChunks = [];
+    let pos = 8;
+    while (pos < originalBytes.length) {
+      const len = (originalBytes[pos] << 24) | (originalBytes[pos+1] << 16) | (originalBytes[pos+2] << 8) | originalBytes[pos+3];
+      const type = String.fromCharCode(originalBytes[pos+4], originalBytes[pos+5], originalBytes[pos+6], originalBytes[pos+7]);
+      if (type === 'tEXt' || type === 'iTXt' || type === 'zTXt') {
+        textChunks.push(originalBytes.slice(pos, pos + 12 + len));
       }
-
-      // ✅ iOS → 用原生下载协议
-      if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
-        window.webkit.messageHandlers.iosDownload.postMessage(item.url || ecommerceVideoUrl);
-        return;
-      }
-
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const filename = `${type}_${Date.now()}.${type === 'image' ? 'png' : 'mp4'}`;
-
-      if (Platform.OS === 'web') {
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(link.href);
-        showToast('文件已下载，请手动保存到相册');
-      } else {
-        const fileInfo = await FileSystem.downloadAsync(url, FileSystem.documentDirectory + filename);
-        const asset = await MediaLibrary.createAssetAsync(fileInfo.uri);
-        await MediaLibrary.saveToLibraryAsync(asset);
-        showToast('已保存到相册');
-      }
-    } catch (err) {
-      console.error('保存失败:', err);
-      showToast('保存失败，请重试', true);
+      pos += 12 + len;
     }
+    
+    // Canvas 加水印
+    const objectUrl = URL.createObjectURL(blob);
+    const img = new window.Image();
+    await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = objectUrl; });
+    URL.revokeObjectURL(objectUrl);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+
+    const text = 'AI生成';
+    const fontSize = Math.max(24, Math.floor(canvas.width * 0.05));
+    ctx.font = `bold ${fontSize}px Arial`;
+    const metrics = ctx.measureText(text);
+    const padding = 12;
+    const boxW = metrics.width + padding * 2;
+    const boxH = fontSize * 1.6 + padding * 2;
+    const boxX = canvas.width - 30 - boxW;
+    const boxY = Math.max(25, canvas.height * 0.04);
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    
+    ctx.fillStyle = '#000000';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.font = `bold ${fontSize}px Arial`;
+    ctx.fillText(text, boxX + padding, boxY + boxH / 2);
+
+    // 导出 PNG
+    const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    const pngBytes = new Uint8Array(await pngBlob.arrayBuffer());
+    
+    // 如果原图没有文本块，直接返回
+    if (textChunks.length === 0) {
+      return pngBlob;
+    }
+    
+    // 在新图的 IHDR 之后插入原图的文本块
+    // PNG 结构：签名(8) + IHDR(25) + 其他块 + IDAT + IEND
+    const result = new Uint8Array(pngBytes.length + textChunks.reduce((s, c) => s + c.length, 0));
+    
+    // 复制签名 + IHDR
+    const ihdrEnd = 8 + 25; // 签名8字节 + IHDR块(4长度+4类型+13数据+4CRC)
+    result.set(pngBytes.slice(0, ihdrEnd), 0);
+    
+    // 插入文本块
+    let offset = ihdrEnd;
+    for (const chunk of textChunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+    
+    // 复制剩余数据
+    result.set(pngBytes.slice(ihdrEnd), offset);
+    
+    return new Blob([result], { type: 'image/png' });
   };
+
+  const saveToGallery = async (url, type) => {
+        try {
+          const isImage = type === 'image';
+          const filename = `AI_${type}_${Date.now()}.${isImage ? 'png' : 'mp4'}`;
+          let finalUrl = url;
+          let finalBlob = null;
+
+          if (isImage) {
+            try {
+              finalBlob = await addWatermarkToImage(url);
+              finalUrl = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(finalBlob);
+              });
+            } catch (e) {
+              console.error('处理失败:', e);
+            }
+          }
+
+          if (window.harmonyBridge?.saveFile) {
+            window.harmonyBridge.saveFile(finalUrl, filename);
+            showToast('正在保存...');
+            return;
+          }
+
+          if (/android/i.test(navigator.userAgent)) {
+            const { Filesystem } = await import('@capacitor/filesystem');
+            let base64Data;
+            if (finalBlob) {
+              base64Data = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(finalBlob);
+              });
+            } else {
+              const res = await fetch(url);
+              const b = await res.blob();
+              base64Data = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(b);
+              });
+            }
+            await Filesystem.writeFile({ path: filename, data: base64Data, directory: Directory.Documents });
+            showToast(isImage ? '图片已保存' : '视频已保存');
+            return;
+          }
+
+          if (/iPhone|iPad/i.test(navigator.platform)) {
+            if (finalBlob) {
+              const reader = new FileReader();
+              const base64 = await new Promise((resolve) => { reader.onloadend = () => resolve(reader.result); reader.readAsDataURL(finalBlob); });
+              window.webkit.messageHandlers.iosDownload.postMessage({ url: base64, filename: filename });
+            } else {
+              window.webkit.messageHandlers.iosDownload.postMessage(url);
+            }
+            return;
+          }
+
+          const downloadBlob = finalBlob || await (await fetch(url)).blob();
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(downloadBlob);
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          showToast('文件已下载');
+
+        } catch (err) {
+          showToast('保存失败', true);
+        }
+      };
+
   // 从后端加载历史记录
   const loadHistory = async () => {
     const token = localStorage.getItem('access_token');
@@ -977,102 +1140,312 @@ export default function App() {
   };
 
   const deleteHistoryItem = async (historyId) => {
-    try {
-      const token = localStorage.getItem('access_token');
-      await axios.delete(`${API_URL}/history/${historyId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      showToast('已删除');
-      loadHistory();
-    } catch (err) {
-      showToast('删除失败', true);
-    }
-  };
-
-  const pickImage = () => {
-    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
-      if (res.assets && res.assets[0]) {
-        setSelectedImage(res.assets[0]);
-        setResult(null);
-      }
-    });
-  };
-
-  const takePhoto = () => {
-    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
-      if (res.assets && res.assets[0]) {
-        setSelectedImage(res.assets[0]);
-        setResult(null);
-      }
-    });
-  };
-
-  const pickModelImage = () => {
-    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
-      if (res.assets && res.assets[0]) {
-        setModelImage(res.assets[0]);
-      }
-    });
-  };
-
-  const pickGarmentImage = () => {
-    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
-      if (res.assets && res.assets[0]) {
-        setGarmentImage(res.assets[0]);
-      }
-    });
-  };
-
-  const pickDigitalImage = () => {
-    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
-      if (res.assets && res.assets[0]) {
-        setDigitalImage(res.assets[0]);
-      }
-    });
-  };
-
-  const pickCustomVideo = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'video/mp4,video/quicktime,video/x-msvideo';
-    input.onchange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        setCustomVideo(file);
+      try {
+        const token = localStorage.getItem('access_token');
+        await axios.delete(`${API_URL}/history/${historyId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        showToast('已删除');
+        loadHistory();
+      } catch (err) {
+        showToast('删除失败', true);
       }
     };
-    input.click();
-  };
 
-  const pickMultiImage = () => {
-    if (multiImages.length >= 4) {
-      showToast('最多上传4张照片', true);
-      return;
-    }
-    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8, selectionLimit: 1 }, (res) => {
-      if (res.assets && res.assets[0]) {
-        setMultiImages([...multiImages, res.assets[0]]);
+    const showPhotoPicker = () => {
+      return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;';
+        overlay.innerHTML = `
+          <div style="background:#1e1e2e;border-radius:16px;padding:24px;width:260px;text-align:center;">
+            <div style="color:#fff;font-size:18px;margin-bottom:20px;">选择上传方式</div>
+            <div style="display:flex;gap:12px;">
+              <button id="picker-camera" style="flex:1;padding:12px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-size:15px;">拍照</button>
+              <button id="picker-gallery" style="flex:1;padding:12px;border-radius:8px;border:1px solid #666;background:transparent;color:#fff;font-size:15px;">相册</button>
+            </div>
+          </div>`;
+        document.body.appendChild(overlay);
+        document.getElementById('picker-camera').onclick = () => { overlay.remove(); resolve('camera'); };
+        document.getElementById('picker-gallery').onclick = () => { overlay.remove(); resolve('gallery'); };
+      });
+    };
+
+    const pickImage = async () => {
+      if (/android/i.test(navigator.userAgent)) {
+        const choice = await showPhotoPicker();
+        if (choice === 'camera') { takePhoto(); return; }
       }
-    });
-  };
+      ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
+        if (res.assets && res.assets[0]) {
+          setSelectedImage(res.assets[0]);
+          setResult(null);
+        }
+      });
+    };
 
-  const pickEcommerceImage = () => {
-    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
-      if (res.assets && res.assets[0]) {
-        setEcommerceImage(res.assets[0]);
+    const takePhoto = async () => {
+      try {
+        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+        const image = await Camera.getPhoto({
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Camera,
+          quality: 90,
+        });
+        setSelectedImage({ uri: image.webPath });
+        setResult(null);
+      } catch (e) {
+        showToast('拍照失败', true);
       }
-    });
-  };
+    };
 
-  const pickEcommerceDigitalImage = () => {
-    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
-      if (res.assets && res.assets[0]) {
-        setEcommerceDigitalImage(res.assets[0]);
+    // 电商套图：相册选择
+    const pickMerchantImages = () => {
+      if (merchantImages.length >= 5) {
+        showToast('最多上传5张图片');
+        return;
       }
-    });
-  };
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.multiple = true;
+      input.onchange = (e) => {
+        const files = Array.from(e.target.files);
+        const newImages = [...merchantImages, ...files].slice(0, 5);
+        setMerchantImages(newImages);
+      };
+      input.click();
+    };
 
-  const convertToFile = async (imageAsset) => {
+    // 电商套图：拍照
+    const takeMerchantPhoto = async () => {
+      if (merchantImages.length >= 5) {
+        showToast('最多上传5张图片');
+        return;
+      }
+      try {
+        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+        const image = await Camera.getPhoto({
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Camera,
+          quality: 90,
+        });
+        const response = await fetch(image.webPath);
+        const blob = await response.blob();
+        const file = new File([blob], `merchant_photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        const newImages = [...merchantImages, file].slice(0, 5);
+        setMerchantImages(newImages);
+      } catch (e) {
+        showToast('拍照失败', true);
+      }
+    };
+
+    // ========== 在这里加商家工作台生成函数 ==========
+    const handleMerchantGenerate = async () => {
+      const consented = await checkAIPrivacyConsent();
+      if (!consented) return;
+
+      const isVerified = await checkPhoneVerified();
+      if (!isVerified) {
+        showToast('根据法规要求，使用AI功能前需完成手机号认证');
+        setShowLoginModal(true);
+        return;
+      }
+
+      if (merchantImages.length === 0) {
+        showToast('请先上传平铺图', true);
+        return;
+      }
+
+      setMerchantLoading(true);
+      setIsGenerating(true);
+      setGeneratingTitle('电商商品套图生成中');
+      setGeneratingSubtitle('商品图上传与AI处理');
+      setMerchantResult(null);
+      try {
+        const formData = new FormData();
+        merchantImages.forEach((file) => {
+          formData.append('images', file);
+        });
+        formData.append('template', merchantTemplate);
+        formData.append('product_type', merchantProductType);
+        formData.append('scene_count', sceneCount);  // ← 加这行
+        formData.append('gender', merchantGender);
+        formData.append('scene_text', sceneText);
+        if (merchantHeight) formData.append('height', merchantHeight);
+        if (merchantWeight) formData.append('weight', merchantWeight);
+
+        const token = localStorage.getItem('access_token');
+        const res = await axios.post(`${API_URL}/merchant/generate_package`, formData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        if (res.data.code === 200) {
+          setMerchantResult(res.data.data);
+          showToast('生成成功');
+          loadHistory();
+        } else {
+          showToast(res.data.message || '生成失败', true);
+        }
+      } catch (err) {
+        console.error('商家工作台生成失败:', err);
+        showToast(err.response?.data?.detail || '生成失败', true);
+      } finally {
+        setMerchantLoading(false);
+        setIsGenerating(false);
+      }
+    };
+
+    const pickModelImage = async () => {
+      if (/android/i.test(navigator.userAgent)) {
+        const choice = await showPhotoPicker();
+        if (choice === 'camera') { takeModelPhoto(); return; }
+      }
+      ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
+        if (res.assets && res.assets[0]) setModelImage(res.assets[0]);
+      });
+    };
+
+    const takeModelPhoto = async () => {
+      try {
+        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+        const image = await Camera.getPhoto({
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Camera,
+          quality: 90,
+        });
+        setModelImage({ uri: image.webPath });
+      } catch (e) { showToast('拍照失败', true); }
+    };
+
+    const pickGarmentImage = async () => {
+      if (/android/i.test(navigator.userAgent)) {
+        const choice = await showPhotoPicker();
+        if (choice === 'camera') { takeGarmentPhoto(); return; }
+      }
+      ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
+        if (res.assets && res.assets[0]) setGarmentImage(res.assets[0]);
+      });
+    };
+
+    const takeGarmentPhoto = async () => {
+      try {
+        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+        const image = await Camera.getPhoto({
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Camera,
+          quality: 90,
+        });
+        setGarmentImage({ uri: image.webPath });
+      } catch (e) { showToast('拍照失败', true); }
+    };
+
+    const pickDigitalImage = async () => {
+      if (/android/i.test(navigator.userAgent)) {
+        const choice = await showPhotoPicker();
+        if (choice === 'camera') { takeDigitalPhoto(); return; }
+      }
+      ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
+        if (res.assets && res.assets[0]) setDigitalImage(res.assets[0]);
+      });
+    };
+
+    const takeDigitalPhoto = async () => {
+      try {
+        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+        const image = await Camera.getPhoto({
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Camera,
+          quality: 90,
+        });
+        setDigitalImage({ uri: image.webPath });
+      } catch (e) { showToast('拍照失败', true); }
+    };
+
+    const pickCustomVideo = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'video/mp4,video/quicktime,video/x-msvideo';
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) setCustomVideo(file);
+      };
+      input.click();
+    };
+
+    const pickMultiImage = async () => {
+      if (multiImages.length >= 4) {
+        showToast('最多上传4张照片', true);
+        return;
+      }
+      if (/android/i.test(navigator.userAgent)) {
+        const choice = await showPhotoPicker();
+        if (choice === 'camera') { takeMultiPhoto(); return; }
+      }
+      ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8, selectionLimit: 1 }, (res) => {
+        if (res.assets?.[0]) setMultiImages([...multiImages, res.assets[0]]);
+      });
+    };
+
+    const takeMultiPhoto = async () => {
+      try {
+        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+        const image = await Camera.getPhoto({
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Camera,
+          quality: 90,
+        });
+        setMultiImages([...multiImages, { uri: image.webPath }]);
+      } catch (e) { showToast('拍照失败', true); }
+    };
+
+    const pickEcommerceImage = async () => {
+      if (/android/i.test(navigator.userAgent)) {
+        const choice = await showPhotoPicker();
+        if (choice === 'camera') { takeEcommercePhoto(); return; }
+      }
+      ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
+        if (res.assets?.[0]) setEcommerceImage(res.assets[0]);
+      });
+    };
+
+    const takeEcommercePhoto = async () => {
+      try {
+        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+        const image = await Camera.getPhoto({
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Camera,
+          quality: 90,
+        });
+        setEcommerceImage({ uri: image.webPath });
+      } catch (e) { showToast('拍照失败', true); }
+    };
+
+    const pickEcommerceDigitalImage = async () => {
+      if (/android/i.test(navigator.userAgent)) {
+        const choice = await showPhotoPicker();
+        if (choice === 'camera') { takeEcommerceDigitalPhoto(); return; }
+      }
+      ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
+        if (res.assets?.[0]) setEcommerceDigitalImage(res.assets[0]);
+      });
+    };
+
+    const takeEcommerceDigitalPhoto = async () => {
+      try {
+        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+        const image = await Camera.getPhoto({
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Camera,
+          quality: 90,
+        });
+        setEcommerceDigitalImage({ uri: image.webPath });
+      } catch (e) { showToast('拍照失败', true); }
+    };
+
+    const convertToFile = async (imageAsset) => {
       // 如果已经是标准 File 对象，直接返回
       if (imageAsset && imageAsset.name && imageAsset.type && !imageAsset.uri) {
         // 清理文件名，移除特殊字符
@@ -1891,33 +2264,83 @@ export default function App() {
   const renderResult = () => {
     if (!result) return null;
 
-  // 通用下载函数
   const downloadFile = async (url, filename) => {
-    try {
-      // ✅ 鸿蒙环境 → 调用原生桥接
-      if (window.harmonyBridge?.saveFile) {
-        console.log('📥 鸿蒙下载:', url, filename);
-        window.harmonyBridge.saveFile(url, filename);
-        showToast('正在下载...');
-        return;
-      }
+        alert('进入downloadFile');
+        try {
+          const isImage = /\.(png|jpe?g)$/i.test(filename);
+          let finalUrl = url;
+          let finalBlob = null;
 
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
-      showToast('下载已开始');
-    } catch (err) {
-      console.error('下载失败:', err);
-      showToast('下载失败，请重试', true);
-    }
-  };
+          if (isImage) {
+            try {
+              finalBlob = await addWatermarkToImage(url);
+              finalUrl = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(finalBlob);
+              });
+            } catch (e) {
+              console.error('处理失败:', e);
+            }
+          }
+
+          const finalFilename = isImage ? filename.replace(/\.(png|jpe?g)$/i, '.png') : filename;
+
+          if (window.harmonyBridge?.saveFile) {
+            window.harmonyBridge.saveFile(finalUrl, finalFilename);
+            showToast('正在下载...');
+            return;
+          }
+          
+          if (/android/i.test(navigator.userAgent)) {
+            const { Filesystem } = await import('@capacitor/filesystem');
+            let base64Data;
+            if (finalBlob) {
+              base64Data = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(finalBlob);
+              });
+            } else {
+              const res = await fetch(url);
+              const b = await res.blob();
+              base64Data = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(b);
+              });
+            }
+            await Filesystem.writeFile({ path: finalFilename, data: base64Data, directory: Directory.Documents });
+            showToast('文件已保存到内部存储/Documents');
+            return;
+          }
+          
+          if (/iPhone|iPad/i.test(navigator.platform)) {
+            if (finalBlob) {
+              const reader = new FileReader();
+              const base64 = await new Promise((resolve) => { reader.onloadend = () => resolve(reader.result); reader.readAsDataURL(finalBlob); });
+              window.webkit.messageHandlers.iosDownload.postMessage({ url: base64, filename: finalFilename });
+            } else {
+              window.webkit.messageHandlers.iosDownload.postMessage(url);
+            }
+            return;
+          }
+
+          const downloadBlob = finalBlob || await (await fetch(url)).blob();
+          const downloadUrl = URL.createObjectURL(downloadBlob);
+          const link = document.createElement('a');
+          link.href = downloadUrl;
+          link.download = finalFilename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(downloadUrl);
+          showToast('下载已开始');
+
+        } catch (err) {
+          showToast('下载失败，请重试', true);
+        }
+      };
 
     // 尺码推荐
     if (activeTab === 'size') {
@@ -1946,7 +2369,7 @@ export default function App() {
     // 图片或图片数组
     if ((activeTab === 'image' || activeTab === 'multi') && result.images) {
       const imageUrl = result.images[0].url;
-      const filename = `${activeTab === 'image' ? 'image' : 'multiangle'}_${Date.now()}.png`;
+      const filename = `AI_${activeTab === 'image' ? 'image' : 'multiangle'}_${Date.now()}.png`;
       return (
         <Card style={styles.resultCard}>
           <Text style={styles.resultTitle}>{activeTab === 'image' ? '✨ 生成图片' : '🔄 多角度合成'}</Text>
@@ -1954,7 +2377,29 @@ export default function App() {
             <Image source={{ uri: imageUrl }} style={styles.resultImage} resizeMode="contain" />
           </TouchableOpacity>
           <View style={styles.buttonGroup}>
-            <TouchableOpacity onPress={(e) => { e.stopPropagation(); navigator.clipboard.writeText(imageUrl); showToast('链接已复制'); }} style={styles.actionButton}>
+            <TouchableOpacity
+              onPress={async (e) => {
+                e.stopPropagation();
+                const text = imageUrl; // 或 videoUrl
+                try {
+                  const { Clipboard } = await import('@capacitor/clipboard');
+                  await Clipboard.write({ string: text });
+                  showToast('链接已复制');
+                } catch {
+                  // 降级
+                  const input = document.createElement('input');
+                  input.value = text;
+                  input.style.position = 'fixed';
+                  input.style.opacity = '0';
+                  document.body.appendChild(input);
+                  input.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(input);
+                  showToast('链接已复制');
+                }
+              }}
+              style={styles.actionButton}
+            >
               <Icon name="copy-outline" size={18} color="#7c3aed" />
               <Text style={styles.actionText}>复制链接</Text>
             </TouchableOpacity>
@@ -1978,7 +2423,7 @@ export default function App() {
     // 视频（包括虚拟试穿、数字人分身等）
     if ((activeTab === 'video' || activeTab === 'tryon' || activeTab === 'digital') && result.video_url) {
       const videoUrl = result.video_url;
-      const filename = `${activeTab === 'video' ? 'video' : activeTab === 'tryon' ? 'tryon' : 'digital'}_${Date.now()}.mp4`;
+      const filename = `AI_${activeTab === 'video' ? 'video' : activeTab === 'tryon' ? 'tryon' : 'digital'}_${Date.now()}.mp4`;
 
       return (
         <Card style={styles.resultCard}>
@@ -2009,11 +2454,27 @@ export default function App() {
             </View>
           </View>
           <View style={styles.buttonGroup}>
-            <TouchableOpacity 
-              onPress={() => { 
-                navigator.clipboard.writeText(videoUrl); 
-                showToast('链接已复制'); 
-              }} 
+            <TouchableOpacity
+              onPress={async (e) => {
+                e.stopPropagation();
+                const text = videoUrl; 
+                try {
+                  const { Clipboard } = await import('@capacitor/clipboard');
+                  await Clipboard.write({ string: text });
+                  showToast('链接已复制');
+                } catch {
+                  // 降级
+                  const input = document.createElement('input');
+                  input.value = text;
+                  input.style.position = 'fixed';
+                  input.style.opacity = '0';
+                  document.body.appendChild(input);
+                  input.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(input);
+                  showToast('链接已复制');
+                }
+              }}
               style={styles.actionButton}
             >
               <Icon name="copy-outline" size={18} color="#7c3aed" />
@@ -2057,6 +2518,7 @@ export default function App() {
     { key: 'digital', icon: 'person-circle-outline', label: '数字人', color: '#06b6d4' },
     { key: 'digital_custom', icon: 'videocam-outline', label: '定制视频', color: '#f97316' },
     { key: 'multi', icon: 'albums-outline', label: '多角度', color: '#8b5cf6' },
+    { key: 'merchant', icon: 'bag-handle-outline', label: '电商套图', color: '#ec4899' },
     { key: 'profile', icon: 'person-outline', label: '我的', color: '#7c3aed' },
   ];
 
@@ -2102,7 +2564,7 @@ export default function App() {
         {/* 其他 Tab 内容（放在 ScrollView 内） */}
         {activeTab !== 'profile' && (
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-            {activeTab !== 'tryon' && activeTab !== 'digital' && activeTab !== 'multi' && (
+            {activeTab !== 'tryon' && activeTab !== 'digital' && activeTab !== 'multi' && activeTab !== 'merchant' && (
               <Card style={styles.imageCard}>
                 <View style={styles.cardHeader}>
                   <Text style={styles.cardTitle}>
@@ -2933,7 +3395,8 @@ export default function App() {
               </Card>
             )}
 
-{(activeTab === 'image' || activeTab === 'video' || activeTab === 'tryon' || activeTab === 'multi') && (
+
+            {(activeTab === 'image' || activeTab === 'video' || activeTab === 'tryon' || activeTab === 'multi') && (
               <Card style={styles.promptCard}>
                 <Text style={styles.cardTitle}>
                   💬 描述{' '}
@@ -2999,6 +3462,475 @@ export default function App() {
               </TouchableOpacity>
             )}
 
+            {/* ========== 商家工作台页面 ========== */}
+            {activeTab === 'merchant' && (
+              <ScrollView style={{ flex: 1 }}>
+                <View style={{ flex: 1, position: 'relative' }}>
+                  <View style={styles.profileHeaderBar}>
+                    <View style={{ width: 40 }} />
+                    <Text style={styles.headerTitle}>📦 电商商品套图</Text>
+                    <TouchableOpacity onPress={() => setActiveTab('profile')} style={styles.menuButton}>
+                      <Icon name="close-outline" size={24} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* 上传商品图片 */}
+                  <Card style={styles.imageCard}>
+                    <Text style={styles.cardTitle}>📸 上传商品图片（可多张）</Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.multiple = true;
+                        input.onchange = (e) => {
+                          const files = Array.from(e.target.files);
+                          setMerchantImages([...merchantImages, ...files].slice(0, 5));
+                        };
+                        input.click();
+                      }}
+                      style={styles.imagePicker}
+                    >
+                      <View style={styles.placeholder}>
+                        <Icon name="images-outline" size={48} color="#666" />
+                        <Text style={styles.placeholderText}>点击上传商品图（最多5张）</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* 已上传图片缩略图 */}
+                    {merchantImages.length > 0 && (
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                        {merchantImages.map((img, i) => (
+                          <View key={i} style={{ position: 'relative' }}>
+                            <Image
+                              source={{ uri: URL.createObjectURL(img) }}
+                              style={{ width: 80, height: 80, borderRadius: 8 }}
+                              resizeMode="cover"
+                            />
+                            <TouchableOpacity
+                              onPress={() => setMerchantImages(merchantImages.filter((_, idx) => idx !== i))}
+                              style={{
+                                position: 'absolute',
+                                top: -8,
+                                right: -8,
+                                backgroundColor: '#ef4444',
+                                borderRadius: 12,
+                                width: 24,
+                                height: 24,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Icon name="close" size={16} color="#fff" />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* 相册和拍照按钮 */}
+                    <View style={styles.buttonRow}>
+                      <TouchableOpacity style={styles.iconButton} onPress={pickMerchantImages}>
+                        <Icon name="images-outline" size={20} color="#fff" />
+                        <Text style={styles.iconButtonText}>相册</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.iconButton} onPress={takeMerchantPhoto}>
+                        <Icon name="camera-outline" size={20} color="#fff" />
+                        <Text style={styles.iconButtonText}>拍照</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </Card>
+
+                  {/* 商品类型选择 */}
+                  <Card style={styles.inputCard}>
+                    <Text style={styles.cardTitle}>📦 商品类型</Text>
+                    <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                      {[
+                        { id: 'clothing', name: '服装' },
+                        { id: 'other', name: '其他商品' },
+                      ].map((t) => (
+                        <TouchableOpacity
+                          key={t.id}
+                          onPress={() => setMerchantProductType(t.id)}
+                          style={{
+                            paddingVertical: 8,
+                            paddingHorizontal: 14,
+                            borderRadius: 20,
+                            backgroundColor: merchantProductType === t.id ? '#7c3aed' : '#2d2d44',
+                          }}
+                        >
+                          <Text style={{ color: '#fff', fontSize: 13 }}>{t.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </Card>
+
+
+                  {/* 选择模板 */}
+                  <Card style={styles.inputCard}>
+                    <Text style={styles.cardTitle}>👤 选择模板</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                      {[
+                        { id: 'white_bg', name: '白底主图' },
+                        { id: 'scene', name: '场景展示' },
+                      ].map((t) => (
+                        <TouchableOpacity
+                          key={t.id}
+                          onPress={() => setMerchantTemplate(t.id)}
+                          style={{
+                            paddingVertical: 8,
+                            paddingHorizontal: 14,
+                            borderRadius: 20,
+                            backgroundColor: merchantTemplate === t.id ? '#7c3aed' : '#2d2d44',
+                          }}
+                        >
+                          <Text style={{ color: '#fff', fontSize: 13 }}>{t.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </Card>
+
+                  {merchantProductType === 'clothing' && (
+                    <Card style={styles.inputCard}>
+                      <Text style={styles.cardTitle}>👤 模特性别</Text>
+                      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                        {[
+                          { id: 'female', name: '女模特' },
+                          { id: 'male', name: '男模特' },
+                        ].map((t) => (
+                          <TouchableOpacity
+                            key={t.id}
+                            onPress={() => setMerchantGender(t.id)}
+                            style={{
+                              paddingVertical: 8,
+                              paddingHorizontal: 14,
+                              borderRadius: 20,
+                              backgroundColor: merchantGender === t.id ? '#7c3aed' : '#2d2d44',
+                            }}
+                          >
+                            <Text style={{ color: '#fff', fontSize: 13 }}>{t.name}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </Card>
+                  )}
+
+                  {merchantTemplate === 'scene' && (
+                    <>
+                      <Card style={styles.inputCard}>
+                        <Text style={styles.cardTitle}>🖼️ 场景图数量</Text>
+                        <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                          {[1, 2, 4, 6].map((num) => (
+                            <TouchableOpacity
+                              key={num}
+                              onPress={() => setSceneCount(num)}
+                              style={{
+                                paddingVertical: 8,
+                                paddingHorizontal: 16,
+                                borderRadius: 20,
+                                backgroundColor: sceneCount === num ? '#7c3aed' : '#2d2d44',
+                              }}
+                            >
+                              <Text style={{ color: '#fff', fontSize: 13 }}>{num} 张</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </Card>
+
+                      <Card style={styles.inputCard}>
+                        <Text style={styles.cardTitle}>💬 卖点描述（选填）</Text>
+                        <TextInput
+                          style={{
+                            backgroundColor: '#1e1e2e',
+                            borderRadius: 8,
+                            padding: 12,
+                            color: '#fff',
+                            fontSize: 14,
+                            minHeight: 100,
+                            width: '100%',
+                            textAlignVertical: 'top',
+                          }}
+                          placeholder="例如：纯棉透气，夏季新款，显瘦百搭"
+                          placeholderTextColor="#888"
+                          value={sceneText}
+                          onChangeText={setSceneText}
+                          multiline
+                        />
+                        <Text style={{ color: '#666', fontSize: 11, marginTop: 4 }}>
+                          系统会自动优化并拆分到不同场景图中
+                        </Text>
+                      </Card>
+                    </>
+                  )}
+
+                  {/* 身高体重 */}
+                  <Card style={styles.inputCard}>
+                    <Text style={styles.cardTitle}>📏 身高体重（选填）</Text>
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+                      <TextInput
+                        style={[styles.input, { flex: 1 }]}
+                        placeholder="身高(cm)"
+                        placeholderTextColor="#888"
+                        keyboardType="numeric"
+                        value={merchantHeight}
+                        onChangeText={setMerchantHeight}
+                      />
+                      <TextInput
+                        style={[styles.input, { flex: 1 }]}
+                        placeholder="体重(kg)"
+                        placeholderTextColor="#888"
+                        keyboardType="numeric"
+                        value={merchantWeight}
+                        onChangeText={setMerchantWeight}
+                      />
+                    </View>
+                  </Card>
+
+                  {/* 费用提示 */}
+                  <Text style={{ color: '#f59e0b', fontSize: 13, textAlign: 'center', marginBottom: 8 }}>
+                    预计消耗：{merchantTemplate === 'white_bg' ? '10' : merchantTemplate === 'scene' ? sceneCount * 10 : '10'} 灵境点
+                  </Text>
+
+                  {/* 生成按钮 */}
+                  <TouchableOpacity
+                    onPress={handleMerchantGenerate}
+                    disabled={merchantLoading || merchantImages.length === 0}
+                    style={[styles.generateButton, merchantImages.length === 0 && { opacity: 0.5 }]}
+                  >
+                    {merchantLoading ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.generateText}>开始生成商品套图</Text>
+                    )}
+                  </TouchableOpacity>
+
+                  {/* 结果展示 */}
+                  {merchantResult && merchantResult.results && merchantResult.results.map((item, idx) => (
+                    <Card key={idx} style={styles.resultCard}>
+                      <Text style={styles.resultTitle}>第 {idx + 1} 件商品</Text>
+
+                      {/* 试穿图下载按钮 */}
+                      {item.tryon_images && item.tryon_images.length > 0 && (
+                        <>
+                          <Text style={{ color: '#aaa', marginTop: 8 }}>模特试穿图：</Text>
+                          {item.tryon_images.map((img, i) => (
+                            <View key={i} style={{ alignItems: 'center', marginBottom: 8 }}>
+                              <Image 
+                                source={{ uri: img }} 
+                                style={{ width: '100%', height: 200, resizeMode: 'contain' }}
+                                onClick={() => { setPreviewUrl(img); setModalVisible(true); }}
+                              />
+                              <TouchableOpacity
+                                onPress={async (e) => {
+                                  e.stopPropagation();
+                                  const fileName = `AI_试穿图_${Date.now()}.png`;
+
+                                  // 鸿蒙
+                                  if (window.harmonyBridge?.saveFile) {
+                                    window.harmonyBridge.saveFile(img, fileName);
+                                    showToast('正在下载...');
+                                    return;
+                                  }
+                                  // iOS
+                                  if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
+                                    window.webkit.messageHandlers.iosDownload.postMessage(img);
+                                    return;
+                                  }
+                                  // 安卓
+                                  if (/android/i.test(navigator.userAgent)) {
+                                    try {
+                                      const blob = await addWatermarkToImage(img);
+                                      const base64 = await new Promise((resolve) => {
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                                        reader.readAsDataURL(blob);
+                                      });
+                                      await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Documents });
+                                      showToast('图片已保存');
+                                    } catch (e) { showToast('保存失败'); }
+                                    return;
+                                  }
+                                  // 其他平台
+                                  const res = await fetch(img);
+                                  const blob = await res.blob();
+                                  const url = URL.createObjectURL(blob);
+                                  const link = document.createElement('a');
+                                  link.href = url;
+                                  link.download = fileName;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                  URL.revokeObjectURL(url);
+                                }}
+                                style={{
+                                  backgroundColor: '#2d2d44',
+                                  borderRadius: 8,
+                                  paddingVertical: 6,
+                                  paddingHorizontal: 16,
+                                  marginTop: 4,
+                                }}
+                              >
+                                <Text style={{ color: '#10b981', fontSize: 12 }}>下载此图</Text>
+                              </TouchableOpacity>
+                            </View>
+                          ))}
+                        </>
+                      )}
+
+                      {/* 主图下载按钮 */}
+                      {item.main_images && item.main_images.length > 0 && (
+                        <>
+                          <Text style={{ color: '#aaa', marginTop: 8 }}>主图：</Text>
+                          {item.main_images.map((img, i) => (
+                            <View key={i} style={{ alignItems: 'center', marginBottom: 8 }}>
+                              <Image 
+                                source={{ uri: img }} 
+                                style={{ width: '100%', height: 200, resizeMode: 'contain' }}
+                                onClick={() => { setPreviewUrl(img); setModalVisible(true); }}
+                              />
+                              <TouchableOpacity
+                                onPress={async (e) => {
+                                  e.stopPropagation();
+                                  const fileName = `AI_商品主图_${Date.now()}.png`;
+
+                                  // 鸿蒙
+                                  if (window.harmonyBridge?.saveFile) {
+                                    window.harmonyBridge.saveFile(img, fileName);
+                                    showToast('正在下载...');
+                                    return;
+                                  }
+                                  // iOS
+                                  if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
+                                    window.webkit.messageHandlers.iosDownload.postMessage(img);
+                                    return;
+                                  }
+                                  // 安卓
+                                  if (/android/i.test(navigator.userAgent)) {
+                                    try {
+                                      const blob = await addWatermarkToImage(img);
+                                      const base64 = await new Promise((resolve) => {
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                                        reader.readAsDataURL(blob);
+                                      });
+                                      await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Documents });
+                                      showToast('图片已保存');
+                                    } catch (e) { showToast('保存失败'); }
+                                    return;
+                                  }
+                                  // 其他平台
+                                  const res = await fetch(img);
+                                  const blob = await res.blob();
+                                  const url = URL.createObjectURL(blob);
+                                  const link = document.createElement('a');
+                                  link.href = url;
+                                  link.download = fileName;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                  URL.revokeObjectURL(url);
+                                }}
+                                style={{
+                                  backgroundColor: '#2d2d44',
+                                  borderRadius: 8,
+                                  paddingVertical: 6,
+                                  paddingHorizontal: 16,
+                                  marginTop: 4,
+                                }}
+                              >
+                                <Text style={{ color: '#10b981', fontSize: 12 }}>下载此图</Text>
+                              </TouchableOpacity>
+                            </View>
+                          ))}
+                        </>
+                      )}
+
+                      {/* 场景图下载按钮 */}
+                      {item.scene_images && item.scene_images.length > 0 && (
+                        <>
+                          <Text style={{ color: '#aaa', marginTop: 8 }}>场景图：</Text>
+                          {item.scene_images.map((img, i) => (
+                            <View key={i} style={{ alignItems: 'center', marginBottom: 8 }}>
+                              <Image 
+                                source={{ uri: img }} 
+                                style={{ width: '100%', height: 200, resizeMode: 'contain' }}
+                                onClick={() => { setPreviewUrl(img); setModalVisible(true); }}
+                              />
+                              <TouchableOpacity
+                                onPress={async (e) => {
+                                  e.stopPropagation();
+                                  const fileName = `AI_商品场景图_${Date.now()}.png`;
+
+                                  // 鸿蒙
+                                  if (window.harmonyBridge?.saveFile) {
+                                    window.harmonyBridge.saveFile(img, fileName);
+                                    showToast('正在下载...');
+                                    return;
+                                  }
+                                  // iOS
+                                  if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
+                                    window.webkit.messageHandlers.iosDownload.postMessage(img);
+                                    return;
+                                  }
+                                  // 安卓
+                                  if (/android/i.test(navigator.userAgent)) {
+                                    try {
+                                      const blob = await addWatermarkToImage(img);
+                                      const base64 = await new Promise((resolve) => {
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                                        reader.readAsDataURL(blob);
+                                      });
+                                      await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Documents });
+                                      showToast('图片已保存');
+                                    } catch (e) { showToast('保存失败'); }
+                                    return;
+                                  }
+                                  // 其他平台
+                                  const res = await fetch(img);
+                                  const blob = await res.blob();
+                                  const url = URL.createObjectURL(blob);
+                                  const link = document.createElement('a');
+                                  link.href = url;
+                                  link.download = fileName;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                  URL.revokeObjectURL(url);
+                                }}
+                                style={{
+                                  backgroundColor: '#2d2d44',
+                                  borderRadius: 8,
+                                  paddingVertical: 6,
+                                  paddingHorizontal: 16,
+                                  marginTop: 4,
+                                }}
+                              >
+                                <Text style={{ color: '#10b981', fontSize: 12 }}>下载此图</Text>
+                              </TouchableOpacity>
+                            </View>
+                          ))}
+                        </>
+                      )}
+
+                      {item.video_url && (
+                        <>
+                          <Text style={{ color: '#aaa', marginTop: 8 }}>15秒展示视频：</Text>
+                          <Video source={{ uri: item.video_url }} style={styles.resultVideo} useNativeControls resizeMode="contain" />
+                        </>
+                      )}
+
+                      {item.size_table && (
+                        <Text style={{ color: '#aaa', marginTop: 8 }}>
+                          推荐尺码 M：胸围 {item.size_table.M?.bust}cm，腰围 {item.size_table.M?.waist}cm，臀围 {item.size_table.M?.hip}cm
+                        </Text>
+                      )}
+                    </Card>
+                  ))}
+                </View>
+              </ScrollView>
+            )}
+
             {renderResult()}
 
             {history.length > 0 && (
@@ -3019,6 +3951,24 @@ export default function App() {
                             setDigitalImage(null);
                             setResult({ images: [{ url: item.url }] });
                             setActiveTab('image');
+                          } else if (item.type === '电商商品套图') {
+                            try {
+                              const urls = JSON.parse(item.url);
+                              const images = urls.filter(u => !u.endsWith('.mp4'));
+                              const videoUrl = urls.find(u => u.endsWith('.mp4')) || '';
+                              setMerchantResult({
+                                results: [{
+                                  main_images: images,
+                                  scene_images: [],
+                                  tryon_images: [],
+                                  video_url: videoUrl,
+                                }]
+                              });
+                              setActiveTab('merchant');
+                            } catch(e) {
+                              setCurrentVideoUrl(item.url);
+                              setVideoModalVisible(true);
+                            }
                           } else {
                             setCurrentVideoUrl(item.url);
                             setVideoModalVisible(true);
@@ -3055,8 +4005,58 @@ export default function App() {
                       {/* ✅ 新增：下载按钮 */}
                       <TouchableOpacity
                         style={styles.historyDownloadBtn}
-                        onPress={(e) => {
+                        onPress={async (e) => {
                           e.stopPropagation();
+
+                          // ========== 电商商品套图下载（新增） ==========  
+                          if (item.type === '电商商品套图') {
+                            try {
+                              const urls = JSON.parse(item.url);
+                              const firstUrl = urls.find(u => !u.endsWith('.mp4')) || urls[0];
+                              const downloadFileName = `AI_电商套图_${Date.now()}.png`;
+
+                              // 鸿蒙
+                              if (window.harmonyBridge?.saveFile) {
+                                window.harmonyBridge.saveFile(firstUrl, downloadFileName);
+                                showToast('正在下载...');
+                                return;
+                              }
+                              // iOS
+                              if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
+                                window.webkit.messageHandlers.iosDownload.postMessage(firstUrl);
+                                return;
+                              }
+                              // 安卓：加水印
+                              if (/android/i.test(navigator.userAgent)) {
+                                try {
+                                  const blob = await addWatermarkToImage(firstUrl);
+                                  const base64 = await new Promise((resolve) => {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                                    reader.readAsDataURL(blob);
+                                  });
+                                  await Filesystem.writeFile({ path: downloadFileName, data: base64, directory: Directory.Documents });
+                                  showToast('图片已保存');
+                                } catch (e) { showToast('保存失败'); }
+                                return;
+                              }
+                              // Web：加水印后下载
+                              const blob = await addWatermarkToImage(firstUrl);
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = downloadFileName;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              URL.revokeObjectURL(url);
+                              showToast('正在下载...');
+                              return;
+                            } catch(e) {
+                              showToast('下载失败', true);
+                              return;
+                            }
+                          }
                           
                           const isVideo = item.type === '视频生成' || 
                                           item.type === '虚拟试穿' || 
@@ -3080,12 +4080,16 @@ export default function App() {
                           }
                           
                           // 其他平台
+                          const res = await fetch(item.url);
+                          const blob = await res.blob();
+                          const url = URL.createObjectURL(blob);
                           const link = document.createElement('a');
-                          link.href = item.url;
+                          link.href = url;
                           link.download = fileName;
                           document.body.appendChild(link);
                           link.click();
                           document.body.removeChild(link);
+                          URL.revokeObjectURL(url);
                         }}
                       >
                         <Icon name="download-outline" size={16} color="#10b981" />
@@ -3109,6 +4113,7 @@ export default function App() {
             )}
           </ScrollView>
         )}
+
 
         {/* 我的页面 - 单独放在外面 */}
         {activeTab === 'profile' && (
@@ -3200,6 +4205,15 @@ export default function App() {
                         <TouchableOpacity onPress={() => setShowDeleteConfirm(true)} style={{ marginTop: 8, alignSelf: 'flex-start', paddingRight: 20 }}>
                           <Text style={{ color: '#ff6666', fontSize: 12 }}>注销账户</Text>
                         </TouchableOpacity>
+                        <View style={{ flexDirection: 'row', marginTop: 12 }}>
+                          <TouchableOpacity onPress={() => { setShowSidebarMenu(false); Linking.openURL('https://media.lingjing-media.com/privact.html'); }}>
+                            <Text style={{ color: '#888', fontSize: 12 }}>隐私政策</Text>
+                          </TouchableOpacity>
+                          <Text style={{ color: '#888', fontSize: 12, marginHorizontal: 6 }}>|</Text>
+                          <TouchableOpacity onPress={() => { setShowSidebarMenu(false); Linking.openURL('https://media.lingjing-media.com/terms.html'); }}>
+                            <Text style={{ color: '#888', fontSize: 12 }}>用户协议</Text>
+                          </TouchableOpacity>
+                        </View>
                       </>
                     )}
                   </View>
@@ -3212,6 +4226,7 @@ export default function App() {
                   <TouchableOpacity style={styles.rechargeButton} onPress={() => setShowRechargeModal(true)}>
                     <Text style={styles.rechargeButtonText}>充值</Text>
                   </TouchableOpacity>
+
                 </View>
               ) : (
                 <View style={styles.loginPrompt}>
@@ -3224,6 +4239,7 @@ export default function App() {
                   <TouchableOpacity style={[styles.loginButton, { backgroundColor: '#f59e0b', marginTop: 10 }]} onPress={() => setShowRechargeModal(true)}>
                     <Text style={styles.loginButtonText}>购买灵境点</Text>
                   </TouchableOpacity>
+
                 </View>
               )}
             </View>
@@ -3297,6 +4313,17 @@ export default function App() {
                   <Text style={styles.loginButtonText}>登录</Text>
                 </TouchableOpacity>
               </View>
+              {/* 隐私政策复选框 */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                <input type="checkbox" id="loginAgree" style={{ width: 16, height: 16, marginRight: 6, accentColor: '#7c3aed' }} />
+                <Text style={{ color: '#888', fontSize: 12 }}>
+                  我已阅读并同意
+                  <Text style={{ color: '#7c3aed' }} onPress={() => Linking.openURL('https://media.lingjing-media.com/privact.html')}>《隐私政策》</Text>
+                  和
+                  <Text style={{ color: '#7c3aed' }} onPress={() => Linking.openURL('https://media.lingjing-media.com/terms.html')}>《用户协议》</Text>
+                </Text>
+              </View>
+
               {/* 去注册链接 */}
               <View style={styles.registerLinkRow}>
                 <Text style={styles.registerLinkText}>还没有账号？</Text>
@@ -3314,6 +4341,16 @@ export default function App() {
                   setShowResetPasswordModal(true);
                 }}>
                   <Text style={styles.forgotPasswordLink}>忘记密码？</Text>
+                </TouchableOpacity>
+              </View>
+              {/* 隐私政策链接 */}
+              <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 8 }}>
+                <TouchableOpacity onPress={() => Linking.openURL('https://media.lingjing-media.com/privact.html')}>
+                  <Text style={{ color: '#888', fontSize: 12 }}>《隐私政策》</Text>
+                </TouchableOpacity>
+                <Text style={{ color: '#888', fontSize: 12, marginHorizontal: 4 }}>|</Text>
+                <TouchableOpacity onPress={() => Linking.openURL('https://media.lingjing-media.com/terms.html')}>
+                  <Text style={{ color: '#888', fontSize: 12 }}>《用户协议》</Text>
                 </TouchableOpacity>
               </View>
             </Card>
@@ -3401,12 +4438,32 @@ export default function App() {
                     value={registerUsername}
                     onChangeText={setRegisterUsername}
                   />
+                  {/* 隐私政策复选框 */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 8 }}>
+                    <input type="checkbox" id="registerAgree" style={{ width: 16, height: 16, marginRight: 6, accentColor: '#7c3aed' }} />
+                    <Text style={{ color: '#888', fontSize: 12 }}>
+                      我已阅读并同意
+                      <Text style={{ color: '#7c3aed' }} onPress={() => Linking.openURL('https://media.lingjing-media.com/privact.html')}>《隐私政策》</Text>
+                      和
+                      <Text style={{ color: '#7c3aed' }} onPress={() => Linking.openURL('https://media.lingjing-media.com/terms.html')}>《用户协议》</Text>
+                    </Text>
+                  </View>
                   <View style={styles.loginButtonRow}>
                     <TouchableOpacity onPress={() => setRegisterStep('code')} style={styles.loginCancelButton}>
                       <Text style={styles.loginButtonText}>上一步</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={completeRegister} style={styles.loginConfirmButton}>
                       <Text style={styles.loginButtonText}>完成注册</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {/* 隐私政策链接 */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 8 }}>
+                    <TouchableOpacity onPress={() => Linking.openURL('https://media.lingjing-media.com/privact.html')}>
+                      <Text style={{ color: '#888', fontSize: 12 }}>《隐私政策》</Text>
+                    </TouchableOpacity>
+                    <Text style={{ color: '#888', fontSize: 12, marginHorizontal: 4 }}>|</Text>
+                    <TouchableOpacity onPress={() => Linking.openURL('https://media.lingjing-media.com/terms.html')}>
+                      <Text style={{ color: '#888', fontSize: 12 }}>《用户协议》</Text>
                     </TouchableOpacity>
                   </View>
                 </>
@@ -3588,6 +4645,8 @@ export default function App() {
                     setTryonLoading(true);
                   } else if (activeTab === 'multi') {
                     setMultiLoading(true);
+                  } else if (activeTab === 'merchant') {
+                    setMerchantLoading(true);
                   }
                   showToast('已切换后台生成，完成后自动保存至历史记录');
                 }}
@@ -3664,18 +4723,31 @@ export default function App() {
 
         {/* 图片全屏预览 Modal */}
         <Modal visible={modalVisible} transparent={true} animationType="fade">
-          <View style={styles.modalContainer}>
+          <View style={{ width: '100%', height: '100%', backgroundColor: '#000' }}>
             <TouchableOpacity 
-              style={styles.modalClose} 
+              style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, padding: 12 }}
               onPress={() => setModalVisible(false)}
             >
-              <Icon name="close-circle-outline" size={40} color="#fff" />
+              <Icon name="close" size={40} color="#fff" />
             </TouchableOpacity>
             {previewUrl && (
-              <Image
-                source={{ uri: previewUrl }}
-                style={{ width: '90%', height: '70%', resizeMode: 'contain' }}
-              />
+              <View style={{ position: 'relative', width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
+                <Image
+                  source={{ uri: previewUrl }}
+                  style={{ width: '90%', height: '70%', resizeMode: 'contain' }}
+                />
+                <View style={{
+                  position: 'absolute',
+                  bottom: 10,
+                  right: 10,
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 4,
+                }}>
+                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>AI生成</Text>
+                </View>
+              </View>
             )}
           </View>
         </Modal>
