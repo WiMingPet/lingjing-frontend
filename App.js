@@ -1591,7 +1591,8 @@ export default function App() {
       return;
     }
     
-    const cost = duration === 5 ? 10 : 15;
+    const costMap = { 5: 20, 10: 40, 15: 60, 60: 120 };
+    const cost = costMap[duration] || 20;
     if (!selectedImage) return showToast('请先选择一张图片');
     setVideoLoading(true);
     setIsGenerating(true);
@@ -1821,7 +1822,7 @@ export default function App() {
       return;
     }
     
-    if (!checkAndUseCredits(10, '定制数字人', () => {})) return;
+    if (!checkAndUseCredits(30, '定制数字人', () => {})) return;
     if (!customVideo) return showToast('请先上传训练视频');
     if (!customName.trim()) return showToast('请输入数字人名称');
     setEcommerceLoading(true);
@@ -3425,7 +3426,7 @@ export default function App() {
               <Card style={styles.inputCard}>
                 <Text style={styles.cardTitle}>⏱️ 视频时长</Text>
                 <View style={styles.durationRow}>
-                  {[5, 10, 15].map(sec => (
+                  {[5, 10, 15, 60].map(sec => (
                     <TouchableOpacity
                       key={sec}
                       style={[styles.durationButton, duration === sec && styles.durationButtonActive]}
@@ -4095,6 +4096,7 @@ export default function App() {
                         <Icon name="download-outline" size={16} color="#10b981" />
                         <Text style={styles.downloadBtnText}>下载</Text>
                       </TouchableOpacity>
+                      
                       {/* 删除按钮 */}
                       <TouchableOpacity
                         style={styles.historyDownloadBtn}
@@ -4105,6 +4107,25 @@ export default function App() {
                       >
                         <Icon name="trash-outline" size={16} color="#ef4444" />
                         <Text style={[styles.downloadBtnText, { color: '#ef4444' }]}>删除</Text>
+                      </TouchableOpacity>
+
+                      {/* 举报按钮 */}
+                      <TouchableOpacity
+                        style={styles.historyDownloadBtn}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          const token = localStorage.getItem('access_token');
+                          axios.post(`${API_URL}/history/report/${item.id}`, {}, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                          }).then(() => {
+                            showToast('举报已提交，我们会尽快处理');
+                          }).catch(() => {
+                            showToast('举报失败，请重试', true);
+                          });
+                        }}
+                      >
+                        <Icon name="flag-outline" size={14} color="#f59e0b" />
+                        <Text style={[styles.downloadBtnText, { color: '#f59e0b' }]}>举报</Text>
                       </TouchableOpacity>
                     </View>
                   ))}
