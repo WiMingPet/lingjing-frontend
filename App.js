@@ -4080,6 +4080,35 @@ export default function App() {
                             return;
                           }
                           
+                          // 安卓 App 内下载
+                          if (/android/i.test(navigator.userAgent)) {
+                            if (!isVideo) {
+                              try {
+                                const blob = await addWatermarkToImage(item.url);
+                                const base64 = await new Promise((resolve) => {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                                  reader.readAsDataURL(blob);
+                                });
+                                await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Documents });
+                                showToast('图片已保存');
+                              } catch (e) {
+                                showToast('保存失败');
+                              }
+                              return;
+                            }
+                            
+                            const response = await fetch(item.url);
+                            const blob = await response.blob();
+                            const base64 = await new Promise((resolve) => {
+                              const reader = new FileReader();
+                              reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                              reader.readAsDataURL(blob);
+                            });
+                            await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Documents });
+                            showToast('视频已保存到内部存储/Documents');
+                            return;
+                          }
                           // 其他平台
                           const res = await fetch(item.url);
                           const blob = await res.blob();
