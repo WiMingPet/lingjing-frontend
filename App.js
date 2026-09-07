@@ -1591,8 +1591,8 @@ export default function App() {
       return;
     }
     
-    const costMap = { 5: 70, 10: 130, 15: 200 };
-    const cost = costMap[duration] || 70;
+    const costMap = { 5: 50, 10: 100, 15: 150, 60: 600 };
+    const cost = costMap[duration] || 50;
     if (!selectedImage) return showToast('请先选择一张图片');
     setVideoLoading(true);
     setIsGenerating(true);
@@ -1822,7 +1822,7 @@ export default function App() {
       return;
     }
     
-    if (!checkAndUseCredits(80, '定制数字人', () => {})) return;
+    if (!checkAndUseCredits(60, '定制数字人', () => {})) return;
     if (!customVideo) return showToast('请先上传训练视频');
     if (!customName.trim()) return showToast('请输入数字人名称');
     setEcommerceLoading(true);
