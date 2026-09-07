@@ -32,7 +32,7 @@ const { width, height } = Dimensions.get('window');
 const isSmallScreen = height <= 2100;
 const SCALE = isSmallScreen ? 0.72 : 1;
 const S = (n) => n * SCALE;
-const API_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
+const API_URL = 'https://api.lingjing-media.com/api';
 const HISTORY_KEY = 'lingjing_image_history'; 
 
 const Card = ({ children, style }) => (
