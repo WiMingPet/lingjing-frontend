@@ -1591,7 +1591,7 @@ export default function App() {
       return;
     }
     
-    const costMap = { 5: 50, 10: 100, 15: 150, 60: 600 };
+    const costMap = { 5: 50, 10: 100, 15: 150 };
     const cost = costMap[duration] || 50;
     if (!selectedImage) return showToast('请先选择一张图片');
     setVideoLoading(true);
@@ -3426,7 +3426,7 @@ export default function App() {
               <Card style={styles.inputCard}>
                 <Text style={styles.cardTitle}>⏱️ 视频时长</Text>
                 <View style={styles.durationRow}>
-                  {[5, 10, 15, 60].map(sec => (
+                  {[5, 10, 15].map(sec => (
                     <TouchableOpacity
                       key={sec}
                       style={[styles.durationButton, duration === sec && styles.durationButtonActive]}
