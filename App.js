@@ -206,6 +206,8 @@ export default function App() {
   const [clothCategory, setClothCategory] = useState('other');
   const [duration, setDuration] = useState(5);
   const [digitalImage, setDigitalImage] = useState(null);
+  const [videoModel, setVideoModel] = useState('2.6'); // '2.6' 或 '3.0'
+  const [videoSound, setVideoSound] = useState('off'); // 'off' 或 'native'
     // 预设形象相关状态
   const [presetAvatars, setPresetAvatars] = useState([]);
   const [selectedAvatarId, setSelectedAvatarId] = useState(null);
@@ -1581,6 +1583,23 @@ export default function App() {
     }
   };
 
+  // ========== 获取视频价格 ==========
+  const getVideoPrice = () => {
+    if (videoModel === '2.6') {
+      const prices = {5: 25, 10: 50};
+      return prices[duration] || 0;
+    } else {
+      if (videoSound === 'off') {
+        const prices = {5: 45, 10: 90, 15: 135};
+        return prices[duration] || 0;
+      } else {
+        const prices = {5: 60, 10: 120, 15: 180};
+        return prices[duration] || 0;
+      }
+    }
+  };
+  // ==============================
+
   const generateVideo = async () => {
     const consented = await checkAIPrivacyConsent();
     if (!consented) return;
@@ -1591,13 +1610,31 @@ export default function App() {
       return;
     }
     
-    const costMap = { 5: 50, 10: 100, 15: 150 };
-    const cost = costMap[duration] || 50;
+    // 获取当前价格
+    const cost = getVideoPrice();
+    if (cost === 0) {
+      showToast('请选择有效的视频参数', true);
+      return;
+    }
+    
+    // 检查余额
+    if (userCredits < cost) {
+      showToast(`余额不足，需要${cost}点`);
+      setShowRechargeModal(true);
+      return;
+    }
+    
     if (!selectedImage) return showToast('请先选择一张图片');
     setVideoLoading(true);
     setIsGenerating(true);
     setGeneratingTitle('AI正在生成视频');
-    setGeneratingSubtitle('图生视频动态展示');
+    setGeneratingSubtitle(
+      videoModel === '3.0' && videoSound === 'native' 
+        ? '3.0增强版 有声视频生成中' 
+        : videoModel === '3.0' 
+          ? '3.0增强版 无声视频生成中' 
+          : '2.6基础版 无声视频生成中'
+    );
   
     const formData = new FormData();
     const file = await convertToFile(selectedImage);
@@ -1607,6 +1644,12 @@ export default function App() {
     formData.append('prompt', prompt || '生成动态视频');
     formData.append('duration', duration.toString());
     formData.append('mode', 'std');
+    
+    // ========== 新增参数 ==========
+    formData.append('model', videoModel);      // '2.6' 或 '3.0'
+    formData.append('sound', videoSound);      // 'off' 或 'native'
+    formData.append('credits', cost.toString()); // 扣费点数
+    // ============================
 
     try {
       const token = localStorage.getItem('access_token');
@@ -1640,7 +1683,15 @@ export default function App() {
       console.log('视频 URL:', videoUrl);
       setResult({ video_url: videoUrl });
       saveToHistory(videoUrl, '视频生成');
-      showToast('视频生成成功');
+      
+      // 更新用户余额
+      if (res.remaining_credits !== undefined) {
+        setUserCredits(res.remaining_credits);
+      } else if (res.data?.remaining_credits !== undefined) {
+        setUserCredits(res.data.remaining_credits);
+      }
+      
+      showToast(`视频生成成功${videoModel === '3.0' && videoSound === 'native' ? '（有声）' : '（无声）'}`);
     } catch (err) {
       console.error('视频生成错误:', err);
       showToast(err.message || '生成失败', true);
@@ -3423,20 +3474,115 @@ export default function App() {
             )}
 
             {activeTab === 'video' && (
-              <Card style={styles.inputCard}>
-                <Text style={styles.cardTitle}>⏱️ 视频时长</Text>
-                <View style={styles.durationRow}>
-                  {[5, 10, 15].map(sec => (
+              <>
+                {/* ========== 模型选择 ========== */}
+                <Card style={styles.inputCard}>
+                  <Text style={styles.cardTitle}>🎯 选择模型</Text>
+                  <View style={styles.durationRow}>
                     <TouchableOpacity
-                      key={sec}
-                      style={[styles.durationButton, duration === sec && styles.durationButtonActive]}
-                      onPress={() => setDuration(sec)}
+                      style={[styles.durationButton, videoModel === '2.6' && styles.durationButtonActive]}
+                      onPress={() => {
+                        setVideoModel('2.6');
+                        setVideoSound('off'); // 2.6强制无声
+                        if (duration === 15) setDuration(10); // 2.6不支持15秒
+                      }}
                     >
-                      <Text style={[styles.durationText, duration === sec && styles.durationTextActive]}>{sec}秒</Text>
+                      <Text style={[styles.durationText, videoModel === '2.6' && styles.durationTextActive]}>
+                        2.6 基础版                      </Text>
+                      <Text style={[styles.durationSubtext, videoModel === '2.6' && styles.durationTextActive]}>
+                        无声 · 25-50点
+                      </Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
-              </Card>
+                    
+                    <TouchableOpacity
+                      style={[styles.durationButton, videoModel === '3.0' && styles.durationButtonActive]}
+                      onPress={() => setVideoModel('3.0')}
+                    >
+                      <Text style={[styles.durationText, videoModel === '3.0' && styles.durationTextActive]}>
+                        3.0 增强版
+                      </Text>
+                      <Text style={[styles.durationSubtext, videoModel === '3.0' && styles.durationTextActive]}>
+                        有声/无声 · 45-180点
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </Card>
+
+                {/* ========== 声音选择（仅3.0显示） ========== */}
+                {videoModel === '3.0' && (
+                  <Card style={styles.inputCard}>
+                    <Text style={styles.cardTitle}>🔊 声音模式</Text>
+                    <View style={styles.durationRow}>
+                      <TouchableOpacity
+                        style={[styles.durationButton, videoSound === 'off' && styles.durationButtonActive]}
+                        onPress={() => setVideoSound('off')}
+                      >
+                        <Text style={[styles.durationText, videoSound === 'off' && styles.durationTextActive]}>
+                          无声
+                        </Text>
+                        <Text style={[styles.durationSubtext, videoSound === 'off' && styles.durationTextActive]}>
+                          45-135点
+                        </Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity
+                        style={[styles.durationButton, videoSound === 'native' && styles.durationButtonActive]}
+                        onPress={() => setVideoSound('native')}
+                      >
+                        <Text style={[styles.durationText, videoSound === 'native' && styles.durationTextActive]}>
+                          有声
+                        </Text>
+                        <Text style={[styles.durationSubtext, videoSound === 'native' && styles.durationTextActive]}>
+                          60-180点
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </Card>
+                )}
+
+                {/* ========== 时长选择 ========== */}
+                <Card style={styles.inputCard}>
+                  <Text style={styles.cardTitle}>⏱️ 视频时长</Text>
+                  <View style={styles.durationRow}>
+                    {videoModel === '2.6' ? (
+                      // 2.6：只有5秒和10秒
+                      [5, 10].map(sec => (
+                        <TouchableOpacity
+                          key={sec}
+                          style={[styles.durationButton, duration === sec && styles.durationButtonActive]}
+                          onPress={() => setDuration(sec)}
+                        >
+                          <Text style={[styles.durationText, duration === sec && styles.durationTextActive]}>
+                            {sec}秒
+                          </Text>
+                          <Text style={[styles.durationSubtext, duration === sec && styles.durationTextActive]}>
+                            {sec === 5 ? '25点' : '50点'}
+                          </Text>
+                        </TouchableOpacity>
+                      ))
+                    ) : (
+                      // 3.0：5秒、10秒、15秒
+                      [5, 10, 15].map(sec => (
+                        <TouchableOpacity
+                          key={sec}
+                          style={[styles.durationButton, duration === sec && styles.durationButtonActive]}
+                          onPress={() => setDuration(sec)}
+                        >
+                          <Text style={[styles.durationText, duration === sec && styles.durationTextActive]}>
+                            {sec}秒
+                          </Text>
+                          <Text style={[styles.durationSubtext, duration === sec && styles.durationTextActive]}>
+                            {videoSound === 'off' 
+                              ? (sec === 5 ? '45点' : sec === 10 ? '90点' : '135点')
+                              : (sec === 5 ? '60点' : sec === 10 ? '120点' : '180点')
+                            }
+                          </Text>
+                        </TouchableOpacity>
+                      ))
+                    )}
+                  </View>
+                </Card>
+              </>
             )}
 
             {/* activeTab === 'size' && (
@@ -3453,7 +3599,11 @@ export default function App() {
 
             {activeTab === 'video' && (
               <TouchableOpacity onPress={generateVideo} disabled={videoLoading} style={styles.generateButton}>
-                {videoLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>开始生成视频</Text>}
+                {videoLoading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.generateText}>开始生成视频（{getVideoPrice()}点）</Text>
+                )}
               </TouchableOpacity>
             )}
 
@@ -5538,5 +5688,11 @@ const styles = StyleSheet.create({
     color: '#10b981',
     fontSize: 10,
     marginLeft: 2,
+  },
+
+  durationSubtext: {
+      fontSize: 10,
+      color: '#888',
+      marginTop: 2,
   },
 });
