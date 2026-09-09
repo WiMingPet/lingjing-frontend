@@ -1532,56 +1532,67 @@ export default function App() {
   };
 
   const generateImage = async () => {
-    const consented = await checkAIPrivacyConsent();
-    if (!consented) return;
-    const isVerified = await checkPhoneVerified();
-    if (!isVerified) {
-      showToast('根据法规要求，使用AI功能前需完成手机号认证');
-      setShowLoginModal(true);
-      return;
-    }
-    
-    if (!selectedImage) return showToast('请先选择一张参考图片');
-    setImageLoading(true);
-    setIsGenerating(true);
-    setGeneratingTitle('AI正在生成图片');
-    setGeneratingSubtitle('文生图 / 图生图');
-  
-    const formData = new FormData();
-    const file = await convertToFile(selectedImage);
-    const ext = file.name?.split('.').pop() || 'jpg';
-    const safeFile = new File([file], `image_${Date.now()}.${ext}`, { type: file.type });
-    formData.append('reference_image', safeFile);
-    formData.append('prompt', prompt || '生成一张高质量的图片');
-    formData.append('width', '512');
-    formData.append('height', '512');
-
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`${API_URL}/image/generate`, {
-        method: 'POST',
-        headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || '生成失败');
+      const consented = await checkAIPrivacyConsent();
+      if (!consented) return;
+      const isVerified = await checkPhoneVerified();
+      if (!isVerified) {
+        showToast('根据法规要求，使用AI功能前需完成手机号认证');
+        setShowLoginModal(true);
+        return;
       }
-
-      const res = await response.json();
-      console.log('图片生成响应:', res);
+      
+      // ========== 修改：允许文生图（无参考图） ==========
+      if (!prompt && !selectedImage) {
+        return showToast('请选择一张参考图片或输入描述文字');
+      }
+      // ==================================================
+      
+      setImageLoading(true);
+      setIsGenerating(true);
+      setGeneratingTitle('AI正在生成图片');
+      setGeneratingSubtitle(selectedImage ? '图生图模式（人物保留增强）' : '文生图模式');
     
-      showToast('图片生成成功');
-      await loadHistory();
-    } catch (err) {
-      console.error('图片生成错误:', err);
-      showToast(err.message || '生成失败', true);
-    } finally {
-      setImageLoading(false);
-      setIsGenerating(false);
-    }
-  };
+      const formData = new FormData();
+      
+      // ========== 修改：有参考图才上传 ==========
+      if (selectedImage) {
+        const file = await convertToFile(selectedImage);
+        const ext = file.name?.split('.').pop() || 'jpg';
+        const safeFile = new File([file], `image_${Date.now()}.${ext}`, { type: file.type });
+        formData.append('reference_image', safeFile);
+      }
+      // ==================================================
+      
+      formData.append('prompt', prompt || '生成一张高质量的图片');
+      formData.append('width', '512');
+      formData.append('height', '512');
+
+      try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`${API_URL}/image/generate`, {
+          method: 'POST',
+          headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || '生成失败');
+        }
+
+        const res = await response.json();
+        console.log('图片生成响应:', res);
+      
+        showToast('图片生成成功');
+        await loadHistory();
+      } catch (err) {
+        console.error('图片生成错误:', err);
+        showToast(err.message || '生成失败', true);
+      } finally {
+        setImageLoading(false);
+        setIsGenerating(false);
+      }
+    };
 
   // ========== 获取视频价格 ==========
   const getVideoPrice = () => {
@@ -2621,8 +2632,8 @@ export default function App() {
                 <View style={styles.cardHeader}>
                   <Text style={styles.cardTitle}>
                     {activeTab === 'size' ? '📸 上传全身照' :
-                     activeTab === 'image' ? '🎨 上传参考图' :
-                     activeTab === 'video' ? '🎥 上传图片' : ''}
+                    activeTab === 'image' ? '🎨 上传参考图（可选）' :
+                    activeTab === 'video' ? '🎥 上传图片' : ''}
                   </Text>
                   {selectedImage && (
                     <TouchableOpacity onPress={() => { setSelectedImage(null); setResult(null); }} style={styles.deleteButton}>
@@ -2646,6 +2657,11 @@ export default function App() {
                     <View style={styles.placeholder}>
                       <Icon name="cloud-upload-outline" size={48} color="#666" />
                       <Text style={styles.placeholderText}>点击上传图片</Text>
+                      {activeTab === 'image' && (
+                        <Text style={{ color: '#888', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
+                          上传图片为图生图模式（人物还原增强）{'\n'}不上传则直接输入描述文字生成
+                        </Text>
+                      )}
                     </View>
                   )}
                 </TouchableOpacity>
@@ -3593,7 +3609,13 @@ export default function App() {
 
             {activeTab === 'image' && (
               <TouchableOpacity onPress={generateImage} disabled={imageLoading} style={styles.generateButton}>
-                {imageLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>开始生成图片</Text>}
+                {imageLoading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.generateText}>
+                    {selectedImage ? '开始生成图片（图生图）' : '开始生成图片（文生图）'}
+                  </Text>
+                )}
               </TouchableOpacity>
             )}
 
