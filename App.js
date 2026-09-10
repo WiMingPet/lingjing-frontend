@@ -1693,7 +1693,7 @@ export default function App() {
     
       console.log('视频 URL:', videoUrl);
       setResult({ video_url: videoUrl });
-      saveToHistory(videoUrl, '视频生成');
+      // saveToHistory(videoUrl, '视频生成');  // 后端已保存，避免重复
       
       // 更新用户余额
       if (res.remaining_credits !== undefined) {
