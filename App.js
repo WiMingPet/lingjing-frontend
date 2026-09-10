@@ -4114,7 +4114,7 @@ export default function App() {
                     <View key={item.id} style={styles.historyItemContainer}>
                       <TouchableOpacity
                         onPress={() => {
-                          if (item.type === '视频生成' || item.type === '虚拟试穿' || item.type === '数字人分身' || item.type === 'AI带货视频' || item.type === '多角度试穿') {
+                          if (item.type.startsWith('视频生成') || item.type === '虚拟试穿' || item.type === '数字人分身' || item.type === 'AI带货视频' || item.type === '多角度试穿') {
                             setCurrentVideoUrl(item.url);
                             setVideoModalVisible(true);
                           } else if (item.type === '图片生成') {
@@ -4231,7 +4231,7 @@ export default function App() {
                             }
                           }
                           
-                          const isVideo = item.type === '视频生成' || 
+                          const isVideo = item.type.startsWith('视频生成') || 
                                           item.type === '虚拟试穿' || 
                                           item.type === '数字人分身' || 
                                           item.type === 'AI带货视频' || 
