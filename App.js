@@ -1612,105 +1612,120 @@ export default function App() {
   // ==============================
 
   const generateVideo = async () => {
-    const consented = await checkAIPrivacyConsent();
-    if (!consented) return;
-    const isVerified = await checkPhoneVerified();
-    if (!isVerified) {
-      showToast('根据法规要求，使用AI功能前需完成手机号认证');
-      setShowLoginModal(true);
-      return;
-    }
-    
-    // 获取当前价格
-    const cost = getVideoPrice();
-    if (cost === 0) {
-      showToast('请选择有效的视频参数', true);
-      return;
-    }
-    
-    // 检查余额
-    if (userCredits < cost) {
-      showToast(`余额不足，需要${cost}点`);
-      setShowRechargeModal(true);
-      return;
-    }
-    
-    if (!selectedImage) return showToast('请先选择一张图片');
-    setVideoLoading(true);
-    setIsGenerating(true);
-    setGeneratingTitle('AI正在生成视频');
-    setGeneratingSubtitle(
-      videoModel === '3.0' && videoSound === 'native' 
-        ? '3.0增强版 有声视频生成中' 
-        : videoModel === '3.0' 
-          ? '3.0增强版 无声视频生成中' 
-          : '2.6基础版 无声视频生成中'
-    );
-  
-    const formData = new FormData();
-    const file = await convertToFile(selectedImage);
-    const ext = file.name?.split('.').pop() || 'jpg';
-    const safeFile = new File([file], `video_${Date.now()}.${ext}`, { type: file.type });
-    formData.append('image', safeFile);
-    formData.append('prompt', prompt || '生成动态视频');
-    formData.append('duration', duration.toString());
-    formData.append('mode', 'std');
-    
-    // ========== 新增参数 ==========
-    formData.append('model', videoModel);      // '2.6' 或 '3.0'
-    formData.append('sound', videoSound);      // 'off' 或 'native'
-    formData.append('credits', cost.toString()); // 扣费点数
-    // ============================
-
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`${API_URL}/video/generate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : undefined,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || '生成失败');
-      }
-
-      const res = await response.json();
-      console.log('视频生成响应:', res);
-    
-      // 获取视频 URL（兼容不同的响应格式）
-      const videoUrl = res.data?.data?.output_data?.video_url || 
-                       res.data?.output_data?.video_url || 
-                       res.data?.video_url;
-    
-      if (!videoUrl) {
-        console.error('无法从响应中提取视频 URL:', res);
-        showToast('视频生成成功，但无法获取链接', true);
+      const consented = await checkAIPrivacyConsent();
+      if (!consented) return;
+      const isVerified = await checkPhoneVerified();
+      if (!isVerified) {
+        showToast('根据法规要求，使用AI功能前需完成手机号认证');
+        setShowLoginModal(true);
         return;
       }
-    
-      console.log('视频 URL:', videoUrl);
-      setResult({ video_url: videoUrl });
-      // saveToHistory(videoUrl, '视频生成');  // 后端已保存，避免重复
       
-      // 更新用户余额
-      if (res.remaining_credits !== undefined) {
-        setUserCredits(res.remaining_credits);
-      } else if (res.data?.remaining_credits !== undefined) {
-        setUserCredits(res.data.remaining_credits);
+      // 获取当前价格
+      const cost = getVideoPrice();
+      if (cost === 0) {
+        showToast('请选择有效的视频参数', true);
+        return;
       }
       
-      showToast(`视频生成成功${videoModel === '3.0' && videoSound === 'native' ? '（有声）' : '（无声）'}`);
-    } catch (err) {
-      console.error('视频生成错误:', err);
-      showToast(err.message || '生成失败', true);
-    } finally {
-      setVideoLoading(false);
-      setIsGenerating(false);
-    }
-  };
+      // 检查余额
+      if (userCredits < cost) {
+        showToast(`余额不足，需要${cost}点`);
+        setShowRechargeModal(true);
+        return;
+      }
+      
+      if (!selectedImage) return showToast('请先选择一张图片');
+      setVideoLoading(true);
+      setIsGenerating(true);
+      setGeneratingTitle('AI正在生成视频');
+      setGeneratingSubtitle(
+        videoModel === '3.0' && videoSound === 'native' 
+          ? '3.0增强版 有声视频生成中' 
+          : videoModel === '3.0' 
+            ? '3.0增强版 无声视频生成中' 
+            : '2.6基础版 无声视频生成中'
+      );
+    
+      const formData = new FormData();
+      const file = await convertToFile(selectedImage);
+      const ext = file.name?.split('.').pop() || 'jpg';
+      const safeFile = new File([file], `video_${Date.now()}.${ext}`, { type: file.type });
+      formData.append('image', safeFile);
+      formData.append('prompt', prompt || '生成动态视频');
+      formData.append('duration', duration.toString());
+      formData.append('mode', 'std');
+      
+      // ========== 新增参数 ==========
+      formData.append('model', videoModel);      // '2.6' 或 '3.0'
+      formData.append('sound', videoSound);      // 'off' 或 'native'
+      formData.append('credits', cost.toString()); // 扣费点数
+      // ============================
+
+      try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`${API_URL}/video/generate`, {
+          method: 'POST',
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : undefined,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || '生成失败');
+        }
+
+        const res = await response.json();
+        console.log('视频生成响应:', res);
+        
+        // ========== 判断是否异步模式 ==========
+        if (res.data?.async === true) {
+          // 异步模式：任务已提交，轮询等待结果
+          const taskId = res.data.task_id;
+          console.log('异步任务已提交，task_id:', taskId);
+          showToast('视频生成任务已提交，预计1-3分钟完成');
+          
+          // 使用轮询函数等待结果
+          startPollingTask(taskId, '视频生成', `${API_URL}/video/task/${taskId}`);
+          
+          setVideoLoading(false);
+          setIsGenerating(false);
+          return;
+        }
+        // ======================================
+      
+        // 同步模式：原有逻辑
+        const videoUrl = res.data?.data?.output_data?.video_url || 
+                        res.data?.output_data?.video_url || 
+                        res.data?.video_url;
+      
+        if (!videoUrl) {
+          console.error('无法从响应中提取视频 URL:', res);
+          showToast('视频生成成功，但无法获取链接', true);
+          return;
+        }
+      
+        console.log('视频 URL:', videoUrl);
+        setResult({ video_url: videoUrl });
+        
+        // 更新用户余额
+        if (res.remaining_credits !== undefined) {
+          setUserCredits(res.remaining_credits);
+        } else if (res.data?.remaining_credits !== undefined) {
+          setUserCredits(res.data.remaining_credits);
+        }
+        
+        showToast(`视频生成成功${videoModel === '3.0' && videoSound === 'native' ? '（有声）' : '（无声）'}`);
+      } catch (err) {
+        console.error('视频生成错误:', err);
+        showToast(err.message || '生成失败', true);
+      } finally {
+        setVideoLoading(false);
+        setIsGenerating(false);
+      }
+    };
 
   const generateTryon = async () => {
     const consented = await checkAIPrivacyConsent();
@@ -2116,79 +2131,89 @@ export default function App() {
   };
 
   // 通用后台轮询：完成后自动保存历史记录
-  const startPollingTask = (taskId, type, queryUrl) => {
-    // 👇 新增：持久化任务信息
-    localStorage.setItem('pending_task', JSON.stringify({ taskId, type, queryUrl }));
-    
-    const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
-    let attempts = 0;
-    const maxAttempts = 60;
-    
-    if (pollingRef.current) clearInterval(pollingRef.current);
-    
-    pollingRef.current = setInterval(async () => {
-      attempts++;
-      try {
-        const token = localStorage.getItem('access_token');
-        if (!token) { 
-          clearInterval(pollingRef.current); 
-          localStorage.removeItem('pending_task'); // 👈 清除
-          setEcommerceLoading(false); 
-          setIsGenerating(false); 
-          return; 
-        }
-        
-        const statusRes = await axios.get(queryUrl, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        console.log('轮询返回:', JSON.stringify(statusRes.data));
-        const task = statusRes.data.data;
-        if (!task) return;
-        
-        if (task.status === 'completed') {
-          clearInterval(pollingRef.current);
-          localStorage.removeItem('pending_task'); // 👈 清除
-          setEcommerceLoading(false);
-          setIsGenerating(false);
-          const videoUrl = task.video_url || task.output_data?.video_url;
-          const thumbnail = task.thumbnail || null;
-          if (videoUrl) {
-            saveToHistory(videoUrl, type, thumbnail);
-            showToast(`🎉 ${type}生成成功！`);
-            await loadHistory();
+    const startPollingTask = (taskId, type, queryUrl) => {
+      // 👇 新增：持久化任务信息
+      localStorage.setItem('pending_task', JSON.stringify({ taskId, type, queryUrl }));
+      
+      const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
+      let attempts = 0;
+      const maxAttempts = 60;
+      
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      
+      pollingRef.current = setInterval(async () => {
+        attempts++;
+        try {
+          const token = localStorage.getItem('access_token');
+          if (!token) { 
+            clearInterval(pollingRef.current); 
+            localStorage.removeItem('pending_task');
+            setEcommerceLoading(false); 
+            setIsGenerating(false); 
+            return; 
           }
-        } else if (task.status === 'failed') {
-          clearInterval(pollingRef.current);
-          localStorage.removeItem('pending_task'); // 👈 清除
-          setEcommerceLoading(false);
-          setIsGenerating(false);
-          showToast(`${type}生成失败: ${task.message || '请重试'}`, true);
+          
+          const statusRes = await axios.get(queryUrl, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          console.log('轮询返回:', JSON.stringify(statusRes.data));
+          const task = statusRes.data.data;
+          if (!task) return;
+          
+          if (task.status === 'completed') {
+            clearInterval(pollingRef.current);
+            localStorage.removeItem('pending_task');
+            setEcommerceLoading(false);
+            setIsGenerating(false);
+            const videoUrl = task.video_url || task.output_data?.video_url;
+            const thumbnail = task.thumbnail || null;
+            if (videoUrl) {
+              // ========== 视频生成由后端保存，前端不重复保存 ==========
+              if (type !== '视频生成') {
+                saveToHistory(videoUrl, type, thumbnail);
+              }
+              // ======================================================
+              
+              // 视频生成：显示结果
+              if (type === '视频生成') {
+                setResult({ video_url: videoUrl });
+              }
+              
+              showToast(`🎉 ${type}生成成功！`);
+              await loadHistory();
+            }
+          } else if (task.status === 'failed') {
+            clearInterval(pollingRef.current);
+            localStorage.removeItem('pending_task');
+            setEcommerceLoading(false);
+            setIsGenerating(false);
+            showToast(`${type}生成失败: ${task.message || '请重试'}`, true);
+          }
+          
+          if (attempts >= maxAttempts) {
+            clearInterval(pollingRef.current);
+            localStorage.removeItem('pending_task');
+            setEcommerceLoading(false);
+            setIsGenerating(false);
+            showToast('生成超时，请稍后在历史记录中查看', true);
+          }
+        } catch (err) {
+          if (attempts >= maxAttempts) {
+            clearInterval(pollingRef.current);
+            localStorage.removeItem('pending_task');
+            setEcommerceLoading(false);
+            setIsGenerating(false);
+          }
         }
-        
-        if (attempts >= maxAttempts) {
-          clearInterval(pollingRef.current);
-          localStorage.removeItem('pending_task'); // 👈 清除
-          setEcommerceLoading(false);
-          setIsGenerating(false);
-          showToast('生成超时，请稍后在历史记录中查看', true);
-        }
-      } catch (err) {
-        if (attempts >= maxAttempts) {
-          clearInterval(pollingRef.current);
-          localStorage.removeItem('pending_task'); // 👈 清除
-          setEcommerceLoading(false);
-          setIsGenerating(false);
-        }
-      }
-    }, 10000);
+      }, 10000);
 
-    // 保存引用以便清除
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-      }
+      // 保存引用以便清除
+      return () => {
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current);
+        }
+      };
     };
-  };
 
 
   const handleSaveEcommerceVideo = async () => {
