@@ -516,12 +516,6 @@ export default function App() {
     }
 
     if (channel === 'mobile_wap') {
-      // 只对 Android 做特殊处理
-      if (/android/i.test(navigator.userAgent)) {
-        window.open(payUrl, '_system');
-        return;
-      }
-      // 其他平台保持原样
       window.location.href = payUrl;
       return;
     }
