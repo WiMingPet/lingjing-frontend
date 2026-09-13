@@ -1241,64 +1241,94 @@ export default function App() {
       }
     };
 
-    // ========== 在这里加商家工作台生成函数 ==========
-    const handleMerchantGenerate = async () => {
-      const consented = await checkAIPrivacyConsent();
-      if (!consented) return;
+  // ========== 在这里加商家工作台生成函数 ==========
+  const handleMerchantGenerate = async () => {
+        const consented = await checkAIPrivacyConsent();
+        if (!consented) return;
 
-      const isVerified = await checkPhoneVerified();
-      if (!isVerified) {
-        showToast('根据法规要求，使用AI功能前需完成手机号认证');
-        setShowLoginModal(true);
-        return;
-      }
-
-      if (merchantImages.length === 0) {
-        showToast('请先上传平铺图', true);
-        return;
-      }
-
-      setMerchantLoading(true);
-      setIsGenerating(true);
-      setGeneratingTitle('电商商品套图生成中');
-      setGeneratingSubtitle('商品图上传与AI处理');
-      setMerchantResult(null);
-      try {
-        const formData = new FormData();
-        merchantImages.forEach((file) => {
-          formData.append('images', file);
-        });
-        formData.append('template', merchantTemplate);
-        formData.append('product_type', merchantProductType);
-        formData.append('scene_count', sceneCount);  // ← 加这行
-        formData.append('gender', merchantGender);
-        formData.append('scene_text', sceneText);
-        if (merchantHeight) formData.append('height', merchantHeight);
-        if (merchantWeight) formData.append('weight', merchantWeight);
-
-        const token = localStorage.getItem('access_token');
-        const res = await axios.post(`${API_URL}/merchant/generate_package`, formData, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-
-        if (res.data.code === 200) {
-          setMerchantResult(res.data.data);
-          showToast('生成成功');
-          loadHistory();
-        } else {
-          showToast(res.data.message || '生成失败', true);
+        const isVerified = await checkPhoneVerified();
+        if (!isVerified) {
+          showToast('根据法规要求，使用AI功能前需完成手机号认证');
+          setShowLoginModal(true);
+          return;
         }
-      } catch (err) {
-        console.error('商家工作台生成失败:', err);
-        showToast(err.response?.data?.detail || '生成失败', true);
-      } finally {
-        setMerchantLoading(false);
-        setIsGenerating(false);
-      }
-    };
+
+        if (merchantImages.length === 0) {
+          showToast('请先上传平铺图', true);
+          return;
+        }
+
+        setMerchantLoading(true);
+        setIsGenerating(true);
+        setGeneratingTitle('电商商品套图生成中');
+        setGeneratingSubtitle('商品图上传与AI处理');
+        setMerchantResult(null);
+        
+        try {
+          const formData = new FormData();
+          merchantImages.forEach((file) => {
+            formData.append('images', file);
+          });
+          formData.append('template', merchantTemplate);
+          formData.append('product_type', merchantProductType);
+          formData.append('scene_count', sceneCount);
+          formData.append('gender', merchantGender);
+          formData.append('scene_text', sceneText);
+          if (merchantHeight) formData.append('height', merchantHeight);
+          if (merchantWeight) formData.append('weight', merchantWeight);
+
+          const token = localStorage.getItem('access_token');
+          const res = await axios.post(`${API_URL}/merchant/generate_package`, formData, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+
+          if (res.data.code === 200) {
+            // ========== 异步模式 ==========
+            if (res.data.data?.async === true) {
+              const taskId = res.data.data.task_id;
+              showToast('电商套图任务已提交，预计3-10分钟完成');
+              
+              startPollingTask(
+                taskId,
+                '电商商品套图',
+                `${API_URL}/merchant/task/${taskId}`,
+                (task, status) => {
+                  setMerchantLoading(false);
+                  if (status === 'completed') {
+                    // 从任务结果中获取结果
+                    const results = task?.output_data?.results;
+                    if (results) {
+                      setMerchantResult({ results });
+                    }
+                    loadHistory();
+                  }
+                }
+              );
+              return;
+            }
+            // ==========================
+            
+            // 同步模式
+            setMerchantResult(res.data.data);
+            showToast('生成成功');
+            loadHistory();
+            setMerchantLoading(false);
+            setIsGenerating(false);
+          } else {
+            showToast(res.data.message || '生成失败', true);
+            setMerchantLoading(false);
+            setIsGenerating(false);
+          }
+        } catch (err) {
+          console.error('商家工作台生成失败:', err);
+          showToast(err.response?.data?.detail || '生成失败', true);
+          setMerchantLoading(false);
+          setIsGenerating(false);
+        }
+      };
 
     const pickModelImage = async () => {
       if (/android/i.test(navigator.userAgent)) {
@@ -1532,67 +1562,81 @@ export default function App() {
   };
 
   const generateImage = async () => {
-      const consented = await checkAIPrivacyConsent();
-      if (!consented) return;
-      const isVerified = await checkPhoneVerified();
-      if (!isVerified) {
-        showToast('根据法规要求，使用AI功能前需完成手机号认证');
-        setShowLoginModal(true);
-        return;
-      }
-      
-      // ========== 修改：允许文生图（无参考图） ==========
-      if (!prompt && !selectedImage) {
-        return showToast('请选择一张参考图片或输入描述文字');
-      }
-      // ==================================================
-      
-      setImageLoading(true);
-      setIsGenerating(true);
-      setGeneratingTitle('AI正在生成图片');
-      setGeneratingSubtitle(selectedImage ? '图生图模式（人物保留增强）' : '文生图模式');
-    
-      const formData = new FormData();
-      
-      // ========== 修改：有参考图才上传 ==========
-      if (selectedImage) {
-        const file = await convertToFile(selectedImage);
-        const ext = file.name?.split('.').pop() || 'jpg';
-        const safeFile = new File([file], `image_${Date.now()}.${ext}`, { type: file.type });
-        formData.append('reference_image', safeFile);
-      }
-      // ==================================================
-      
-      formData.append('prompt', prompt || '生成一张高质量的图片');
-      formData.append('width', '512');
-      formData.append('height', '512');
-
-      try {
-        const token = localStorage.getItem('access_token');
-        const response = await fetch(`${API_URL}/image/generate`, {
-          method: 'POST',
-          headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || '生成失败');
+        const consented = await checkAIPrivacyConsent();
+        if (!consented) return;
+        const isVerified = await checkPhoneVerified();
+        if (!isVerified) {
+          showToast('根据法规要求，使用AI功能前需完成手机号认证');
+          setShowLoginModal(true);
+          return;
         }
-
-        const res = await response.json();
-        console.log('图片生成响应:', res);
+        
+        if (!prompt && !selectedImage) {
+          return showToast('请选择一张参考图片或输入描述文字');
+        }
+        
+        setImageLoading(true);
+        setIsGenerating(true);
+        setGeneratingTitle('AI正在生成图片');
+        setGeneratingSubtitle(selectedImage ? '图生图模式（人物保留增强）' : '文生图模式');
       
-        showToast('图片生成成功');
-        await loadHistory();
-      } catch (err) {
-        console.error('图片生成错误:', err);
-        showToast(err.message || '生成失败', true);
-      } finally {
-        setImageLoading(false);
-        setIsGenerating(false);
-      }
-    };
+        const formData = new FormData();
+        
+        if (selectedImage) {
+          const file = await convertToFile(selectedImage);
+          const ext = file.name?.split('.').pop() || 'jpg';
+          const safeFile = new File([file], `image_${Date.now()}.${ext}`, { type: file.type });
+          formData.append('reference_image', safeFile);
+        }
+        
+        formData.append('prompt', prompt || '生成一张高质量的图片');
+        formData.append('width', '512');
+        formData.append('height', '512');
+
+        try {
+          const token = localStorage.getItem('access_token');
+          const response = await fetch(`${API_URL}/image/generate`, {
+            method: 'POST',
+            headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || '生成失败');
+          }
+
+          const res = await response.json();
+          console.log('图片生成响应:', res);
+          
+          // 异步模式
+          if (res.data?.async === true) {
+            const taskId = res.data.task_id;
+            showToast('图片生成任务已提交，预计30秒内完成');
+            
+            startPollingTask(
+              taskId,
+              '图片生成',
+              `${API_URL}/image/task/${taskId}`,
+              (task, status) => {
+                setImageLoading(false);
+              }
+            );
+            return;
+          }
+          
+          // 同步模式
+          showToast('图片生成成功');
+          await loadHistory();
+          setImageLoading(false);
+          setIsGenerating(false);
+        } catch (err) {
+          console.error('图片生成错误:', err);
+          showToast(err.message || '生成失败', true);
+          setImageLoading(false);
+          setIsGenerating(false);
+        }
+      };
 
   // ========== 获取视频价格 ==========
   const getVideoPrice = () => {
@@ -1621,14 +1665,12 @@ export default function App() {
         return;
       }
       
-      // 获取当前价格
       const cost = getVideoPrice();
       if (cost === 0) {
         showToast('请选择有效的视频参数', true);
         return;
       }
       
-      // 检查余额
       if (userCredits < cost) {
         showToast(`余额不足，需要${cost}点`);
         setShowRechargeModal(true);
@@ -1655,12 +1697,9 @@ export default function App() {
       formData.append('prompt', prompt || '生成动态视频');
       formData.append('duration', duration.toString());
       formData.append('mode', 'std');
-      
-      // ========== 新增参数 ==========
-      formData.append('model', videoModel);      // '2.6' 或 '3.0'
-      formData.append('sound', videoSound);      // 'off' 或 'native'
-      formData.append('credits', cost.toString()); // 扣费点数
-      // ============================
+      formData.append('model', videoModel);
+      formData.append('sound', videoSound);
+      formData.append('credits', cost.toString());
 
       try {
         const token = localStorage.getItem('access_token');
@@ -1680,37 +1719,34 @@ export default function App() {
         const res = await response.json();
         console.log('视频生成响应:', res);
         
-        // ========== 判断是否异步模式 ==========
+        // 异步模式
         if (res.data?.async === true) {
-          // 异步模式：任务已提交，轮询等待结果
           const taskId = res.data.task_id;
-          console.log('异步任务已提交，task_id:', taskId);
           showToast('视频生成任务已提交，预计1-3分钟完成');
           
-          // 使用轮询函数等待结果
-          startPollingTask(taskId, '视频生成', `${API_URL}/video/task/${taskId}`);
-          
-          setVideoLoading(false);
-          setIsGenerating(false);
+          startPollingTask(
+            taskId,
+            '视频生成',
+            `${API_URL}/video/task/${taskId}`,
+            (task, status) => {
+              setVideoLoading(false);
+            }
+          );
           return;
         }
-        // ======================================
-      
-        // 同步模式：原有逻辑
+        
+        // 同步模式
         const videoUrl = res.data?.data?.output_data?.video_url || 
                         res.data?.output_data?.video_url || 
                         res.data?.video_url;
       
         if (!videoUrl) {
-          console.error('无法从响应中提取视频 URL:', res);
           showToast('视频生成成功，但无法获取链接', true);
           return;
         }
-      
-        console.log('视频 URL:', videoUrl);
+        
         setResult({ video_url: videoUrl });
         
-        // 更新用户余额
         if (res.remaining_credits !== undefined) {
           setUserCredits(res.remaining_credits);
         } else if (res.data?.remaining_credits !== undefined) {
@@ -1718,305 +1754,17 @@ export default function App() {
         }
         
         showToast(`视频生成成功${videoModel === '3.0' && videoSound === 'native' ? '（有声）' : '（无声）'}`);
+        setVideoLoading(false);
+        setIsGenerating(false);
       } catch (err) {
         console.error('视频生成错误:', err);
         showToast(err.message || '生成失败', true);
-      } finally {
         setVideoLoading(false);
         setIsGenerating(false);
       }
     };
 
   const generateTryon = async () => {
-    const consented = await checkAIPrivacyConsent();
-    if (!consented) return;
-    const isVerified = await checkPhoneVerified();
-    if (!isVerified) {
-      showToast('根据法规要求，使用AI功能前需完成手机号认证');
-      setShowLoginModal(true);
-      return;
-    }
-    
-    if (clothCategory !== 'lower' && clothCategory !== 'dress' && !modelImage) return showToast('请先选择模特图片');
-    if (!garmentImage) return showToast('请先选择服装图片');
-    if (clothCategory === 'dress') {
-      Alert.alert(
-        '套装/连衣裙',
-        '如果是单件连衣裙，请直接上传。\n如果是上下装套装，请将上装和下装白底图错开排版到一张图后上传。',
-        [
-          { text: '我已按要求上传', onPress: () => {} },
-          { text: '取消', onPress: () => { tryonLoading(false); setIsGenerating(false); return; } }
-        ]
-      );
-    }
-    setTryonLoading(true);
-    setIsGenerating(true);
-    setGeneratingTitle('AI正在生成试穿视频');
-    setGeneratingSubtitle('服装上身效果展示');
-  
-    const formData = new FormData();
-    // 如果是下装，下载专用模特图作为文件
-    let modelFile;
-    if (clothCategory === 'lower') {
-      const LOWER_MODEL_URL = "https://media.lingjing-media.com/%E5%AE%B6%E9%A6%A8.png";
-      const response = await fetch(LOWER_MODEL_URL);
-      const blob = await response.blob();
-      modelFile = new File([blob], 'lower_model.jpg', { type: 'image/jpeg' });
-    } else if (clothCategory === 'dress') {
-      const DRESS_MODEL_URL = "https://media.lingjing-media.com/%E5%AE%B6%E9%A6%A8.png";
-      const response = await fetch(DRESS_MODEL_URL);
-      const blob = await response.blob();
-      modelFile = new File([blob], 'dress_model.jpg', { type: 'image/jpeg' });
-    } else {
-      modelFile = await convertToFile(modelImage);
-    }
-    const modelExt = modelFile.name?.split('.').pop() || 'jpg';
-    const safeModel = new File([modelFile], `model_${Date.now()}.${modelExt}`, { type: modelFile.type });
-    formData.append('model_image', safeModel);
-  
-    const garmentFile = await convertToFile(garmentImage);
-    const garmentExt = garmentFile.name?.split('.').pop() || 'jpg';
-    const safeGarment = new File([garmentFile], `garment_${Date.now()}.${garmentExt}`, { type: garmentFile.type });
-    formData.append('garment_image', safeGarment);
-    formData.append('cloth_category', clothCategory);
-
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`${API_URL}/tryon/generate`, {
-        method: 'POST',
-        headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || '试穿失败');
-      }
-
-      const res = await response.json();
-      console.log('虚拟试穿响应:', res);
-    
-      showToast('试穿视频生成成功');
-      await loadHistory();
-    } catch (err) {
-      console.error('虚拟试穿错误:', err);
-      showToast(err.message || '试穿失败', true);
-    } finally {
-      setTryonLoading(false);
-      setIsGenerating(false);
-    }
-  };
-
-  const generateDigitalHuman = async () => {
-    const consented = await checkAIPrivacyConsent();
-    if (!consented) return;
-    const isVerified = await checkPhoneVerified();
-    if (!isVerified) {
-      showToast('根据法规要求，使用AI功能前需完成手机号认证');
-      setShowLoginModal(true);
-      return;
-    }
-    
-    if (!digitalImage) return showToast('请先上传照片');
-    if (!digitalText.trim()) return showToast('请输入说话内容');
-    setDigitalLoading(true);
-    setIsGenerating(true);
-    setGeneratingTitle('AI正在生成数字人视频');
-    setGeneratingSubtitle('虚拟形象口播讲解');
-
-    try {
-      const token = localStorage.getItem('access_token');
-      let response;
-
-      // 判断 digitalImage 是 URL 还是本地文件
-      const isUrl = typeof digitalImage === 'string' || digitalImage.isUrl || (digitalImage.uri && digitalImage.uri.startsWith('http'));
-
-      if (isUrl) {
-        // 形象库图片：用 FormData 发送 URL
-        const imageUrl = digitalImage.uri;
-        const formData = new FormData();
-        formData.append('image_url', imageUrl);
-        formData.append('text', digitalText);
-        formData.append('voice', digitalVoice);
-        if (digitalName) formData.append('name', digitalName);
-
-        response = await fetch(`${API_URL}/digital-human/generate`, {
-          method: 'POST',
-          headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
-          body: formData
-        });
-      } else {
-        // 手动上传的图片：使用 FormData
-        const formData = new FormData();
-        const imageFile = await convertToFile(digitalImage);
-        const ext = imageFile.name?.split('.').pop() || 'jpg';
-        const safeImage = new File([imageFile], `digital_${Date.now()}.${ext}`, { type: imageFile.type });
-        formData.append('image', safeImage);
-        formData.append('text', digitalText);
-        formData.append('voice', digitalVoice);
-        if (digitalName) formData.append('name', digitalName);
-
-        response = await fetch(`${API_URL}/digital-human/generate`, {
-          method: 'POST',
-          headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
-          body: formData,
-        });
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || '生成失败');
-      }
-
-      const res = await response.json();
-      console.log('数字人分身响应:', res);
-    
-      const videoUrl = res.data?.video_url || res.video_url;
-    
-      if (!videoUrl) {
-        console.error('无法提取视频 URL:', res);
-        showToast('数字人视频生成成功，但无法获取链接', true);
-        return;
-      }
-    
-      setResult({ video_url: videoUrl });
-      saveToHistory(videoUrl, '数字人分身');
-      showToast('数字人视频生成成功');
-    } catch (err) {
-      console.error('数字人分身错误:', err);
-      showToast(err.message || '生成失败', true);
-    } finally {
-      setDigitalLoading(false);
-      setIsGenerating(false);
-    }
-  };
-
-  const generateDigitalHumanCustom = async () => {
-    const isVerified = await checkPhoneVerified();
-    if (!isVerified) {
-      showToast('根据法规要求，使用AI功能前需完成手机号认证');
-      setShowLoginModal(true);
-      return;
-    }
-    
-    if (!checkAndUseCredits(60, '定制数字人', () => {})) return;
-    if (!customVideo) return showToast('请先上传训练视频');
-    if (!customName.trim()) return showToast('请输入数字人名称');
-    setEcommerceLoading(true);
-
-    const formData = new FormData();
-
-    // 清理视频文件名，移除特殊字符
-    const videoExt = customVideo.name?.split('.').pop() || 'mp4';
-    const safeVideoName = `video_${Date.now()}.${videoExt}`;
-    const safeVideo = new File([customVideo], safeVideoName, { type: customVideo.type || 'video/mp4' });
-    formData.append('source_video', safeVideo);
-    formData.append('name', customName);
-    if (customDesc) formData.append('description', customDesc);
-
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`${API_URL}/digital-human/`, {
-        method: 'POST',
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : undefined,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || '定制失败');
-      }
-
-      const res = await response.json();
-      console.log('数字人定制响应:', res);
-    
-      // 定制数字人没有返回文件 URL，只是提交任务
-      showToast('数字人定制任务已提交');
-      setCustomVideo(null);
-      setCustomName('');
-      setCustomDesc('');
-    } catch (err) {
-      console.error('数字人定制错误:', err);
-      showToast(err.message || '定制失败', true);
-    } finally {
-      setEcommerceLoading(false);
-    }
-  };
-
-  // ========== AI带货视频相关函数（替换版） ==========
-
-    // 解析抖音链接 - 终极硬编码版本
-    const fetchProductInfo = async () => {
-      const isVerified = await checkPhoneVerified();
-      if (!isVerified) {
-        showToast('根据法规要求，使用AI功能前需完成手机号认证');
-        setShowLoginModal(true);
-        return;
-      }
-      
-      if (!ecommerceUrl.trim()) {
-        showToast('请输入商品链接', true);
-        return;
-      }
-      
-      setParsingLoading(true);
-      try {
-        const token = accessToken;
-        if (!token) {
-          showToast('请先登录', true);
-          setParsingLoading(false);
-          return;
-        }
-
-      const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
-
-      const res = await axios.post(
-        `${BACKEND_URL}/ecommerce/parse_url`,
-        { url: extractUrl(ecommerceUrl) },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      
-      if (res.data.code === 200) {
-        const productData = res.data.data;
-        
-        // 自动填充商品描述
-        setEcommerceDescription(productData.description || productData.title);
-        
-        // ✅ 自动设置商品图片
-        if (productData.images && productData.images.length > 0) {
-          setEcommerceImage({ uri: productData.images[0], isUrl: true });
-          showToast(`解析成功，正在自动生成带货视频...`);
-          // ✅ 关键：自动触发生成
-          setTimeout(() => {
-            setParsingLoading(false);
-            generateEcommerceVideo();
-          }, 500);
-        } else {
-          setEcommerceImage(null);
-          showToast(`解析成功，请手动上传商品图片`);
-          setParsingLoading(false);
-        }
-      } else {
-        showToast(res.data.message || '解析失败', true);
-        setParsingLoading(false);
-      }
-    } catch (err) {
-      console.error('解析失败:', err);
-      const errorMsg = err.response?.data?.detail || err.response?.data?.message || '解析失败，请手动填写';
-      showToast(errorMsg, true);
-      setParsingLoading(false);
-    }
-  };
-
-  // 生成带货视频 - 异步后台版本
-    const generateEcommerceVideo = async () => {
       const consented = await checkAIPrivacyConsent();
       if (!consented) return;
       const isVerified = await checkPhoneVerified();
@@ -2026,118 +1774,475 @@ export default function App() {
         return;
       }
       
-      const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
+      if (clothCategory !== 'lower' && clothCategory !== 'dress' && !modelImage) return showToast('请先选择模特图片');
+      if (!garmentImage) return showToast('请先选择服装图片');
+      if (clothCategory === 'dress') {
+        Alert.alert(
+          '套装/连衣裙',
+          '如果是单件连衣裙，请直接上传。\n如果是上下装套装，请将上装和下装白底图错开排版到一张图后上传。',
+          [
+            { text: '我已按要求上传', onPress: () => {} },
+            { text: '取消', onPress: () => { setTryonLoading(false); setIsGenerating(false); return; } }
+          ]
+        );
+      }
+      setTryonLoading(true);
+      setIsGenerating(true);
+      setGeneratingTitle('AI正在生成试穿视频');
+      setGeneratingSubtitle('服装上身效果展示');
+    
+      const formData = new FormData();
+      let modelFile;
+      if (clothCategory === 'lower') {
+        const LOWER_MODEL_URL = "https://media.lingjing-media.com/%E5%AE%B6%E9%A6%A8.png";
+        const response = await fetch(LOWER_MODEL_URL);
+        const blob = await response.blob();
+        modelFile = new File([blob], 'lower_model.jpg', { type: 'image/jpeg' });
+      } else if (clothCategory === 'dress') {
+        const DRESS_MODEL_URL = "https://media.lingjing-media.com/%E5%AE%B6%E9%A6%A8.png";
+        const response = await fetch(DRESS_MODEL_URL);
+        const blob = await response.blob();
+        modelFile = new File([blob], 'dress_model.jpg', { type: 'image/jpeg' });
+      } else {
+        modelFile = await convertToFile(modelImage);
+      }
+      const modelExt = modelFile.name?.split('.').pop() || 'jpg';
+      const safeModel = new File([modelFile], `model_${Date.now()}.${modelExt}`, { type: modelFile.type });
+      formData.append('model_image', safeModel);
+    
+      const garmentFile = await convertToFile(garmentImage);
+      const garmentExt = garmentFile.name?.split('.').pop() || 'jpg';
+      const safeGarment = new File([garmentFile], `garment_${Date.now()}.${garmentExt}`, { type: garmentFile.type });
+      formData.append('garment_image', safeGarment);
+      formData.append('cloth_category', clothCategory);
+
+      try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`${API_URL}/tryon/generate`, {
+          method: 'POST',
+          headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || '试穿失败');
+        }
+
+        const res = await response.json();
+        console.log('虚拟试穿响应:', res);
+        
+        // ========== 异步模式 ==========
+        if (res.data?.async === true) {
+          const taskId = res.data.task_id;
+          showToast('虚拟试穿任务已提交，预计1分钟内完成');
+          
+          startPollingTask(
+            taskId,
+            '虚拟试穿',
+            `${API_URL}/tryon/task/${taskId}`,
+            (task, status) => {
+              setTryonLoading(false);
+            }
+          );
+          return;
+        }
+        // ==========================
       
-      if (!ecommerceImage && !ecommerceDescription.trim()) {
-        showToast('请上传商品图片或填写描述', true);
+        // 同步模式
+        showToast('试穿视频生成成功');
+        await loadHistory();
+        setTryonLoading(false);
+        setIsGenerating(false);
+      } catch (err) {
+        console.error('虚拟试穿错误:', err);
+        showToast(err.message || '试穿失败', true);
+        setTryonLoading(false);
+        setIsGenerating(false);
+      }
+    };
+
+  const generateDigitalHuman = async () => {
+      const consented = await checkAIPrivacyConsent();
+      if (!consented) return;
+      const isVerified = await checkPhoneVerified();
+      if (!isVerified) {
+        showToast('根据法规要求，使用AI功能前需完成手机号认证');
+        setShowLoginModal(true);
         return;
       }
-    
-    // 套装确认弹窗
-    if (clothCategory === 'dress' && Platform.OS === 'web') {
-      const confirmed = window.confirm(
-        '套装/连衣裙上传须知：\n\n' +
-        '• 单件连衣裙 → 直接上传白底图即可\n\n' +
-        '• 上下装套装 → 请将上装和下装的白底图错开排版到一张图里（中间留空隙，不要连在一起）\n\n' +
-        '点击"确定"继续生成，点击"取消"返回修改'
-      );
-      if (!confirmed) {
-        setEcommerceLoading(false);
-        return;
-      }
-    }
-    
-    setEcommerceLoading(true);
-    setIsGenerating(true);
-    setGeneratingTitle('AI正在制作带货视频');
-    setGeneratingSubtitle('数字人讲解 + 商品展示');
-    setEcommerceVideoUrl('');
-    
-    try {
-      let productImageUrl = null;
       
-      // 处理商品图片
-      if (ecommerceImage) {
-        if (ecommerceImage.isUrl || ecommerceImage.uri?.startsWith('http')) {
-          productImageUrl = ecommerceImage.uri;
-        } else if (ecommerceImage.uri) {
+      if (!digitalImage) return showToast('请先上传照片');
+      if (!digitalText.trim()) return showToast('请输入说话内容');
+      setDigitalLoading(true);
+      setIsGenerating(true);
+      setGeneratingTitle('AI正在生成数字人视频');
+      setGeneratingSubtitle('虚拟形象口播讲解');
+
+      try {
+        const token = localStorage.getItem('access_token');
+        let response;
+
+        // 判断 digitalImage 是 URL 还是本地文件
+        const isUrl = typeof digitalImage === 'string' || digitalImage.isUrl || (digitalImage.uri && digitalImage.uri.startsWith('http'));
+
+        if (isUrl) {
+          // 形象库图片：用 FormData 发送 URL
+          const imageUrl = digitalImage.uri;
           const formData = new FormData();
-          const file = await convertToFile(ecommerceImage);
-          formData.append('file', file);
-          const uploadRes = await axios.post(`${BACKEND_URL}/upload/`, formData, {
-            headers: { 
-              'Content-Type': 'multipart/form-data',
-              'Authorization': `Bearer ${accessToken}`
-            }
+          formData.append('image_url', imageUrl);
+          formData.append('text', digitalText);
+          formData.append('voice', digitalVoice);
+          if (digitalName) formData.append('name', digitalName);
+
+          response = await fetch(`${API_URL}/digital-human/generate`, {
+            method: 'POST',
+            headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
+            body: formData
           });
-          productImageUrl = uploadRes.data.url;
-        }
-      }
-      
-      let digitalImageUrl = null;
-      if (ecommerceDigitalImage) {
-        if (ecommerceDigitalImage.uri?.startsWith('http')) {
-          digitalImageUrl = ecommerceDigitalImage.uri;
-        } else if (ecommerceDigitalImage.uri) {
-          const formData = new FormData();
-          const file = await convertToFile(ecommerceDigitalImage);
-          formData.append('file', file);
-          const uploadRes = await axios.post(`${BACKEND_URL}/upload/`, formData, {
-            headers: { 
-              'Content-Type': 'multipart/form-data',
-              'Authorization': `Bearer ${accessToken}`
-            }
-          });
-          digitalImageUrl = uploadRes.data.url;
-        }
-      }
-      
-      // 提交异步任务
-      const res = await axios.post(`${BACKEND_URL}/ecommerce/generate_video`, {
-        url: ecommerceUrl || undefined,
-        description: ecommerceDescription,
-        image_url: productImageUrl,
-        digital_image_url: digitalImageUrl,
-        cloth_category: clothCategory || '',
-      }, {
-        headers: { 'Authorization': `Bearer ${accessToken}` } 
-      });
-      
-      if (res.data.code === 200) {
-        const taskId = res.data.data?.task_id;
-        if (taskId) {
-          startPollingTask(taskId, 'AI带货视频', `${BACKEND_URL}/ecommerce/task/${taskId}`);
         } else {
-          const videoUrl = res.data.data?.video_url;
-          if (videoUrl) {
-            setEcommerceVideoUrl(videoUrl);
-            showToast('视频生成成功');
-            saveToHistory(videoUrl, 'AI带货视频');
+          // 手动上传的图片：使用 FormData
+          const formData = new FormData();
+          const imageFile = await convertToFile(digitalImage);
+          const ext = imageFile.name?.split('.').pop() || 'jpg';
+          const safeImage = new File([imageFile], `digital_${Date.now()}.${ext}`, { type: imageFile.type });
+          formData.append('image', safeImage);
+          formData.append('text', digitalText);
+          formData.append('voice', digitalVoice);
+          if (digitalName) formData.append('name', digitalName);
+
+          response = await fetch(`${API_URL}/digital-human/generate`, {
+            method: 'POST',
+            headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
+            body: formData,
+          });
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || '生成失败');
+        }
+
+        const res = await response.json();
+        console.log('数字人分身响应:', res);
+        
+        // ========== 异步模式 ==========
+        if (res.data?.async === true) {
+          const taskId = res.data.task_id;
+          showToast('数字人视频生成任务已提交，预计2-5分钟完成');
+          
+          startPollingTask(
+            taskId,
+            '数字人分身',
+            `${API_URL}/digital-human/task/${taskId}`,
+            (task, status) => {
+              setDigitalLoading(false);
+              if (status === 'completed') {
+                const videoUrl = task?.output_data?.video_url || task?.video_url;
+                if (videoUrl) {
+                  setResult({ video_url: videoUrl });
+                }
+              }
+            }
+          );
+          return;
+        }
+        // ==========================
+      
+        // 同步模式
+        const videoUrl = res.data?.video_url || res.video_url;
+      
+        if (!videoUrl) {
+          console.error('无法提取视频 URL:', res);
+          showToast('数字人视频生成成功，但无法获取链接', true);
+          setDigitalLoading(false);
+          setIsGenerating(false);
+          return;
+        }
+      
+        setResult({ video_url: videoUrl });
+        
+        // 后端已保存历史记录，前端不再重复保存
+        // saveToHistory(videoUrl, '数字人分身');
+        
+        showToast('数字人视频生成成功');
+        await loadHistory();
+        
+        setDigitalLoading(false);
+        setIsGenerating(false);
+      } catch (err) {
+        console.error('数字人分身错误:', err);
+        showToast(err.message || '生成失败', true);
+        setDigitalLoading(false);
+        setIsGenerating(false);
+      }
+    };
+
+  const generateDigitalHumanCustom = async () => {
+      const isVerified = await checkPhoneVerified();
+      if (!isVerified) {
+        showToast('根据法规要求，使用AI功能前需完成手机号认证');
+        setShowLoginModal(true);
+        return;
+      }
+      
+      if (!checkAndUseCredits(60, '定制数字人', () => {})) return;
+      if (!customVideo) return showToast('请先上传训练视频');
+      if (!customName.trim()) return showToast('请输入数字人名称');
+      setEcommerceLoading(true);
+
+      const formData = new FormData();
+
+      const videoExt = customVideo.name?.split('.').pop() || 'mp4';
+      const safeVideoName = `video_${Date.now()}.${videoExt}`;
+      const safeVideo = new File([customVideo], safeVideoName, { type: customVideo.type || 'video/mp4' });
+      formData.append('source_video', safeVideo);
+      formData.append('name', customName);
+      if (customDesc) formData.append('description', customDesc);
+
+      try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`${API_URL}/digital-human/`, {
+          method: 'POST',
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : undefined,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || '定制失败');
+        }
+
+        const res = await response.json();
+        console.log('数字人定制响应:', res);
+      
+        showToast('数字人定制任务已提交');
+        setCustomVideo(null);
+        setCustomName('');
+        setCustomDesc('');
+        setEcommerceLoading(false);
+      } catch (err) {
+        console.error('数字人定制错误:', err);
+        showToast(err.message || '定制失败', true);
+        setEcommerceLoading(false);
+      }
+    };
+
+  // ========== AI带货视频相关函数（替换版） ==========
+
+  const fetchProductInfo = async () => {
+        const isVerified = await checkPhoneVerified();
+        if (!isVerified) {
+          showToast('根据法规要求，使用AI功能前需完成手机号认证');
+          setShowLoginModal(true);
+          return;
+        }
+        
+        if (!ecommerceUrl.trim()) {
+          showToast('请输入商品链接', true);
+          return;
+        }
+        
+        setParsingLoading(true);
+        try {
+          const token = accessToken;
+          if (!token) {
+            showToast('请先登录', true);
+            setParsingLoading(false);
+            return;
           }
+
+        const res = await axios.post(
+          `${API_URL}/ecommerce/parse_url`,
+          { url: extractUrl(ecommerceUrl) },
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (res.data.code === 200) {
+          const productData = res.data.data;
+          setEcommerceDescription(productData.description || productData.title);
+          
+          if (productData.images && productData.images.length > 0) {
+            setEcommerceImage({ uri: productData.images[0], isUrl: true });
+            showToast(`解析成功，正在自动生成带货视频...`);
+            setTimeout(() => {
+              setParsingLoading(false);
+              generateEcommerceVideo();
+            }, 500);
+          } else {
+            setEcommerceImage(null);
+            showToast(`解析成功，请手动上传商品图片`);
+            setParsingLoading(false);
+          }
+        } else {
+          showToast(res.data.message || '解析失败', true);
+          setParsingLoading(false);
+        }
+      } catch (err) {
+        console.error('解析失败:', err);
+        const errorMsg = err.response?.data?.detail || err.response?.data?.message || '解析失败，请手动填写';
+        showToast(errorMsg, true);
+        setParsingLoading(false);
+      }
+    };
+
+  // 生成带货视频 - 异步后台版本
+  const generateEcommerceVideo = async () => {
+        const consented = await checkAIPrivacyConsent();
+        if (!consented) return;
+        const isVerified = await checkPhoneVerified();
+        if (!isVerified) {
+          showToast('根据法规要求，使用AI功能前需完成手机号认证');
+          setShowLoginModal(true);
+          return;
+        }
+        
+        if (!ecommerceImage && !ecommerceDescription.trim()) {
+          showToast('请上传商品图片或填写描述', true);
+          return;
+        }
+      
+      // 套装确认弹窗
+      if (clothCategory === 'dress' && Platform.OS === 'web') {
+        const confirmed = window.confirm(
+          '套装/连衣裙上传须知：\n\n' +
+          '• 单件连衣裙 → 直接上传白底图即可\n\n' +
+          '• 上下装套装 → 请将上装和下装的白底图错开排版到一张图里（中间留空隙，不要连在一起）\n\n' +
+          '点击"确定"继续生成，点击"取消"返回修改'
+        );
+        if (!confirmed) {
+          setEcommerceLoading(false);
+          return;
+        }
+      }
+      
+      setEcommerceLoading(true);
+      setIsGenerating(true);
+      setGeneratingTitle('AI正在制作带货视频');
+      setGeneratingSubtitle('数字人讲解 + 商品展示');
+      setEcommerceVideoUrl('');
+      
+      try {
+        let productImageUrl = null;
+        
+        // 处理商品图片
+        if (ecommerceImage) {
+          if (ecommerceImage.isUrl || ecommerceImage.uri?.startsWith('http')) {
+            productImageUrl = ecommerceImage.uri;
+          } else if (ecommerceImage.uri) {
+            const formData = new FormData();
+            const file = await convertToFile(ecommerceImage);
+            formData.append('file', file);
+            const uploadRes = await axios.post(`${API_URL}/upload/`, formData, {
+              headers: { 
+                'Content-Type': 'multipart/form-data',
+                'Authorization': `Bearer ${accessToken}`
+              }
+            });
+            productImageUrl = uploadRes.data.url;
+          }
+        }
+        
+        let digitalImageUrl = null;
+        if (ecommerceDigitalImage) {
+          if (ecommerceDigitalImage.uri?.startsWith('http')) {
+            digitalImageUrl = ecommerceDigitalImage.uri;
+          } else if (ecommerceDigitalImage.uri) {
+            const formData = new FormData();
+            const file = await convertToFile(ecommerceDigitalImage);
+            formData.append('file', file);
+            const uploadRes = await axios.post(`${API_URL}/upload/`, formData, {
+              headers: { 
+                'Content-Type': 'multipart/form-data',
+                'Authorization': `Bearer ${accessToken}`
+              }
+            });
+            digitalImageUrl = uploadRes.data.url;
+          }
+        }
+        
+        // 提交任务
+        const res = await axios.post(`${API_URL}/ecommerce/generate_video`, {
+          url: ecommerceUrl || undefined,
+          description: ecommerceDescription,
+          image_url: productImageUrl,
+          digital_image_url: digitalImageUrl,
+          cloth_category: clothCategory || '',
+        }, {
+          headers: { 'Authorization': `Bearer ${accessToken}` } 
+        });
+        
+        if (res.data.code === 200) {
+          const taskId = res.data.data?.task_id;
+          if (taskId) {
+            // 异步模式
+            showToast('AI带货视频任务已提交，预计2-5分钟完成');
+            startPollingTask(
+              taskId,
+              'AI带货视频',
+              `${API_URL}/ecommerce/task/${taskId}`,
+              (task, status) => {
+                setEcommerceLoading(false);
+                if (status === 'completed') {
+                  const videoUrl = task?.video_url || task?.output_data?.video_url;
+                  if (videoUrl) {
+                    setEcommerceVideoUrl(videoUrl);
+                  }
+                }
+              }
+            );
+          } else {
+            // 同步模式
+            const videoUrl = res.data.data?.video_url;
+            if (videoUrl) {
+              setEcommerceVideoUrl(videoUrl);
+              showToast('视频生成成功');
+              // 后端已保存历史记录，前端不再重复保存
+              // saveToHistory(videoUrl, 'AI带货视频');
+            }
+            setEcommerceLoading(false);
+            setIsGenerating(false);
+          }
+        } else {
+          showToast(res.data.message || '生成失败', true);
           setEcommerceLoading(false);
           setIsGenerating(false);
         }
-      } else {
-        showToast(res.data.message || '生成失败', true);
+      } catch (err) {
+        console.error('生成带货视频失败:', err);
+        showToast(err.response?.data?.detail || '生成失败', true);
         setEcommerceLoading(false);
         setIsGenerating(false);
       }
-    } catch (err) {
-      console.error('生成带货视频失败:', err);
-      showToast(err.response?.data?.detail || '生成失败', true);
-      setEcommerceLoading(false);
-      setIsGenerating(false);
-    }
-  };
+    };
 
   // 通用后台轮询：完成后自动保存历史记录
-    const startPollingTask = (taskId, type, queryUrl) => {
-      // 👇 新增：持久化任务信息
+    const startPollingTask = (taskId, type, queryUrl, onComplete) => {
+      // 持久化任务信息
       localStorage.setItem('pending_task', JSON.stringify({ taskId, type, queryUrl }));
       
-      const BACKEND_URL = 'https://lingjing.preview.aliyun-zeabur.cn/api';
       let attempts = 0;
       const maxAttempts = 60;
+      
+      // ========== 轮询间隔：根据 type 调整 ==========
+      const getInterval = () => {
+        if (type === '图片生成') return 3000;
+        if (type === '虚拟试穿') return 3000;
+        if (type === '多角度试穿') return 5000;
+        if (type === '视频生成') return 5000;
+        if (type === '数字人分身') return 5000;
+        if (type === 'AI带货视频') return 5000;
+        if (type === '电商商品套图') return 8000;
+        return 5000;
+      };
+      // ============================================
       
       if (pollingRef.current) clearInterval(pollingRef.current);
       
@@ -2148,7 +2253,7 @@ export default function App() {
           if (!token) { 
             clearInterval(pollingRef.current); 
             localStorage.removeItem('pending_task');
-            setEcommerceLoading(false); 
+            if (onComplete) onComplete(null, 'no_token');
             setIsGenerating(false); 
             return; 
           }
@@ -2163,29 +2268,48 @@ export default function App() {
           if (task.status === 'completed') {
             clearInterval(pollingRef.current);
             localStorage.removeItem('pending_task');
-            setEcommerceLoading(false);
+            
+            // 调用完成回调
+            if (onComplete) {
+              onComplete(task, 'completed');
+            }
+            
             setIsGenerating(false);
+            
+            // 根据 type 处理结果
             const videoUrl = task.video_url || task.output_data?.video_url;
             const thumbnail = task.thumbnail || null;
-            if (videoUrl) {
-              // ========== 视频生成由后端保存，前端不重复保存 ==========
-              if (type !== '视频生成') {
-                saveToHistory(videoUrl, type, thumbnail);
+            
+            if (type === '图片生成') {
+              if (task.output_data?.images?.length > 0) {
+                setResult({ images: task.output_data.images });
               }
-              // ======================================================
-              
-              // 视频生成：显示结果
-              if (type === '视频生成') {
+            } else if (type === '视频生成') {
+              if (videoUrl) {
                 setResult({ video_url: videoUrl });
               }
-              
-              showToast(`🎉 ${type}生成成功！`);
-              await loadHistory();
+            } else if (type === '虚拟试穿' || type === '多角度试穿') {
+              if (videoUrl) {
+                setResult({ video_url: videoUrl });
+              }
+            } else if (type === '数字人分身') {
+              if (videoUrl) {
+                setResult({ video_url: videoUrl });
+              }
+            } else if (type === 'AI带货视频') {
+              if (videoUrl) {
+                setEcommerceVideoUrl(videoUrl);
+              }
             }
+            
+            showToast(`🎉 ${type}生成成功！`);
+            await loadHistory();
           } else if (task.status === 'failed') {
             clearInterval(pollingRef.current);
             localStorage.removeItem('pending_task');
-            setEcommerceLoading(false);
+            if (onComplete) {
+              onComplete(task, 'failed');
+            }
             setIsGenerating(false);
             showToast(`${type}生成失败: ${task.message || '请重试'}`, true);
           }
@@ -2193,21 +2317,21 @@ export default function App() {
           if (attempts >= maxAttempts) {
             clearInterval(pollingRef.current);
             localStorage.removeItem('pending_task');
-            setEcommerceLoading(false);
+            if (onComplete) onComplete(null, 'timeout');
             setIsGenerating(false);
             showToast('生成超时，请稍后在历史记录中查看', true);
           }
         } catch (err) {
+          console.error('轮询错误:', err);
           if (attempts >= maxAttempts) {
             clearInterval(pollingRef.current);
             localStorage.removeItem('pending_task');
-            setEcommerceLoading(false);
+            if (onComplete) onComplete(null, 'error');
             setIsGenerating(false);
           }
         }
-      }, 10000);
+      }, getInterval());
 
-      // 保存引用以便清除
       return () => {
         if (pollingRef.current) {
           clearInterval(pollingRef.current);
@@ -2255,24 +2379,24 @@ export default function App() {
   };
 
   const generateMultiAngle = async () => {
-    const consented = await checkAIPrivacyConsent();
-    if (!consented) return;
-    const isVerified = await checkPhoneVerified();
-    if (!isVerified) {
-      showToast('根据法规要求，使用AI功能前需完成手机号认证');
-      setShowLoginModal(true);
-      return;
-    }
-    
-    if (multiImages.length < 2) {
-      showToast('请至少上传2张不同角度的照片', true);
-      return;
-    }
-    if (multiImages.length > 4) {
-      showToast('最多上传4张照片', true);
-      return;
-    }
+      const consented = await checkAIPrivacyConsent();
+      if (!consented) return;
+      const isVerified = await checkPhoneVerified();
+      if (!isVerified) {
+        showToast('根据法规要求，使用AI功能前需完成手机号认证');
+        setShowLoginModal(true);
+        return;
+      }
       
+      if (multiImages.length < 2) {
+        showToast('请至少上传2张不同角度的照片', true);
+        return;
+      }
+      if (multiImages.length > 4) {
+        showToast('最多上传4张照片', true);
+        return;
+      }
+        
       setMultiLoading(true);
       setIsGenerating(true);
       setGeneratingTitle('AI正在生成多角度视频');
@@ -2294,7 +2418,6 @@ export default function App() {
         
         const token = localStorage.getItem('access_token');
         
-        // ✅ 修正：调用正确的后端接口路径
         const response = await fetch(`${API_URL}/multi-angle/generate`, {
           method: 'POST',
           headers: { 
@@ -2310,27 +2433,57 @@ export default function App() {
 
         const res = await response.json();
         console.log('多角度合成响应:', res);
+        
+        // ========== 异步模式 ==========
+        if (res.data?.async === true) {
+          const taskId = res.data.task_id;
+          showToast('多角度试穿任务已提交，预计2-3分钟完成');
+          
+          startPollingTask(
+            taskId,
+            '多角度试穿',
+            `${API_URL}/multi-angle/task/${taskId}`,
+            (task, status) => {
+              setMultiLoading(false);
+              if (status === 'completed') {
+                const videoUrl = task?.output_data?.video_url || task?.video_url;
+                if (videoUrl) {
+                  setCurrentVideoUrl(videoUrl);
+                  setVideoModalVisible(true);
+                }
+              }
+            }
+          );
+          return;
+        }
+        // ==========================
       
-        // ✅ 修正：后端返回 video_url，不是 image_url
+        // 同步模式
         const videoUrl = res.data?.video_url;
       
         if (!videoUrl) {
           console.error('无法提取视频 URL:', res);
           showToast('多角度合成成功，但无法获取视频链接', true);
+          setMultiLoading(false);
+          setIsGenerating(false);
           return;
         }
       
         // 显示结果视频
         setCurrentVideoUrl(videoUrl);
         setVideoModalVisible(true);
-        console.log('多角度封面URL:', res.data?.thumbnail);
-        saveToHistory(videoUrl, '多角度试穿', res.data?.thumbnail);
-        showToast('多角度视频生成成功');
         
+        // 后端已保存历史记录，前端不再重复保存
+        // saveToHistory(videoUrl, '多角度试穿', res.data?.thumbnail);
+        
+        showToast('多角度视频生成成功');
+        await loadHistory();
+        
+        setMultiLoading(false);
+        setIsGenerating(false);
       } catch (err) {
         console.error('多角度合成错误:', err);
         showToast(err.message || '合成失败', true);
-      } finally {
         setMultiLoading(false);
         setIsGenerating(false);
       }
