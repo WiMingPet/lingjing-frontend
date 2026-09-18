@@ -340,7 +340,8 @@ export default function App() {
   const [loginMode, setLoginMode] = useState('password');
   const [loginCode, setLoginCode] = useState('');
   const [digitalHumans, setDigitalHumans] = useState([]);
-
+  const [showPayMethodModal, setShowPayMethodModal] = useState(false);
+  const [pendingPkg, setPendingPkg] = useState(null);
   const [showSidebarMenu, setShowSidebarMenu] = useState(false);
   
   // 找回密码相关 state
