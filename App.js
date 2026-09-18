@@ -1,4 +1,5 @@
 import 'formdata-polyfill';
+
 import React, { useState, useEffect, useRef } from 'react';
 import { MANUAL_VOICES } from './src/data/manualVoices.js';
 import { Filesystem, Directory } from '@capacitor/filesystem';
@@ -18,10 +19,12 @@ import {
   StatusBar,
   Dimensions,
   Modal,
+  Switch,
   Platform,
   Linking,
 } from 'react-native';
 import * as ImagePicker from 'react-native-image-picker';
+import { NativePurchases, PURCHASE_TYPE } from '@capgo/native-purchases';
 import axios from 'axios';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Audio, Video } from 'expo-av';
@@ -70,38 +73,106 @@ const purchaseIAP = async (pkg) => {
     showToast('商品ID不存在', true);
     return;
   }
-  
-  // 设置原生回调
-  window.iapSuccess = () => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      // 已登录，调后端充值
-      axios.post(`${API_URL}/payment/iap_verify`, {
-        receipt: 'sandbox',
-        package_id: pkg.id,
-        credits: pkg.credits,
-        user_id: JSON.parse(atob(token.split('.')[1])).sub
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }).then(() => {
-        refreshBalance();
-        showToast(`充值成功 +${pkg.credits}灵境点`);
-      });
-    } else {
-      // 未登录，暂存
-      let pending = JSON.parse(localStorage.getItem('pending_credits') || '0');
-      pending += pkg.credits;
-      localStorage.setItem('pending_credits', JSON.stringify(pending));
-      showToast('购买成功，登录后自动到账');
+
+  try {
+    // 1. 发起购买
+    const transaction = await NativePurchases.purchaseProduct({
+      productIdentifier: productId,
+      productType: PURCHASE_TYPE.INAPP,
+    });
+
+    console.log('IAP 交易结果:', transaction);
+
+    // 2. 拿收据
+    const receipt = transaction.receipt || '';
+    const transactionId = transaction.transactionId || transaction.identifier || '';
+
+    if (!receipt) {
+      showToast('未获取到收据，请联系客服', true);
+      return;
     }
-  };
-  
-  window.iapError = (msg) => {
-    showToast('支付失败: ' + msg, true);
-  };
-  
-  window.webkit.messageHandlers.iapPurchase.postMessage(productId);
+
+    // 3. 调后端验证
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      showToast('请先登录', true);
+      return;
+    }
+
+    const userId = JSON.parse(atob(token.split('.')[1])).sub;
+
+    await axios.post(`${API_URL}/payment/iap_verify`, {
+      receipt: receipt,
+      transaction_id: transactionId,
+      package_id: pkg.id,
+      credits: pkg.credits,
+      user_id: userId
+    }, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    // 4. 刷新余额
+    refreshBalance();
+    showToast(`充值成功 +${pkg.credits}灵境点`);
+
+  } catch (err) {
+    console.error('IAP 错误:', err);
+    if (err.code === 'USER_CANCELLED' || err.message?.includes('cancel')) {
+      showToast('已取消支付');
+    } else {
+      showToast('支付失败: ' + (err.message || '未知错误'), true);
+    }
+  }
 };
+
+  // ========== 可灵预设形象（口播带货用） ==========
+  const PRESET_AVATAR_IDS = [
+    { id: 'avatar_vivian_female', name: 'Vivian（佳佳）', gender: '女', age: 23 },
+    { id: 'avatar_lee_male', name: 'Lee（李阳）', gender: '男', age: 28 },
+    { id: 'avatar_chenjing_female', name: '陈静', gender: '女', age: 30 },
+    { id: 'avatar_zhaochen_male', name: '赵晨', gender: '男', age: 25 },
+    { id: 'avatar_wanglei_male', name: '王磊', gender: '男', age: 45 },
+    { id: 'avatar_eva_female', name: 'Eva', gender: '女', age: 18 },
+    { id: 'avatar_oliver_male', name: 'Oliver', gender: '男', age: 30 },
+    { id: 'avatar_elena_female', name: 'Elena', gender: '女', age: 30 },
+    { id: 'avatar_adam_male', name: 'Adam', gender: '男', age: 25 },
+    { id: 'avatar_anna_female', name: 'Anna', gender: '女', age: 25 },
+    { id: 'avatar_rajput_male', name: 'Rajput', gender: '男', age: 40 },
+    { id: 'avatar_mia_female', name: 'Mia', gender: '女', age: 28 },
+    { id: 'avatar_river_male', name: 'River', gender: '男', age: 27 },
+    { id: 'avatar_marcus_male', name: 'Marcus', gender: '男', age: 35 },
+    { id: 'avatar_toto_cartoon', name: 'Toto（卡通）', gender: '男', age: 15 },
+  ];
+
+    // ========== 可灵预设音色（口播带货用） ==========
+    const TALKING_VOICE_OPTIONS = [
+      { id: 'male_calm_informative', name: '男声·沉稳科普' },
+      { id: 'female_clear_rational', name: '女声·理性讲解' },
+      { id: 'female_gentle_soothing', name: '女声·温柔治愈' },
+      { id: 'female_bright_engaging', name: '女声·明亮带货' },
+      { id: 'male_crisp_persuasive', name: '男声·利落种草' },
+      { id: 'female_intelligent_narrative', name: '女声·知性叙事' },
+      { id: 'male_clear_professional', name: '男声·清朗主持' },
+      { id: 'male_energetic_sporty', name: '男声·清爽竞技' },
+      { id: 'female_warm_rich', name: '女声·醇厚分享' },
+    ];
+
+    // ========== 口播带货价格 ==========
+    const TALKING_AGENT_COST_PER_SECOND = 16;
+    const TALKING_AGENT_MIN_SECONDS = 5;
+    const TALKING_AGENT_WORDS_PER_SECOND = 4;
+
+    // ========== 计算预估时长和费用 ==========
+    const calcTalkingAgentCost = (script) => {
+      const scriptLength = script.length;
+      const estimatedSeconds = Math.max(
+        TALKING_AGENT_MIN_SECONDS,
+        Math.ceil(scriptLength / TALKING_AGENT_WORDS_PER_SECOND)
+      );
+      const estimatedCost = estimatedSeconds * TALKING_AGENT_COST_PER_SECOND;
+      return { scriptLength, estimatedSeconds, estimatedCost };
+    };
+
 
 export default function App() {
   // 注入全局样式，禁止移动端浏览器自动缩放字体
@@ -166,18 +237,40 @@ export default function App() {
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
   const fullscreenVideoRef = useRef(null);
 
-  // ========== 商家工作台状态 ==========
+  // ========== 电商套图新状态 ==========
+  const [suiteType, setSuiteType] = useState('scene');
+  const [suiteSellingPoints, setSuiteSellingPoints] = useState('');
+  const [suiteUsage, setSuiteUsage] = useState('');
+  const [suiteRegion, setSuiteRegion] = useState('');
+  const [suitePlatform, setSuitePlatform] = useState('');
+  const [suiteSceneCount, setSuiteSceneCount] = useState(4);
+  const [suiteAnalysis, setSuiteAnalysis] = useState(null);
+  const [suiteResult, setSuiteResult] = useState(null);
+  const [suiteLoading, setSuiteLoading] = useState(false);
   const [merchantImages, setMerchantImages] = useState([]);
-  const [merchantTemplate, setMerchantTemplate] = useState('white_bg');
-  const [merchantProductType, setMerchantProductType] = useState('clothing');
-  const [sceneCount, setSceneCount] = useState(1);
-  const [sceneText, setSceneText] = useState('');
-  const [merchantHeight, setMerchantHeight] = useState('');
-  const [merchantWeight, setMerchantWeight] = useState('');
-  const [merchantLoading, setMerchantLoading] = useState(false);
-  const [merchantResult, setMerchantResult] = useState(null);
-  const [merchantGender, setMerchantGender] = useState('female');
-  
+  const [suiteAplusCount, setSuiteAplusCount] = useState(2);
+  const [downloadModalVisible, setDownloadModalVisible] = useState(false);
+  const [downloadTarget, setDownloadTarget] = useState({ url: '', index: 0 });
+  // ====================================
+  // ========== 口播带货状态 ==========
+  const [avatarMode, setAvatarMode] = useState('upload'); // 'upload' 或 'preset'
+  const [talkingAvatarImage, setTalkingAvatarImage] = useState(null);
+  const [talkingAvatarId, setTalkingAvatarId] = useState('');
+  const [talkingVoiceId, setTalkingVoiceId] = useState('male_calm_informative');
+  const [talkingProductImages, setTalkingProductImages] = useState([]);
+  const [talkingGoodsTitle, setTalkingGoodsTitle] = useState('');
+  const [talkingGoodsPrice, setTalkingGoodsPrice] = useState('');
+  const [talkingTargetAudience, setTalkingTargetAudience] = useState('');
+  const [talkingSellingPoint, setTalkingSellingPoint] = useState('');
+  const [talkingScript, setTalkingScript] = useState('');
+  const [talkingResolution, setTalkingResolution] = useState('720p');
+  const [talkingAspectRatio, setTalkingAspectRatio] = useState('9:16');
+  const [talkingAllowPolish, setTalkingAllowPolish] = useState(false);
+  const [talkingBgmEnabled, setTalkingBgmEnabled] = useState(false);
+  const [talkingLoading, setTalkingLoading] = useState(false);
+  const [talkingEstimatedInfo, setTalkingEstimatedInfo] = useState(null); // 预估信息
+  // ===================================
+
   // 形象预览视频 Modal 状态
   const [previewVideoVisible, setPreviewVideoVisible] = useState(false);
   const [currentPreviewVideoUrl, setCurrentPreviewVideoUrl] = useState('');
@@ -272,16 +365,12 @@ export default function App() {
   const [countdown, setCountdown] = useState(0);
   // 新增：登录验证码倒计时
   const [loginCountdown, setLoginCountdown] = useState(0);
-  const [digitalSubTab, setDigitalSubTab] = useState('ecommerce');
-  const [ecommerceDescription, setEcommerceDescription] = useState('');
-  const [ecommerceUrl, setEcommerceUrl] = useState('');
-  const [ecommerceImage, setEcommerceImage] = useState(null);
-  const [ecommerceDigitalImage, setEcommerceDigitalImage] = useState(null);
-  const [ecommerceVideoUrl, setEcommerceVideoUrl] = useState('');
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatingTitle, setGeneratingTitle] = useState('');
   const [generatingSubtitle, setGeneratingSubtitle] = useState('');
   const pollingRef = useRef(null); // 轮询定时器引用
+
 
   // 新增：创建一个ref来稳定地保存验证码
   const savedRegisterCode = useRef('');
@@ -610,7 +699,54 @@ export default function App() {
         setShowLoginModal(true);
         return;
       }
-      // ========== 支付宝逻辑 ==========
+
+      // ========== 打开支付方式选择弹窗 ==========
+      setPendingPkg(pkg);
+      setShowPayMethodModal(true);
+  };
+
+  // ========== 微信支付 ==========
+  const handleWechatPay = async (pkg) => {
+      setLoading(true);
+      try {
+        const res = await axios.post(`${API_URL}/payment/wechat/create_order`, {
+          package_id: pkg.id,
+          amount: pkg.price,
+          credits: pkg.credits,
+        }, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+
+        if (res.data.code !== 200) {
+          showToast(res.data.message || '下单失败', true);
+          return;
+        }
+
+        const { order_no, pay_params } = res.data.data;
+        setShowRechargeModal(false);
+
+        // 调起微信支付
+        if (window.WechatPay) {
+          window.WechatPay.pay(pay_params);
+        } else if (window.harmonyBridge?.wechatPay) {
+          window.harmonyBridge.wechatPay(JSON.stringify(pay_params));
+        } else {
+          showToast('当前平台不支持微信支付', true);
+          return;
+        }
+
+        // 复用现有轮询
+        startPaymentPolling(order_no);
+      } catch (err) {
+        console.error('微信支付失败:', err);
+        showToast(err.response?.data?.detail || '微信支付失败', true);
+      } finally {
+        setLoading(false);
+      }
+  };
+
+  // ========== 支付宝（原逻辑） ==========
+  const handleAlipay = async (pkg) => {
       setLoading(true);
       try {
         const res = await axios.post(`${API_URL}/payment/create_order`, {
@@ -625,21 +761,17 @@ export default function App() {
 
       setShowRechargeModal(false);
       setPendingOrderId(out_trade_no || '');
-      setPaymentLink(pay_url || ''); 
+      setPaymentLink(pay_url || '');
       setPaymentQRCode('');
 
-      // 核心改动：优先展示二维码，这是最稳妥的支付方式
       if (qr_code) {
         setPaymentQRCode(qr_code);
         setShowPaymentModal(true);
-        // 启动支付状态轮询
         startPaymentPolling(out_trade_no);
         return;
       }
 
-      // 如果没有二维码，才尝试用 pay_url 支付
       if (pay_url) {
-        // 判断是不是网页链接，如果是，尝试用 Linking 打开
         if (pay_url.startsWith('http')) {
           try {
             await Linking.openURL(pay_url);
@@ -649,7 +781,6 @@ export default function App() {
             showToast('支付跳转失败，请重试', true);
           }
         } else {
-          // 如果不是网页链接，也尝试用 Linking 打开
           try {
             await Linking.openURL(pay_url);
             startPaymentPolling(out_trade_no);
@@ -1202,28 +1333,20 @@ export default function App() {
 
     // 电商套图：相册选择
     const pickMerchantImages = () => {
-      if (merchantImages.length >= 5) {
-        showToast('最多上传5张图片');
-        return;
-      }
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
-      input.multiple = true;
       input.onchange = (e) => {
         const files = Array.from(e.target.files);
-        const newImages = [...merchantImages, ...files].slice(0, 5);
-        setMerchantImages(newImages);
+        if (files.length > 0) {
+          setMerchantImages([files[0]]);  // 只保留第一张
+        }
       };
       input.click();
     };
 
     // 电商套图：拍照
     const takeMerchantPhoto = async () => {
-      if (merchantImages.length >= 5) {
-        showToast('最多上传5张图片');
-        return;
-      }
       try {
         const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
         const image = await Camera.getPhoto({
@@ -1234,101 +1357,163 @@ export default function App() {
         const response = await fetch(image.webPath);
         const blob = await response.blob();
         const file = new File([blob], `merchant_photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
-        const newImages = [...merchantImages, file].slice(0, 5);
-        setMerchantImages(newImages);
+        setMerchantImages([file]);  // 只保留第一张
       } catch (e) {
         showToast('拍照失败', true);
       }
     };
 
-  // ========== 在这里加商家工作台生成函数 ==========
-  const handleMerchantGenerate = async () => {
-        const consented = await checkAIPrivacyConsent();
-        if (!consented) return;
-
-        const isVerified = await checkPhoneVerified();
-        if (!isVerified) {
-          showToast('根据法规要求，使用AI功能前需完成手机号认证');
-          setShowLoginModal(true);
-          return;
-        }
-
-        if (merchantImages.length === 0) {
-          showToast('请先上传平铺图', true);
-          return;
-        }
-
-        setMerchantLoading(true);
-        setIsGenerating(true);
-        setGeneratingTitle('电商商品套图生成中');
-        setGeneratingSubtitle('商品图上传与AI处理');
-        setMerchantResult(null);
+    // ========== 电商套图：生成 ==========
+    const generateSuite = async () => {
+      const consented = await checkAIPrivacyConsent();
+      if (!consented) return;
+      const isVerified = await checkPhoneVerified();
+      if (!isVerified) {
+        showToast('根据法规要求，使用AI功能前需完成手机号认证');
+        setShowLoginModal(true);
+        return;
+      }
+      
+      if (merchantImages.length === 0) {
+        return showToast('请上传商品图');
+      }
+      
+      // 计算预估费用
+      const costMap = { 
+          white_bg: 10, 
+          scene: 15 * suiteSceneCount, 
+          aplus: 50 * suiteAplusCount   // ← 乘以数量
+      };
+      const estimatedCost = costMap[suiteType] || 10;
+      
+      if (userCredits < estimatedCost) {
+        showToast(`需要 ${estimatedCost} 点，余额不足`);
+        setShowRechargeModal(true);
+        return;
+      }
+      
+      setSuiteLoading(true);
+      setIsGenerating(true);
+      setGeneratingTitle('AI正在生成套图');
+      setGeneratingSubtitle('商品分析 + 批量生成 + 图文合成');
+      
+      try {
+        const formData = new FormData();
+        const file = merchantImages[0];
+        const safeFile = new File([file], `merchant_${Date.now()}.jpg`, { type: file.type || 'image/jpeg' });
+        formData.append('image', safeFile);
+        formData.append('suite_type', suiteType);
+        formData.append('selling_points', suiteSellingPoints);
+        formData.append('usage', suiteUsage);
+        formData.append('region', suiteRegion);
+        formData.append('platform', suitePlatform);
+        formData.append('scene_count', suiteSceneCount);
+        formData.append('aplus_count', suiteAplusCount);
         
-        try {
-          const formData = new FormData();
-          merchantImages.forEach((file) => {
-            formData.append('images', file);
-          });
-          formData.append('template', merchantTemplate);
-          formData.append('product_type', merchantProductType);
-          formData.append('scene_count', sceneCount);
-          formData.append('gender', merchantGender);
-          formData.append('scene_text', sceneText);
-          if (merchantHeight) formData.append('height', merchantHeight);
-          if (merchantWeight) formData.append('weight', merchantWeight);
-
-          const token = localStorage.getItem('access_token');
-          const res = await axios.post(`${API_URL}/merchant/generate_package`, formData, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'multipart/form-data',
-            },
-          });
-
-          if (res.data.code === 200) {
-            // ========== 异步模式 ==========
-            if (res.data.data?.async === true) {
-              const taskId = res.data.data.task_id;
-              showToast('电商套图任务已提交，预计3-10分钟完成');
-              
-              startPollingTask(
-                taskId,
-                '电商商品套图',
-                `${API_URL}/merchant/task/${taskId}`,
-                (task, status) => {
-                  setMerchantLoading(false);
-                  if (status === 'completed') {
-                    // 从任务结果中获取结果
-                    const results = task?.output_data?.results;
-                    if (results) {
-                      setMerchantResult({ results });
-                    }
-                    loadHistory();
-                  }
-                }
-              );
-              return;
-            }
-            // ==========================
+        const token = localStorage.getItem('access_token');
+        const res = await axios.post(`${API_URL}/merchant/generate_suite`, formData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        
+        if (res.data.code === 200) {
+          if (res.data.data.async) {
+            const taskId = res.data.data.task_id;
+            showToast(`套图任务已提交，需要 ${estimatedCost} 点`);
             
-            // 同步模式
-            setMerchantResult(res.data.data);
-            showToast('生成成功');
-            loadHistory();
-            setMerchantLoading(false);
-            setIsGenerating(false);
-          } else {
-            showToast(res.data.message || '生成失败', true);
-            setMerchantLoading(false);
-            setIsGenerating(false);
+            startPollingTask(
+              taskId,
+              '电商商品套图',
+              `${API_URL}/merchant/task/${taskId}`,
+              (task, status) => {
+                setSuiteLoading(false);
+                if (status === 'completed') {
+                  const images = task?.output_data?.images || [];
+                  setSuiteResult({
+                    images,
+                    analysis: task?.output_data?.analysis,
+                    historyId: task?.output_data?.history_id,  // ← 加这行
+                  });
+                  showToast(`套图生成成功，共 ${images.length} 张`);
+                  fetchUserCredits();
+                  loadHistory();
+                } else if (status === 'failed') {
+                  showToast('套图生成失败，已退款', true);
+                  fetchUserCredits();
+                }
+              }
+            );
+            return;
           }
-        } catch (err) {
-          console.error('商家工作台生成失败:', err);
-          showToast(err.response?.data?.detail || '生成失败', true);
-          setMerchantLoading(false);
+          
+          setSuiteResult({
+            images: res.data.data.images,
+            analysis: res.data.data.analysis,
+            historyId: res.data.data.history_id,
+          });
+          showToast('套图生成成功');
+          fetchUserCredits();
+          await loadHistory();
+          setSuiteLoading(false);
+          setIsGenerating(false);
+        } else {
+          showToast(res.data.message || '生成失败', true);
+          setSuiteLoading(false);
           setIsGenerating(false);
         }
-      };
+      } catch (err) {
+        console.error('套图生成失败:', err);
+        showToast(err.response?.data?.detail || '生成失败', true);
+        setSuiteLoading(false);
+        setIsGenerating(false);
+      }
+    };
+
+    // ========== 电商套图：下载单张 ==========
+    const downloadSuiteImage = async (imageUrl) => {
+      const fileName = `AI_电商套图_${Date.now()}.png`;
+      
+      // 鸿蒙
+      if (window.harmonyBridge?.saveFile) {
+        window.harmonyBridge.saveFile(imageUrl, fileName);
+        showToast('正在下载...');
+        return;
+      }
+      // iOS
+      if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
+        window.webkit.messageHandlers.iosDownload.postMessage(imageUrl);
+        return;
+      }
+      // 安卓：加水印（后端已加，这里直接下载）
+      if (/android/i.test(navigator.userAgent)) {
+        try {
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          const base64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            reader.readAsDataURL(blob);
+          });
+          await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Documents });
+          showToast('图片已保存');
+        } catch (e) { showToast('保存失败'); }
+        return;
+      }
+      // Web
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast('正在下载...');
+    };
 
     const pickModelImage = async () => {
       if (/android/i.test(navigator.userAgent)) {
@@ -1433,49 +1618,6 @@ export default function App() {
       } catch (e) { showToast('拍照失败', true); }
     };
 
-    const pickEcommerceImage = async () => {
-      if (/android/i.test(navigator.userAgent)) {
-        const choice = await showPhotoPicker();
-        if (choice === 'camera') { takeEcommercePhoto(); return; }
-      }
-      ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
-        if (res.assets?.[0]) setEcommerceImage(res.assets[0]);
-      });
-    };
-
-    const takeEcommercePhoto = async () => {
-      try {
-        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
-        const image = await Camera.getPhoto({
-          resultType: CameraResultType.Uri,
-          source: CameraSource.Camera,
-          quality: 90,
-        });
-        setEcommerceImage({ uri: image.webPath });
-      } catch (e) { showToast('拍照失败', true); }
-    };
-
-    const pickEcommerceDigitalImage = async () => {
-      if (/android/i.test(navigator.userAgent)) {
-        const choice = await showPhotoPicker();
-        if (choice === 'camera') { takeEcommerceDigitalPhoto(); return; }
-      }
-      ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
-        if (res.assets?.[0]) setEcommerceDigitalImage(res.assets[0]);
-      });
-    };
-
-    const takeEcommerceDigitalPhoto = async () => {
-      try {
-        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
-        const image = await Camera.getPhoto({
-          resultType: CameraResultType.Uri,
-          source: CameraSource.Camera,
-          quality: 90,
-        });
-        setEcommerceDigitalImage({ uri: image.webPath });
-      } catch (e) { showToast('拍照失败', true); }
-    };
 
     const convertToFile = async (imageAsset) => {
       // 如果已经是标准 File 对象，直接返回
@@ -1730,6 +1872,13 @@ export default function App() {
             `${API_URL}/video/task/${taskId}`,
             (task, status) => {
               setVideoLoading(false);
+              if (status === 'completed') {
+                const videoUrl = task?.output_data?.video_url || task?.video_url;
+                if (videoUrl) {
+                  setResult({ video_url: videoUrl });
+                }
+                loadHistory();
+              }
             }
           );
           return;
@@ -1754,6 +1903,7 @@ export default function App() {
         }
         
         showToast(`视频生成成功${videoModel === '3.0' && videoSound === 'native' ? '（有声）' : '（无声）'}`);
+        await loadHistory();
         setVideoLoading(false);
         setIsGenerating(false);
       } catch (err) {
@@ -1942,6 +2092,7 @@ export default function App() {
                 if (videoUrl) {
                   setResult({ video_url: videoUrl });
                 }
+                loadHistory();
               }
             }
           );
@@ -1978,250 +2129,229 @@ export default function App() {
       }
     };
 
-  const generateDigitalHumanCustom = async () => {
-      const isVerified = await checkPhoneVerified();
-      if (!isVerified) {
-        showToast('根据法规要求，使用AI功能前需完成手机号认证');
-        setShowLoginModal(true);
+    // ========== 口播带货：选择人物图 ==========
+    const pickTalkingAvatarImage = async () => {
+      // Web / 浏览器：用文件选择器
+      if (typeof window !== 'undefined' && !window.harmonyBridge) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            setTalkingAvatarImage(file);
+          }
+        };
+        input.click();
         return;
       }
-      
-      if (!checkAndUseCredits(60, '定制数字人', () => {})) return;
-      if (!customVideo) return showToast('请先上传训练视频');
-      if (!customName.trim()) return showToast('请输入数字人名称');
-      setEcommerceLoading(true);
 
+      // 原生 App（Capacitor）：用相机/相册
+      try {
+        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+        const image = await Camera.getPhoto({
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Prompt,
+          quality: 90,
+        });
+        const response = await fetch(image.webPath);
+        const blob = await response.blob();
+        const file = new File([blob], `talking_avatar_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        setTalkingAvatarImage(file);
+      } catch (e) {
+        console.log('选择图片取消或失败:', e);
+      }
+    };
+
+    // ========== 口播带货：选择商品图 ==========
+    const pickTalkingProductImage = async () => {
+      if (talkingProductImages.length >= 5) {
+        showToast('最多上传 5 张商品图');
+        return;
+      }
+
+      // Web / 浏览器：用文件选择器
+      if (typeof window !== 'undefined' && !window.harmonyBridge) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.multiple = true;
+        input.onchange = (e) => {
+          const files = Array.from(e.target.files || []);
+          const remaining = 5 - talkingProductImages.length;
+          const newFiles = files.slice(0, remaining);
+          setTalkingProductImages([...talkingProductImages, ...newFiles]);
+        };
+        input.click();
+        return;
+      }
+
+      // 原生 App
+      try {
+        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+        const image = await Camera.getPhoto({
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Prompt,
+          quality: 90,
+        });
+        const response = await fetch(image.webPath);
+        const blob = await response.blob();
+        const file = new File([blob], `talking_product_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        setTalkingProductImages([...talkingProductImages, file]);
+      } catch (e) {
+        console.log('选择图片取消或失败:', e);
+      }
+    };
+
+  // ========== 口播带货：生成 ==========
+  const generateTalkingAgent = async () => {
+    const consented = await checkAIPrivacyConsent();
+    if (!consented) return;
+    const isVerified = await checkPhoneVerified();
+    if (!isVerified) {
+      showToast('根据法规要求，使用AI功能前需完成手机号认证');
+      setShowLoginModal(true);
+      return;
+    }
+    
+    // ========== 参数验证 ==========
+    if (avatarMode === 'upload' && !talkingAvatarImage) {
+      return showToast('请上传人物照片');
+    }
+    if (avatarMode === 'preset' && !talkingAvatarId) {
+      return showToast('请选择预设形象');
+    }
+    if (!talkingScript.trim()) {
+      return showToast('请填写口播稿');
+    }
+    
+    // 有商品信息时，必须上传商品图和标题
+    const hasProduct = talkingProductImages.length > 0 || talkingGoodsTitle || talkingGoodsPrice || talkingTargetAudience || talkingSellingPoint;
+    if (hasProduct) {
+      if (talkingProductImages.length === 0) {
+        return showToast('请上传商品图（至少 1 张）');
+      }
+      if (!talkingGoodsTitle.trim()) {
+        return showToast('请填写商品标题');
+      }
+    }
+    
+    // ========== 计算预估 ==========
+    const { scriptLength, estimatedSeconds, estimatedCost } = calcTalkingAgentCost(talkingScript);
+    setTalkingEstimatedInfo({ scriptLength, estimatedSeconds, estimatedCost });
+    
+    // 检查余额
+    if (userCredits < estimatedCost) {
+      showToast(`口播稿 ${scriptLength} 字，预估 ${estimatedSeconds} 秒，需要 ${estimatedCost} 点，当前余额 ${userCredits} 点`);
+      setShowRechargeModal(true);
+      return;
+    }
+    
+    setTalkingLoading(true);
+    setIsGenerating(true);
+    setGeneratingTitle('AI正在生成口播视频');
+    setGeneratingSubtitle(`口播稿 ${scriptLength} 字，预估 ${estimatedSeconds} 秒`);
+    
+    try {
       const formData = new FormData();
-
-      const videoExt = customVideo.name?.split('.').pop() || 'mp4';
-      const safeVideoName = `video_${Date.now()}.${videoExt}`;
-      const safeVideo = new File([customVideo], safeVideoName, { type: customVideo.type || 'video/mp4' });
-      formData.append('source_video', safeVideo);
-      formData.append('name', customName);
-      if (customDesc) formData.append('description', customDesc);
-
-      try {
-        const token = localStorage.getItem('access_token');
-        const response = await fetch(`${API_URL}/digital-human/`, {
-          method: 'POST',
-          headers: {
-            'Authorization': token ? `Bearer ${token}` : undefined,
-          },
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || '定制失败');
-        }
-
-        const res = await response.json();
-        console.log('数字人定制响应:', res);
       
-        showToast('数字人定制任务已提交');
-        setCustomVideo(null);
-        setCustomName('');
-        setCustomDesc('');
-        setEcommerceLoading(false);
-      } catch (err) {
-        console.error('数字人定制错误:', err);
-        showToast(err.message || '定制失败', true);
-        setEcommerceLoading(false);
+      // 人物来源
+      if (avatarMode === 'upload' && talkingAvatarImage) {
+        formData.append('avatar_image', talkingAvatarImage);
+        formData.append('voice_id', talkingVoiceId);
+      } else if (avatarMode === 'preset' && talkingAvatarId) {
+        formData.append('avatar_id', talkingAvatarId);
       }
-    };
-
-  // ========== AI带货视频相关函数（替换版） ==========
-
-  const fetchProductInfo = async () => {
-        const isVerified = await checkPhoneVerified();
-        if (!isVerified) {
-          showToast('根据法规要求，使用AI功能前需完成手机号认证');
-          setShowLoginModal(true);
-          return;
-        }
+      
+      // 商品信息
+      if (talkingProductImages.length > 0) {
+        talkingProductImages.forEach(img => {
+          formData.append('product_images', img);
+        });
+      }
+      if (talkingGoodsTitle) formData.append('goods_title', talkingGoodsTitle);
+      if (talkingGoodsPrice) formData.append('goods_price', talkingGoodsPrice);
+      if (talkingTargetAudience) formData.append('target_audience', talkingTargetAudience);
+      if (talkingSellingPoint) formData.append('selling_point', talkingSellingPoint);
+      
+      // 口播稿
+      formData.append('script', talkingScript);
+      
+      // 设置
+      formData.append('resolution', talkingResolution);
+      formData.append('aspect_ratio', talkingAspectRatio);
+      formData.append('allow_polish', talkingAllowPolish.toString());
+      formData.append('bgm_enabled', talkingBgmEnabled.toString());
+      
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${API_URL}/talking-agent/generate`, {
+        method: 'POST',
+        headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || '生成失败');
+      }
+      
+      const res = await response.json();
+      console.log('口播带货响应:', res);
+      
+      // ========== 异步模式 ==========
+      if (res.data?.async === true) {
+        const taskId = res.data.task_id;
+        showToast(`口播稿 ${scriptLength} 字，预估 ${estimatedSeconds} 秒，已预扣 ${estimatedCost} 点`);
         
-        if (!ecommerceUrl.trim()) {
-          showToast('请输入商品链接', true);
-          return;
-        }
-        
-        setParsingLoading(true);
-        try {
-          const token = accessToken;
-          if (!token) {
-            showToast('请先登录', true);
-            setParsingLoading(false);
-            return;
-          }
-
-        const res = await axios.post(
-          `${API_URL}/ecommerce/parse_url`,
-          { url: extractUrl(ecommerceUrl) },
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
+        startPollingTask(
+          taskId,
+          '口播带货',
+          `${API_URL}/talking-agent/task/${taskId}`,
+          (task, status) => {
+            setTalkingLoading(false);
+            if (status === 'completed') {
+              const videoUrl = task?.output_data?.video_url;
+              const duration = task?.output_data?.duration;
+              const actualCost = task?.output_data?.actual_cost;
+              const refund = task?.output_data?.refund;
+              
+              if (videoUrl) {
+                setResult({ video_url: videoUrl });
+              }
+              
+              // 通知用户实际费用
+              showToast(
+                `口播视频生成成功\n实际时长：${duration}秒\n实际费用：${actualCost}点` +
+                (refund > 0 ? `\n退款：${refund}点` : '')
+              );
+              
+              // 更新余额
+              fetchUserCredits();
             }
           }
         );
-        
-        if (res.data.code === 200) {
-          const productData = res.data.data;
-          setEcommerceDescription(productData.description || productData.title);
-          
-          if (productData.images && productData.images.length > 0) {
-            setEcommerceImage({ uri: productData.images[0], isUrl: true });
-            showToast(`解析成功，正在自动生成带货视频...`);
-            setTimeout(() => {
-              setParsingLoading(false);
-              generateEcommerceVideo();
-            }, 500);
-          } else {
-            setEcommerceImage(null);
-            showToast(`解析成功，请手动上传商品图片`);
-            setParsingLoading(false);
-          }
-        } else {
-          showToast(res.data.message || '解析失败', true);
-          setParsingLoading(false);
-        }
-      } catch (err) {
-        console.error('解析失败:', err);
-        const errorMsg = err.response?.data?.detail || err.response?.data?.message || '解析失败，请手动填写';
-        showToast(errorMsg, true);
-        setParsingLoading(false);
+        return;
       }
-    };
-
-  // 生成带货视频 - 异步后台版本
-  const generateEcommerceVideo = async () => {
-        const consented = await checkAIPrivacyConsent();
-        if (!consented) return;
-        const isVerified = await checkPhoneVerified();
-        if (!isVerified) {
-          showToast('根据法规要求，使用AI功能前需完成手机号认证');
-          setShowLoginModal(true);
-          return;
-        }
-        
-        if (!ecommerceImage && !ecommerceDescription.trim()) {
-          showToast('请上传商品图片或填写描述', true);
-          return;
-        }
+      // ==========================
       
-      // 套装确认弹窗
-      if (clothCategory === 'dress' && Platform.OS === 'web') {
-        const confirmed = window.confirm(
-          '套装/连衣裙上传须知：\n\n' +
-          '• 单件连衣裙 → 直接上传白底图即可\n\n' +
-          '• 上下装套装 → 请将上装和下装的白底图错开排版到一张图里（中间留空隙，不要连在一起）\n\n' +
-          '点击"确定"继续生成，点击"取消"返回修改'
-        );
-        if (!confirmed) {
-          setEcommerceLoading(false);
-          return;
-        }
+      // 同步模式
+      const videoUrl = res.data?.video_url;
+      if (videoUrl) {
+        setResult({ video_url: videoUrl });
+        showToast('口播视频生成成功');
+        await loadHistory();
+        fetchUserCredits();
       }
-      
-      setEcommerceLoading(true);
-      setIsGenerating(true);
-      setGeneratingTitle('AI正在制作带货视频');
-      setGeneratingSubtitle('数字人讲解 + 商品展示');
-      setEcommerceVideoUrl('');
-      
-      try {
-        let productImageUrl = null;
-        
-        // 处理商品图片
-        if (ecommerceImage) {
-          if (ecommerceImage.isUrl || ecommerceImage.uri?.startsWith('http')) {
-            productImageUrl = ecommerceImage.uri;
-          } else if (ecommerceImage.uri) {
-            const formData = new FormData();
-            const file = await convertToFile(ecommerceImage);
-            formData.append('file', file);
-            const uploadRes = await axios.post(`${API_URL}/upload/`, formData, {
-              headers: { 
-                'Content-Type': 'multipart/form-data',
-                'Authorization': `Bearer ${accessToken}`
-              }
-            });
-            productImageUrl = uploadRes.data.url;
-          }
-        }
-        
-        let digitalImageUrl = null;
-        if (ecommerceDigitalImage) {
-          if (ecommerceDigitalImage.uri?.startsWith('http')) {
-            digitalImageUrl = ecommerceDigitalImage.uri;
-          } else if (ecommerceDigitalImage.uri) {
-            const formData = new FormData();
-            const file = await convertToFile(ecommerceDigitalImage);
-            formData.append('file', file);
-            const uploadRes = await axios.post(`${API_URL}/upload/`, formData, {
-              headers: { 
-                'Content-Type': 'multipart/form-data',
-                'Authorization': `Bearer ${accessToken}`
-              }
-            });
-            digitalImageUrl = uploadRes.data.url;
-          }
-        }
-        
-        // 提交任务
-        const res = await axios.post(`${API_URL}/ecommerce/generate_video`, {
-          url: ecommerceUrl || undefined,
-          description: ecommerceDescription,
-          image_url: productImageUrl,
-          digital_image_url: digitalImageUrl,
-          cloth_category: clothCategory || '',
-        }, {
-          headers: { 'Authorization': `Bearer ${accessToken}` } 
-        });
-        
-        if (res.data.code === 200) {
-          const taskId = res.data.data?.task_id;
-          if (taskId) {
-            // 异步模式
-            showToast('AI带货视频任务已提交，预计2-5分钟完成');
-            startPollingTask(
-              taskId,
-              'AI带货视频',
-              `${API_URL}/ecommerce/task/${taskId}`,
-              (task, status) => {
-                setEcommerceLoading(false);
-                if (status === 'completed') {
-                  const videoUrl = task?.video_url || task?.output_data?.video_url;
-                  if (videoUrl) {
-                    setEcommerceVideoUrl(videoUrl);
-                  }
-                }
-              }
-            );
-          } else {
-            // 同步模式
-            const videoUrl = res.data.data?.video_url;
-            if (videoUrl) {
-              setEcommerceVideoUrl(videoUrl);
-              showToast('视频生成成功');
-              // 后端已保存历史记录，前端不再重复保存
-              // saveToHistory(videoUrl, 'AI带货视频');
-            }
-            setEcommerceLoading(false);
-            setIsGenerating(false);
-          }
-        } else {
-          showToast(res.data.message || '生成失败', true);
-          setEcommerceLoading(false);
-          setIsGenerating(false);
-        }
-      } catch (err) {
-        console.error('生成带货视频失败:', err);
-        showToast(err.response?.data?.detail || '生成失败', true);
-        setEcommerceLoading(false);
-        setIsGenerating(false);
-      }
-    };
+      setTalkingLoading(false);
+      setIsGenerating(false);
+    } catch (err) {
+      console.error('口播带货错误:', err);
+      showToast(err.message || '生成失败', true);
+      setTalkingLoading(false);
+      setIsGenerating(false);
+    }
+  };
+  // ==============================================
 
   // 通用后台轮询：完成后自动保存历史记录
     const startPollingTask = (taskId, type, queryUrl, onComplete) => {
@@ -2238,7 +2368,7 @@ export default function App() {
         if (type === '多角度试穿') return 5000;
         if (type === '视频生成') return 5000;
         if (type === '数字人分身') return 5000;
-        if (type === 'AI带货视频') return 5000;
+        if (type === '口播带货') return 5000;
         if (type === '电商商品套图') return 8000;
         return 5000;
       };
@@ -2296,9 +2426,9 @@ export default function App() {
               if (videoUrl) {
                 setResult({ video_url: videoUrl });
               }
-            } else if (type === 'AI带货视频') {
+            } else if (type === '口播带货') {
               if (videoUrl) {
-                setEcommerceVideoUrl(videoUrl);
+                setResult({ video_url: videoUrl });
               }
             }
             
@@ -2338,45 +2468,6 @@ export default function App() {
         }
       };
     };
-
-
-  const handleSaveEcommerceVideo = async () => {
-    if (!ecommerceVideoUrl) {
-      showToast('没有可保存的视频', true);
-      return;
-    }
-    
-    // iOS 走原生下载
-    if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
-      window.webkit.messageHandlers.iosDownload.postMessage(item.url || ecommerceVideoUrl);
-      return;
-    }
-    
-    // 鸿蒙
-    if (window.harmonyBridge?.saveFile) {
-      window.harmonyBridge.saveFile(ecommerceVideoUrl, `lingjing_ecommerce_${Date.now()}.mp4`);
-      showToast('正在保存...');
-      return;
-    }
-
-    // 其他平台
-    try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('需要权限', '请允许保存到相册');
-        return;
-      }
-      const filename = `lingjing_ecommerce_${Date.now()}.mp4`;
-      const fileUri = FileSystem.documentDirectory + filename;
-      const download = FileSystem.createDownloadResumable(ecommerceVideoUrl, fileUri);
-      const { uri } = await download.downloadAsync();
-      await MediaLibrary.saveToLibraryAsync(uri);
-      showToast('视频已保存到相册');
-    } catch (error) {
-      console.error('保存失败:', error);
-      showToast('保存失败，请重试', true);
-    }
-  };
 
   const generateMultiAngle = async () => {
       const consented = await checkAIPrivacyConsent();
@@ -2490,17 +2581,17 @@ export default function App() {
     };
 
   const handleGenerate = () => {
-        switch (activeTab) {
-          // case 'size': recommendSize(); break;
-          case 'image': generateImage(); break;
-          case 'video': generateVideo(); break;
-          case 'tryon': generateTryon(); break;
-          case 'multi': generateMultiAngle(); break;  // ✅ 新增多角度
-          case 'digital': generateDigitalHuman(); break;
-          case 'digital_custom': generateDigitalHumanCustom(); break;
-          default: break;
-        }
-      };
+          switch (activeTab) {
+            // case 'size': recommendSize(); break;
+            case 'image': generateImage(); break;
+            case 'video': generateVideo(); break;
+            case 'tryon': generateTryon(); break;
+            case 'multi': generateMultiAngle(); break;  // ✅ 新增多角度
+            case 'digital': generateDigitalHuman(); break;
+            case 'digital_custom': generateTalkingAgent(); break;  // ← 改这里
+            default: break;
+          }
+        };
 
   const renderResult = () => {
     if (!result) return null;
@@ -2757,7 +2848,7 @@ export default function App() {
     { key: 'video', icon: 'videocam-outline', label: '视频', color: '#f59e0b' },
     { key: 'tryon', icon: 'shirt-outline', label: '试穿', color: '#ef4444' },
     { key: 'digital', icon: 'person-circle-outline', label: '数字人', color: '#06b6d4' },
-    { key: 'digital_custom', icon: 'videocam-outline', label: '定制视频', color: '#f97316' },
+    { key: 'digital_custom', icon: 'mic-outline', label: '口播带货', color: '#f97316' },
     { key: 'multi', icon: 'albums-outline', label: '多角度', color: '#8b5cf6' },
     { key: 'merchant', icon: 'bag-handle-outline', label: '电商套图', color: '#ec4899' },
     { key: 'profile', icon: 'person-outline', label: '我的', color: '#7c3aed' },
@@ -2805,7 +2896,7 @@ export default function App() {
         {/* 其他 Tab 内容（放在 ScrollView 内） */}
         {activeTab !== 'profile' && (
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-            {activeTab !== 'tryon' && activeTab !== 'digital' && activeTab !== 'multi' && activeTab !== 'merchant' && (
+            {activeTab !== 'tryon' && activeTab !== 'digital' && activeTab !== 'multi' && activeTab !== 'merchant' && activeTab !== 'digital_custom' && (
               <Card style={styles.imageCard}>
                 <View style={styles.cardHeader}>
                   <Text style={styles.cardTitle}>
@@ -3169,422 +3260,304 @@ export default function App() {
             )}
 
             {activeTab === 'digital_custom' && (
-              <>
-                {/* 子标签栏 */}
-                <View style={styles.subTabContainer}>
-                  <TouchableOpacity
-                    style={[styles.subTab, digitalSubTab === 'avatar' && styles.activeSubTab]}
-                    onPress={() => setDigitalSubTab('avatar')}
-                  >
-                    <Text style={[styles.subTabText, digitalSubTab === 'avatar' && styles.activeSubTabText]}>数字人分身</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.subTab, digitalSubTab === 'custom' && styles.activeSubTab]}
-                    onPress={() => setDigitalSubTab('custom')}
-                  >
-                    <Text style={[styles.subTabText, digitalSubTab === 'custom' && styles.activeSubTabText]}>定制数字人</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.subTab, digitalSubTab === 'ecommerce' && styles.activeSubTab]}
-                    onPress={() => setDigitalSubTab('ecommerce')}
-                  >
-                    <Text style={[styles.subTabText, digitalSubTab === 'ecommerce' && styles.activeSubTabText]}>AI带货视频</Text>
-                  </TouchableOpacity>
-                </View>
+              <ScrollView contentContainerStyle={styles.content}>
+                {/* ========== 人物来源 ========== */}
+                <Card style={styles.imageCard}>
+                  <Text style={styles.cardTitle}>👤 人物来源</Text>
+                  
+                  <View style={{ flexDirection: 'row', marginBottom: 12, gap: 8 }}>
+                    <TouchableOpacity
+                      style={[styles.subTab, { flex: 1 }, avatarMode === 'upload' && styles.activeSubTab]}
+                      onPress={() => setAvatarMode('upload')}
+                    >
+                      <Text style={[styles.subTabText, avatarMode === 'upload' && styles.activeSubTabText]}>上传照片</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.subTab, { flex: 1 }, avatarMode === 'preset' && styles.activeSubTab]}
+                      onPress={() => setAvatarMode('preset')}
+                    >
+                      <Text style={[styles.subTabText, avatarMode === 'preset' && styles.activeSubTabText]}>选择形象</Text>
+                    </TouchableOpacity>
+                  </View>
 
-                <ScrollView contentContainerStyle={styles.content}>
-                  {/* ========== 子标签1：数字人分身 ========== */}
-                  {digitalSubTab === 'avatar' && (
+                  {avatarMode === 'upload' ? (
                     <>
-                      <Card style={styles.imageCard}>
-                        <View style={styles.cardHeader}>
-                          <Text style={styles.cardTitle}>📸 上传照片</Text>
-                          {digitalImage && (
-                            <TouchableOpacity onPress={() => setDigitalImage(null)} style={styles.deleteButton}>
-                              <Icon name="close-circle-outline" size={24} color="#ef4444" />
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                        <TouchableOpacity onPress={pickDigitalImage} style={styles.imagePicker}>
-                          {digitalImage ? (
-                            <View style={{ width: '100%', height: 200, position: 'relative' }}>
-                              <Image
-                                key={digitalImage?.uri}
-                                source={{ uri: digitalImage?.uri }}
-                                style={{ width: '100%', height: 200, resizeMode: 'contain' }}
-                              />
-                              <View style={styles.imageOverlay}>
-                                <Text style={styles.overlayText}>点击更换</Text>
-                              </View>
-                            </View>
-                          ) : (
-                            <View style={styles.placeholder}>
-                              <Icon name="person-outline" size={48} color="#666" />
-                              <Text style={styles.placeholderText}>点击上传照片</Text>
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      </Card>
-
-                      <Card style={styles.promptCard}>
-                        <Text style={styles.cardTitle}>💬 输入说话内容</Text>
-                        <TextInput
-                          style={styles.promptInput}
-                          value={digitalText}
-                          onChangeText={setDigitalText}
-                          placeholder="例如：大家好，我是灵境AI平台创造的数字人，很高兴认识大家！"
-                          placeholderTextColor="#888"
-                          multiline
-                        />
-                      </Card>
-
-                      <Card style={styles.inputCard}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Text style={styles.cardTitle}>🎵 选择音色</Text>
-                          <TouchableOpacity onPress={fetchTtsVoices} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
-                            <Icon name="refresh-outline" size={18} color="#7c3aed" />
-                            <Text style={{ color: '#7c3aed', fontSize: 12, marginLeft: 4 }}>刷新</Text>
-                          </TouchableOpacity>
-                        </View>
-
-
-                          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                            {ttsVoices.map(voice => (
-                              <View key={voice.id} style={styles.voiceItemWrapper}>
-                                <TouchableOpacity
-                                  style={styles.voiceItem}
-                                  onPress={() => {
-                                    setSelectedVoiceId(voice.id);
-                                    setDigitalVoice(voice.name);
-                                  }}
-                                  activeOpacity={0.7}
-                                >
-                                  <Text style={[styles.voiceItemText, selectedVoiceId === voice.id && styles.voiceItemTextActive]}>
-                                    {voice.name}
-                                  </Text>
-                                </TouchableOpacity>
-                                {voice.preview_url && (
-                                  <TouchableOpacity
-                                    onPress={(e) => {
-                                      e.stopPropagation();
-                                      playVoicePreview(voice.id, voice.preview_url);
-                                    }}
-                                    style={styles.voicePlayButton}
-                                    activeOpacity={0.7}
-                                  >
-                                    <Icon 
-                                      name={playingVoiceId === voice.id ? "pause-circle" : "play-circle"} 
-                                      size={24} 
-                                      color="#7c3aed" 
-                                    />
-                                  </TouchableOpacity>
-                                )}
-                              </View>
-                            ))}
-                          </ScrollView>
-                     
-                      </Card>
-
-                      <Card style={styles.inputCard}>
-                        <Text style={styles.cardTitle}>📛 数字人名称（可选）</Text>
-                        <TextInput
-                          style={styles.promptInput}
-                          value={digitalName}
-                          onChangeText={setDigitalName}
-                          placeholder="我的数字人"
-                          placeholderTextColor="#888"
-                        />
-                      </Card>
-
-                      <TouchableOpacity onPress={generateDigitalHuman} disabled={digitalLoading} style={styles.generateButton}>
-                        {digitalLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>生成数字人视频</Text>}
-                      </TouchableOpacity>
-                    </>
-                  )}
-
-
-                  {/* ========== 子标签2：定制数字人 ========== */}
-                  {digitalSubTab === 'custom' && (
-                    <>
-                      <Card style={styles.imageCard}>
-                        <View style={styles.cardHeader}>
-                          <Text style={styles.cardTitle}>🎥 上传训练视频</Text>
-                          {customVideo && (
-                            <TouchableOpacity onPress={() => setCustomVideo(null)} style={styles.deleteButton}>
-                              <Icon name="close-circle-outline" size={24} color="#ef4444" />
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                        <TouchableOpacity onPress={pickCustomVideo} style={styles.imagePicker}>
-                          {customVideo ? (
-                            <View style={styles.placeholder}>
-                              <Icon name="videocam-outline" size={48} color="#666" />
-                              <Text style={styles.placeholderText}>{customVideo.name}</Text>
-                              <View style={styles.imageOverlay}>
-                                <Text style={styles.overlayText}>点击更换</Text>
-                              </View>
-                            </View>
-                          ) : (
-                            <View style={styles.placeholder}>
-                              <Icon name="videocam-outline" size={48} color="#666" />
-                              <Text style={styles.placeholderText}>点击上传视频（MP4）</Text>
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      </Card>
-
-                      <Card style={styles.inputCard}>
-                        <Text style={styles.cardTitle}>📛 数字人名称</Text>
-                        <TextInput
-                          style={styles.promptInput}
-                          value={customName}
-                          onChangeText={setCustomName}
-                          placeholder="例如：我的专属数字人"
-                          placeholderTextColor="#888"
-                        />
-                      </Card>
-
-                      <Card style={styles.promptCard}>
-                        <Text style={styles.cardTitle}>📝 描述（可选）</Text>
-                        <TextInput
-                          style={styles.promptInput}
-                          value={customDesc}
-                          onChangeText={setCustomDesc}
-                          placeholder="描述这个数字人的特点"
-                          placeholderTextColor="#888"
-                          multiline
-                        />
-                      </Card>
-
-                      <TouchableOpacity onPress={generateDigitalHumanCustom} disabled={customLoading} style={styles.generateButton}>
-                        {customLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>开始定制数字人</Text>}
-                      </TouchableOpacity>
-                    </>
-                  )}
-
-                  {/* ========== 子标签3：AI带货视频 ========== */}
-                  {digitalSubTab === 'ecommerce' && (
-                    <Card style={styles.card}>
-                      <Text style={styles.cardTitle}>🚀 AI 带货视频</Text>
-                      
-                      {/* 商品链接（必填） */}
-                      <Text style={styles.label}>仅支持抖音商城链接</Text>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="粘贴抖音商品链接"
-                        placeholderTextColor="#888"
-                        value={ecommerceUrl}
-                        onChangeText={setEcommerceUrl}
-                      />
-                      
-                      {/* 解析按钮 */}
-                      <TouchableOpacity
-                        style={[styles.parseButton, parsingLoading && styles.disabledButton]}
-                        onPress={fetchProductInfo}
-                        disabled={parsingLoading}
-                      >
-                        {parsingLoading ? (
-                          <ActivityIndicator color="#fff" size="small" />
-                        ) : (
-                          <Text style={styles.parseButtonText}>解析链接</Text>
-                        )}
-                      </TouchableOpacity>
-
-                      <View style={styles.divider} />
-                      
-                      {/* 服装类型选择 */}
-                      <Card style={styles.imageCard}>
-                        <Text style={styles.cardTitle}>📦 服装类型</Text>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 10 }}>
-                          {['other', 'dress', 'lower'].map(cat => (
-                            <TouchableOpacity
-                              key={cat}
-                              onPress={() => setClothCategory(cat)}
-                              style={{
-                                paddingVertical: 8,
-                                paddingHorizontal: 14,
-                                borderRadius: 20,
-                                backgroundColor: clothCategory === cat ? '#FF4757' : '#f0f0f0',
-                              }}
-                            >
-                              <Text style={{
-                                color: clothCategory === cat ? '#fff' : '#333',
-                                fontWeight: 'bold',
-                              }}>
-                                {cat === 'other' ? '其他' : cat === 'dress' ? '套装/裙' : '下身'}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                        {(clothCategory === 'dress' || clothCategory === 'lower') && (
-                          <View style={{ padding: 10, backgroundColor: '#FFF3F3', borderRadius: 10, marginTop: 5 }}>
-                            <Text style={{ color: '#FF4757', textAlign: 'center', fontWeight: 'bold' }}>
-                              {clothCategory === 'lower' ? '📌 下身服装使用默认模特，请直接上传服装图' : '📌 套装/连衣裙使用指定模特，请直接上传服装图'}
-                            </Text>
-                          </View>
-                        )}
-                      </Card>
-                      {/* 服装图片上传提示 */}
-                      {clothCategory === 'dress' && (
-                        <Card style={styles.uploadTips}>
-                          <Text style={styles.tipsTitle}>📌 套装上传要求：</Text>
-                          <Text style={styles.tipsText}>• 单件连衣裙：上传白底商品图即可</Text>
-                          <Text style={styles.tipsText}>• 上下装套装：需将上装和下装的白底图错开排版到一张图里，中间留空隙（不要连在一起）</Text>
-                          <Text style={styles.tipsText}>• 支持 .jpg / .jpeg / .png 格式</Text>
-                          <Text style={styles.tipsText}>• 文件大小不超过 10MB</Text>
-                        </Card>
-                      )}
-                      
-                      {/* ========== 修改：只在没有自动获取图片时显示上传区域 ========== */}
-                      {(!ecommerceImage || (typeof ecommerceImage === 'object' && !ecommerceImage.uri?.startsWith('http'))) && (
-                        <>
-                          <View style={styles.cardHeader}>
-                            <Text style={styles.label}>商品主图 *</Text>
-                            {ecommerceImage && (
-                              <TouchableOpacity onPress={() => setEcommerceImage(null)} style={styles.deleteButton}>
-                                <Icon name="close-circle-outline" size={24} color="#ef4444" />
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                          <TouchableOpacity onPress={pickEcommerceImage} style={styles.imagePicker}>
-                            {ecommerceImage ? (
-                              <View style={{ width: '100%', height: 200, position: 'relative' }}>
-                                <Image
-                                  key={ecommerceImage?.uri}
-                                  source={{ uri: ecommerceImage?.uri }}
-                                  style={{ width: '100%', height: 200, resizeMode: 'contain' }}
-                                />
-                                <View style={styles.imageOverlay}>
-                                  <Text style={styles.overlayText}>点击更换</Text>
-                                </View>
-                              </View>
-                            ) : (
-                              <View style={styles.placeholder}>
-                                <Icon name="image-outline" size={48} color="#666" />
-                                <Text style={styles.placeholderText}>点击上传商品图片</Text>
-                              </View>
-                            )}
-                          </TouchableOpacity>
-                        </>
-                      )}
-                      
-                      {/* ========== 修改：显示自动获取的图片（如果有） ========== */}
-                      {ecommerceImage && typeof ecommerceImage === 'object' && ecommerceImage.uri?.startsWith('http') && (
-                        <View style={styles.autoImageContainer}>
-                          <View style={styles.cardHeader}>
-                            <Text style={styles.label}>✓ 已自动获取商品图片</Text>
-                            <TouchableOpacity onPress={() => setEcommerceImage(null)} style={styles.deleteButton}>
-                              <Icon name="close-circle-outline" size={24} color="#ef4444" />
-                            </TouchableOpacity>
-                          </View>
+                      <TouchableOpacity onPress={pickTalkingAvatarImage} style={styles.imagePicker}>
+                        {talkingAvatarImage ? (
                           <View style={{ width: '100%', height: 200, position: 'relative' }}>
                             <Image
-                              key={ecommerceImage?.uri}
-                              source={{ uri: ecommerceImage?.uri }}
+                              source={{ uri: URL.createObjectURL(talkingAvatarImage) }}
                               style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                             />
+                            <View style={styles.imageOverlay}>
+                              <Text style={styles.overlayText}>点击更换</Text>
+                            </View>
                           </View>
-                        </View>
-                      )}
-
-                      {/* 数字人照片（下装/套装时隐藏） */}
-                      {(clothCategory !== 'lower' && clothCategory !== 'dress') ? (
-                        <>
-                          <View style={styles.cardHeader}>
-                            <Text style={styles.label}>数字人照片（可选）</Text>
-                            {ecommerceDigitalImage && (
-                              <TouchableOpacity onPress={() => setEcommerceDigitalImage(null)} style={styles.deleteButton}>
-                                <Icon name="close-circle-outline" size={24} color="#ef4444" />
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                          <TouchableOpacity onPress={pickEcommerceDigitalImage} style={styles.imagePicker}>
-                            {ecommerceDigitalImage ? (
-                              <View style={{ width: '100%', height: 200, position: 'relative' }}>
-                                <Image
-                                  key={ecommerceDigitalImage?.uri}
-                                  source={{ uri: ecommerceDigitalImage?.uri }}
-                                  style={{ width: '100%', height: 200, resizeMode: 'contain' }}
-                                />
-                                <View style={styles.imageOverlay}>
-                                  <Text style={styles.overlayText}>点击更换</Text>
-                                </View>
-                              </View>
-                            ) : (
-                              <View style={styles.placeholder}>
-                                <Icon name="person-outline" size={48} color="#666" />
-                                <Text style={styles.placeholderText}>点击上传数字人照片</Text>
-                                <Text style={styles.hintText}>不传则使用默认形象</Text>
-                              </View>
-                            )}
-                          </TouchableOpacity>
-                        </>
-                      ) : (
-                        <View style={{ padding: 10, backgroundColor: '#FFF3F3', borderRadius: 10, marginBottom: 10 }}>
-                          <Text style={{ color: '#FF4757', textAlign: 'center', fontWeight: 'bold' }}>
-                            📌 下装已自动使用专用模特图，无需上传
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {/* 商品描述（可选，AI会自动生成） */}
-                      <Text style={styles.label}>商品描述（可选，AI自动生成）</Text>
-                      <TextInput
-                        style={[styles.input, { minHeight: 80 }]}
-                        placeholder="可手动输入商品卖点，留空则由AI自动生成"
-                        placeholderTextColor="#888"
-                        value={ecommerceDescription}
-                        onChangeText={setEcommerceDescription}
-                        multiline
-                      />
-                      
-                      {/* 生成按钮 - 只要有商品图片或描述就启用 */}
-                      <TouchableOpacity
-                        style={[styles.generateButton, (!ecommerceImage && !ecommerceDescription) && styles.disabledButton]}
-                        onPress={generateEcommerceVideo}
-                        disabled={ecommerceLoading || (!ecommerceImage && !ecommerceDescription)}
-                      >
-                        {ecommerceLoading ? (
-                          <ActivityIndicator color="#fff" size="small" />
                         ) : (
-                          <Text style={styles.generateText}>生成带货视频</Text>
+                          <View style={styles.placeholder}>
+                            <Icon name="person-outline" size={48} color="#666" />
+                            <Text style={styles.placeholderText}>点击上传人物照片</Text>
+                            <Text style={styles.hintText}>建议单人、正脸清晰、嘴部无遮挡</Text>
+                          </View>
                         )}
                       </TouchableOpacity>
-
                       
-                      {/* 视频结果 */}
-                      {ecommerceVideoUrl ? (
-                        <View style={{ marginTop: 16, position: 'relative' }}>
-                          <Video
-                            source={{ uri: ecommerceVideoUrl }}
-                            style={styles.resultVideo}
-                            useNativeControls
-                            resizeMode="contain"
-                          />
-                          <View style={{
-                            position: 'absolute',
-                            bottom: 4,
-                            right: 4,
-                            backgroundColor: 'rgba(0,0,0,0.5)',
-                            paddingHorizontal: 4,
-                            paddingVertical: 2,
-                            borderRadius: 3,
-                          }}>
-                            <Text style={{ color: '#fff', fontSize: 9 }}>AI生成</Text>
-                          </View>
-
+                      <Text style={[styles.label, { marginTop: 12 }]}>选择音色</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        {TALKING_VOICE_OPTIONS.map(voice => (
                           <TouchableOpacity
-                            style={styles.saveVideoButton}
-                            onPress={handleSaveEcommerceVideo}
+                            key={voice.id}
+                            style={[
+                              styles.voiceItem,
+                              talkingVoiceId === voice.id && { backgroundColor: '#7c3aed' }
+                            ]}
+                            onPress={() => setTalkingVoiceId(voice.id)}
                           >
-                            <Text style={styles.saveVideoButtonText}>保存到相册</Text>
+                            <Text style={[
+                              styles.voiceItemText,
+                              talkingVoiceId === voice.id && { color: '#fff' }
+                            ]}>
+                              {voice.name}
+                            </Text>
                           </TouchableOpacity>
-                        </View>
-                      ) : null}
-                    </Card>
+                        ))}
+                      </ScrollView>
+                    </>
+                  ) : (
+                    <>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={true}
+                        contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 4 }}
+                        style={{ marginTop: 8 }}
+                      >
+                        {PRESET_AVATAR_IDS.map(avatar => (
+                          <TouchableOpacity
+                            key={avatar.id}
+                            style={[
+                              {
+                                width: 100,
+                                alignItems: 'center',
+                                paddingVertical: 10,
+                                paddingHorizontal: 6,
+                                marginRight: 8,
+                                borderRadius: 8,
+                                backgroundColor: '#2d2d44',
+                              },
+                              talkingAvatarId === avatar.id && { backgroundColor: '#7c3aed' }
+                            ]}
+                            onPress={() => setTalkingAvatarId(avatar.id)}
+                          >
+                            <View style={{
+                              width: 50,
+                              height: 50,
+                              borderRadius: 25,
+                              backgroundColor: talkingAvatarId === avatar.id ? '#5b21b6' : '#444',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              marginBottom: 6,
+                            }}>
+                              <Icon name="person" size={28} color={talkingAvatarId === avatar.id ? '#fff' : '#aaa'} />
+                            </View>
+                            <Text
+                              style={{
+                                fontSize: 12,
+                                color: talkingAvatarId === avatar.id ? '#fff' : '#ccc',
+                                textAlign: 'center',
+                                width: '100%',
+                              }}
+                              numberOfLines={1}
+                              ellipsizeMode="tail"
+                            >
+                              {avatar.name}
+                            </Text>
+                            <Text
+                              style={{
+                                fontSize: 10,
+                                color: talkingAvatarId === avatar.id ? '#fff' : '#888',
+                                marginTop: 2,
+                                textAlign: 'center',
+                                width: '100%',
+                              }}
+                              numberOfLines={1}
+                            >
+                              {avatar.gender}·{avatar.age}岁
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </>
                   )}
-                </ScrollView>
-              </>
+                </Card>
+
+                {/* ========== 商品信息（可选） ========== */}
+                <Card style={styles.imageCard}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.cardTitle}>🛍️ 商品信息（可选）</Text>
+                    <Text style={{ fontSize: 11, color: '#888' }}>不填则为达人口播</Text>
+                  </View>
+                  
+                  <Text style={styles.label}>商品图片（最多5张）</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {talkingProductImages.map((img, index) => (
+                      <View key={index} style={{ marginRight: 8, position: 'relative' }}>
+                        <Image source={{ uri: URL.createObjectURL(img) }} style={{ width: 80, height: 80, borderRadius: 8 }} />
+                        <TouchableOpacity
+                          style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#ef4444', borderRadius: 12, width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }}
+                          onPress={() => {
+                            const newImages = [...talkingProductImages];
+                            newImages.splice(index, 1);
+                            setTalkingProductImages(newImages);
+                          }}
+                        >
+                          <Icon name="close" size={14} color="#fff" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                    {talkingProductImages.length < 5 && (
+                      <TouchableOpacity
+                        onPress={pickTalkingProductImage}
+                        style={{ width: 80, height: 80, borderRadius: 8, borderWidth: 1, borderColor: '#ddd', borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center' }}
+                      >
+                        <Icon name="add" size={32} color="#888" />
+                      </TouchableOpacity>
+                    )}
+                  </ScrollView>
+
+                  <Text style={[styles.label, { marginTop: 12 }]}>商品标题</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="例如：JBL GO 4 便携蓝牙音箱"
+                    placeholderTextColor="#888"
+                    value={talkingGoodsTitle}
+                    onChangeText={setTalkingGoodsTitle}
+                  />
+
+                  <Text style={[styles.label, { marginTop: 12 }]}>商品价格（可选）</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="例如：399元"
+                    placeholderTextColor="#888"
+                    value={talkingGoodsPrice}
+                    onChangeText={setTalkingGoodsPrice}
+                  />
+
+                  <Text style={[styles.label, { marginTop: 12 }]}>目标人群（可选）</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="例如：露营人群"
+                    placeholderTextColor="#888"
+                    value={talkingTargetAudience}
+                    onChangeText={setTalkingTargetAudience}
+                  />
+
+                  <Text style={[styles.label, { marginTop: 12 }]}>商品卖点（可选）</Text>
+                  <TextInput
+                    style={[styles.input, { minHeight: 60 }]}
+                    placeholder="例如：IP67级防尘防水"
+                    placeholderTextColor="#888"
+                    value={talkingSellingPoint}
+                    onChangeText={setTalkingSellingPoint}
+                    multiline
+                  />
+                </Card>
+
+                {/* ========== 口播稿 ========== */}
+                <Card style={styles.promptCard}>
+                  <Text style={styles.cardTitle}>🎙️ 口播稿 *</Text>
+                  <TextInput
+                    style={[styles.promptInput, { minHeight: 120 }]}
+                    value={talkingScript}
+                    onChangeText={setTalkingScript}
+                    placeholder="视频长短取决于文案长短，最长 2000 字，每秒 16 点"
+                    placeholderTextColor="#888"
+                    multiline
+                  />
+                  {talkingScript.length > 0 && (
+                    <Text style={{ fontSize: 11, color: '#7c3aed', marginTop: 4 }}>
+                      {(() => {
+                        const { scriptLength, estimatedSeconds, estimatedCost } = calcTalkingAgentCost(talkingScript);
+                        return `口播稿 ${scriptLength} 字，预估 ${estimatedSeconds} 秒，预扣 ${estimatedCost} 点`;
+                      })()}
+                    </Text>
+                  )}
+                </Card>
+
+                {/* ========== 视频设置 ========== */}
+                <Card style={styles.inputCard}>
+                  <Text style={styles.cardTitle}>⚙️ 视频设置</Text>
+                  
+                  <Text style={styles.label}>分辨率</Text>
+                  <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+                    {['720p', '1080p'].map(res => (
+                      <TouchableOpacity
+                        key={res}
+                        style={[
+                          styles.durationButton,
+                          talkingResolution === res && styles.durationButtonActive
+                        ]}
+                        onPress={() => setTalkingResolution(res)}
+                      >
+                        <Text style={[
+                          styles.durationText,
+                          talkingResolution === res && styles.durationTextActive
+                        ]}>{res}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <Text style={styles.label}>画幅</Text>
+                  <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+                    {['9:16', '16:9'].map(ratio => (
+                      <TouchableOpacity
+                        key={ratio}
+                        style={[
+                          styles.durationButton,
+                          talkingAspectRatio === ratio && styles.durationButtonActive
+                        ]}
+                        onPress={() => setTalkingAspectRatio(ratio)}
+                      >
+                        <Text style={[
+                          styles.durationText,
+                          talkingAspectRatio === ratio && styles.durationTextActive
+                        ]}>{ratio === '9:16' ? '竖屏 9:16' : '横屏 16:9'}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <Text style={styles.label}>允许系统润色口播文案</Text>
+                    <Switch
+                      value={talkingAllowPolish}
+                      onValueChange={setTalkingAllowPolish}
+                    />
+                  </View>
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={styles.label}>添加背景音乐</Text>
+                    <Switch
+                      value={talkingBgmEnabled}
+                      onValueChange={setTalkingBgmEnabled}
+                    />
+                  </View>
+                </Card>
+
+                {/* ========== 生成按钮 ========== */}
+                <TouchableOpacity
+                  onPress={generateTalkingAgent}
+                  disabled={talkingLoading}
+                  style={styles.generateButton}
+                >
+                  {talkingLoading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.generateText}>
+                      生成口播视频
+                      {talkingScript.length > 0 && `（预扣 ${calcTalkingAgentCost(talkingScript).estimatedCost} 点）`}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
             )}
 
             {activeTab === 'multi' && (
@@ -3813,9 +3786,9 @@ export default function App() {
               </TouchableOpacity>
             )}
 
-            {/* ========== 商家工作台页面 ========== */}
+            {/* ========== 商家工作台页面（新：电商套图） ========== */}
             {activeTab === 'merchant' && (
-              <ScrollView style={{ flex: 1 }}>
+              <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
                 <View style={{ flex: 1, position: 'relative' }}>
                   <View style={styles.profileHeaderBar}>
                     <View style={{ width: 40 }} />
@@ -3825,61 +3798,42 @@ export default function App() {
                     </TouchableOpacity>
                   </View>
 
-                  {/* 上传商品图片 */}
+                  {/* ========== 上传商品图 ========== */}
                   <Card style={styles.imageCard}>
-                    <Text style={styles.cardTitle}>📸 上传商品图片（可多张）</Text>
+                    <Text style={styles.cardTitle}>📸 上传商品图</Text>
                     <TouchableOpacity
                       onPress={() => {
                         const input = document.createElement('input');
                         input.type = 'file';
                         input.accept = 'image/*';
-                        input.multiple = true;
                         input.onchange = (e) => {
                           const files = Array.from(e.target.files);
-                          setMerchantImages([...merchantImages, ...files].slice(0, 5));
+                          if (files.length > 0) {
+                            setMerchantImages([files[0]]);
+                          }
                         };
                         input.click();
                       }}
                       style={styles.imagePicker}
                     >
-                      <View style={styles.placeholder}>
-                        <Icon name="images-outline" size={48} color="#666" />
-                        <Text style={styles.placeholderText}>点击上传商品图（最多5张）</Text>
-                      </View>
+                      {merchantImages.length > 0 ? (
+                        <View style={{ width: '100%', height: 200, position: 'relative' }}>
+                          <Image
+                            source={{ uri: URL.createObjectURL(merchantImages[0]) }}
+                            style={{ width: '100%', height: 200, resizeMode: 'contain' }}
+                          />
+                          <View style={styles.imageOverlay}>
+                            <Text style={styles.overlayText}>点击更换</Text>
+                          </View>
+                        </View>
+                      ) : (
+                        <View style={styles.placeholder}>
+                          <Icon name="cloud-upload-outline" size={48} color="#666" />
+                          <Text style={styles.placeholderText}>点击上传商品图</Text>
+                        </View>
+                      )}
                     </TouchableOpacity>
 
-                    {/* 已上传图片缩略图 */}
-                    {merchantImages.length > 0 && (
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-                        {merchantImages.map((img, i) => (
-                          <View key={i} style={{ position: 'relative' }}>
-                            <Image
-                              source={{ uri: URL.createObjectURL(img) }}
-                              style={{ width: 80, height: 80, borderRadius: 8 }}
-                              resizeMode="cover"
-                            />
-                            <TouchableOpacity
-                              onPress={() => setMerchantImages(merchantImages.filter((_, idx) => idx !== i))}
-                              style={{
-                                position: 'absolute',
-                                top: -8,
-                                right: -8,
-                                backgroundColor: '#ef4444',
-                                borderRadius: 12,
-                                width: 24,
-                                height: 24,
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                            >
-                              <Icon name="close" size={16} color="#fff" />
-                            </TouchableOpacity>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-
-                    {/* 相册和拍照按钮 */}
                     <View style={styles.buttonRow}>
                       <TouchableOpacity style={styles.iconButton} onPress={pickMerchantImages}>
                         <Icon name="images-outline" size={20} color="#fff" />
@@ -3892,396 +3846,311 @@ export default function App() {
                     </View>
                   </Card>
 
-                  {/* 商品类型选择 */}
-                  <Card style={styles.inputCard}>
-                    <Text style={styles.cardTitle}>📦 商品类型</Text>
-                    <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                      {[
-                        { id: 'clothing', name: '服装' },
-                        { id: 'other', name: '其他商品' },
-                      ].map((t) => (
-                        <TouchableOpacity
-                          key={t.id}
-                          onPress={() => setMerchantProductType(t.id)}
-                          style={{
-                            paddingVertical: 8,
-                            paddingHorizontal: 14,
-                            borderRadius: 20,
-                            backgroundColor: merchantProductType === t.id ? '#7c3aed' : '#2d2d44',
-                          }}
-                        >
-                          <Text style={{ color: '#fff', fontSize: 13 }}>{t.name}</Text>
-                        </TouchableOpacity>
-                      ))}
+                  {/* ========== 商品信息（可选） ========== */}
+                  <Card style={[styles.inputCard, { flexDirection: 'column', alignItems: 'stretch' }]}>
+                    {/* 标题行 */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: S(16) }}>
+                      <Text style={[styles.cardTitle, { fontSize: S(16) }]}>💬 商品信息（可选）</Text>
+                      <Text style={{ color: '#888', fontSize: S(13), textAlign: 'right' }}>AI 会根据图片自动分析</Text>
                     </View>
-                  </Card>
 
+                    {/* ========== 卖点 - 独占一行，大输入框 ========== */}
+                    <Text style={{ color: '#fff', fontSize: S(16), fontWeight: 'bold', marginBottom: S(8) }}>
+                      卖点
+                    </Text>
+                    <TextInput
+                      style={{
+                        backgroundColor: '#2d2d44',
+                        borderRadius: S(12),
+                        padding: S(14),
+                        color: '#fff',
+                        fontSize: S(15),
+                        height: S(180),
+                        width: '100%',
+                        textAlignVertical: 'top',
+                        marginBottom: S(16),
+                      }}
+                      placeholder="例如：防水、轻便、大容量、耐用、时尚、百搭"
+                      placeholderTextColor="#888"
+                      value={suiteSellingPoints}
+                      onChangeText={setSuiteSellingPoints}
+                      multiline
+                    />
 
-                  {/* 选择模板 */}
-                  <Card style={styles.inputCard}>
-                    <Text style={styles.cardTitle}>👤 选择模板</Text>
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-                      {[
-                        { id: 'white_bg', name: '白底主图' },
-                        { id: 'scene', name: '场景展示' },
-                      ].map((t) => (
-                        <TouchableOpacity
-                          key={t.id}
-                          onPress={() => setMerchantTemplate(t.id)}
+                    {/* ========== 使用方式/销售地区/发布平台 - 横向三个 ========== */}
+                    <View style={{ flexDirection: 'row', gap: S(12) }}>
+                      {/* 使用方式 */}
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#fff', fontSize: S(14), fontWeight: 'bold', marginBottom: S(6) }}>
+                          使用方式
+                        </Text>
+                        <TextInput
                           style={{
-                            paddingVertical: 8,
-                            paddingHorizontal: 14,
-                            borderRadius: 20,
-                            backgroundColor: merchantTemplate === t.id ? '#7c3aed' : '#2d2d44',
+                            backgroundColor: '#2d2d44',
+                            borderRadius: S(12),
+                            padding: S(10),
+                            color: '#fff',
+                            fontSize: S(14),
+                            height: S(50),
+                            width: '100%',
                           }}
-                        >
-                          <Text style={{ color: '#fff', fontSize: 13 }}>{t.name}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </Card>
-
-                  {merchantProductType === 'clothing' && (
-                    <Card style={styles.inputCard}>
-                      <Text style={styles.cardTitle}>👤 模特性别</Text>
-                      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                        {[
-                          { id: 'female', name: '女模特' },
-                          { id: 'male', name: '男模特' },
-                        ].map((t) => (
-                          <TouchableOpacity
-                            key={t.id}
-                            onPress={() => setMerchantGender(t.id)}
-                            style={{
-                              paddingVertical: 8,
-                              paddingHorizontal: 14,
-                              borderRadius: 20,
-                              backgroundColor: merchantGender === t.id ? '#7c3aed' : '#2d2d44',
-                            }}
-                          >
-                            <Text style={{ color: '#fff', fontSize: 13 }}>{t.name}</Text>
-                          </TouchableOpacity>
-                        ))}
+                          placeholder="露营、野餐"
+                          placeholderTextColor="#888"
+                          value={suiteUsage}
+                          onChangeText={setSuiteUsage}
+                        />
                       </View>
-                    </Card>
-                  )}
 
-                  {merchantTemplate === 'scene' && (
-                    <>
-                      <Card style={styles.inputCard}>
-                        <Text style={styles.cardTitle}>🖼️ 场景图数量</Text>
-                        <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                          {[1, 2, 4, 6].map((num) => (
+                      {/* 销售地区 */}
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#fff', fontSize: S(14), fontWeight: 'bold', marginBottom: S(6) }}>
+                          销售地区
+                        </Text>
+                        <TextInput
+                          style={{
+                            backgroundColor: '#2d2d44',
+                            borderRadius: S(12),
+                            padding: S(10),
+                            color: '#fff',
+                            fontSize: S(14),
+                            height: S(50),
+                            width: '100%',
+                          }}
+                          placeholder="美国、日本"
+                          placeholderTextColor="#888"
+                          value={suiteRegion}
+                          onChangeText={setSuiteRegion}
+                        />
+                      </View>
+
+                      {/* 发布平台 */}
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#fff', fontSize: S(14), fontWeight: 'bold', marginBottom: S(6) }}>
+                          发布平台
+                        </Text>
+                        <TextInput
+                          style={{
+                            backgroundColor: '#2d2d44',
+                            borderRadius: S(12),
+                            padding: S(10),
+                            color: '#fff',
+                            fontSize: S(14),
+                            height: S(50),
+                            width: '100%',
+                          }}
+                          placeholder="亚马逊"
+                          placeholderTextColor="#888"
+                          value={suitePlatform}
+                          onChangeText={setSuitePlatform}
+                        />
+                      </View>
+                    </View>
+                  </Card>
+
+                  {/* ========== 套图类型 ========== */}
+                  <Card style={[styles.inputCard, { flexDirection: 'column', alignItems: 'stretch' }]}>
+                    <Text style={styles.cardTitle}>🎨 套图类型</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                      <TouchableOpacity
+                        style={[
+                          styles.durationButton,
+                          suiteType === 'white_bg' && styles.durationButtonActive
+                        ]}
+                        onPress={() => setSuiteType('white_bg')}
+                      >
+                        <Text style={[
+                          styles.durationText,
+                          suiteType === 'white_bg' && styles.durationTextActive
+                        ]}>白底图</Text>
+                        <Text style={{ fontSize: 10, color: suiteType === 'white_bg' ? '#fff' : '#888', marginTop: 2 }}>
+                          10点
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.durationButton,
+                          suiteType === 'scene' && styles.durationButtonActive
+                        ]}
+                        onPress={() => setSuiteType('scene')}
+                      >
+                        <Text style={[
+                          styles.durationText,
+                          suiteType === 'scene' && styles.durationTextActive
+                        ]}>场景图</Text>
+                        <Text style={{ fontSize: 10, color: suiteType === 'scene' ? '#fff' : '#888', marginTop: 2 }}>
+                          15点/张
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.durationButton,
+                          suiteType === 'aplus' && styles.durationButtonActive
+                        ]}
+                        onPress={() => setSuiteType('aplus')}
+                      >
+                        <Text style={[
+                          styles.durationText,
+                          suiteType === 'aplus' && styles.durationTextActive
+                        ]}>A+图</Text>
+                        <Text style={{ fontSize: 10, color: suiteType === 'aplus' ? '#fff' : '#888', marginTop: 2 }}>
+                          50点
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* 场景数量 */}
+                    {suiteType === 'scene' && (
+                      <View style={{ marginTop: 12 }}>
+                        <Text style={{ color: '#fff', fontSize: S(14), fontWeight: 'bold', marginBottom: S(8) }}>
+                          场景数量
+                        </Text>
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                          {[2, 4, 6].map(n => (
                             <TouchableOpacity
-                              key={num}
-                              onPress={() => setSceneCount(num)}
-                              style={{
-                                paddingVertical: 8,
-                                paddingHorizontal: 16,
-                                borderRadius: 20,
-                                backgroundColor: sceneCount === num ? '#7c3aed' : '#2d2d44',
-                              }}
+                              key={n}
+                              style={[
+                                styles.durationButton,
+                                suiteSceneCount === n && styles.durationButtonActive
+                              ]}
+                              onPress={() => setSuiteSceneCount(n)}
                             >
-                              <Text style={{ color: '#fff', fontSize: 13 }}>{num} 张</Text>
+                              <Text style={[
+                                styles.durationText,
+                                suiteSceneCount === n && styles.durationTextActive
+                              ]}>{n}张</Text>
                             </TouchableOpacity>
                           ))}
                         </View>
-                      </Card>
+                      </View>
+                    )}
 
-                      <Card style={styles.inputCard}>
-                        <Text style={styles.cardTitle}>💬 卖点描述（选填）</Text>
-                        <TextInput
-                          style={{
-                            backgroundColor: '#1e1e2e',
-                            borderRadius: 8,
-                            padding: 12,
-                            color: '#fff',
-                            fontSize: 14,
-                            minHeight: 100,
-                            width: '100%',
-                            textAlignVertical: 'top',
-                          }}
-                          placeholder="例如：纯棉透气，夏季新款，显瘦百搭"
-                          placeholderTextColor="#888"
-                          value={sceneText}
-                          onChangeText={setSceneText}
-                          multiline
-                        />
-                        <Text style={{ color: '#666', fontSize: 11, marginTop: 4 }}>
-                          系统会自动优化并拆分到不同场景图中
+                    {/* A+图数量 - 移到这里，Card 内 */}
+                    {suiteType === 'aplus' && (
+                      <View style={{ marginTop: 12 }}>
+                        <Text style={{ color: '#fff', fontSize: S(14), fontWeight: 'bold', marginBottom: S(8) }}>
+                          A+图数量
                         </Text>
-                      </Card>
-                    </>
-                  )}
-
-                  {/* 身高体重 */}
-                  <Card style={styles.inputCard}>
-                    <Text style={styles.cardTitle}>📏 身高体重（选填）</Text>
-                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-                      <TextInput
-                        style={[styles.input, { flex: 1 }]}
-                        placeholder="身高(cm)"
-                        placeholderTextColor="#888"
-                        keyboardType="numeric"
-                        value={merchantHeight}
-                        onChangeText={setMerchantHeight}
-                      />
-                      <TextInput
-                        style={[styles.input, { flex: 1 }]}
-                        placeholder="体重(kg)"
-                        placeholderTextColor="#888"
-                        keyboardType="numeric"
-                        value={merchantWeight}
-                        onChangeText={setMerchantWeight}
-                      />
-                    </View>
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                          {[2, 4, 6].map(n => (
+                            <TouchableOpacity
+                              key={n}
+                              style={[
+                                styles.durationButton,
+                                suiteAplusCount === n && styles.durationButtonActive
+                              ]}
+                              onPress={() => setSuiteAplusCount(n)}
+                            >
+                              <Text style={[
+                                styles.durationText,
+                                suiteAplusCount === n && styles.durationTextActive
+                              ]}>{n}张</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                    )}
                   </Card>
 
-                  {/* 费用提示 */}
+                  {/* ========== 费用提示 ========== */}
                   <Text style={{ color: '#f59e0b', fontSize: 13, textAlign: 'center', marginBottom: 8 }}>
-                    预计消耗：{merchantTemplate === 'white_bg' ? '10' : merchantTemplate === 'scene' ? sceneCount * 10 : '10'} 灵境点
+                    预计消耗：{suiteType === 'white_bg' ? '10' : suiteType === 'scene' ? suiteSceneCount * 15 : suiteAplusCount * 50} 灵境点
                   </Text>
 
-                  {/* 生成按钮 */}
+                  {/* ========== 生成按钮 ========== */}
                   <TouchableOpacity
-                    onPress={handleMerchantGenerate}
-                    disabled={merchantLoading || merchantImages.length === 0}
+                    onPress={generateSuite}
+                    disabled={suiteLoading || merchantImages.length === 0}
                     style={[styles.generateButton, merchantImages.length === 0 && { opacity: 0.5 }]}
                   >
-                    {merchantLoading ? (
+                    {suiteLoading ? (
                       <ActivityIndicator color="#fff" size="small" />
                     ) : (
                       <Text style={styles.generateText}>开始生成商品套图</Text>
                     )}
                   </TouchableOpacity>
 
-                  {/* 结果展示 */}
-                  {merchantResult && merchantResult.results && merchantResult.results.map((item, idx) => (
-                    <Card key={idx} style={styles.resultCard}>
-                      <Text style={styles.resultTitle}>第 {idx + 1} 件商品</Text>
+                  {/* ========== 生成结果 ========== */}
+                  {suiteResult && suiteResult.images && suiteResult.images.length > 0 && (
+                    <Card style={styles.resultCard}>
+                      <Text style={styles.resultTitle}>🎉 生成结果（{suiteResult.images.length}张）</Text>
 
-                      {/* 试穿图下载按钮 */}
-                      {item.tryon_images && item.tryon_images.length > 0 && (
-                        <>
-                          <Text style={{ color: '#aaa', marginTop: 8 }}>模特试穿图：</Text>
-                          {item.tryon_images.map((img, i) => (
-                            <View key={i} style={{ alignItems: 'center', marginBottom: 8 }}>
-                              <Image 
-                                source={{ uri: img }} 
-                                style={{ width: '100%', height: 200, resizeMode: 'contain' }}
-                                onClick={() => { setPreviewUrl(img); setModalVisible(true); }}
-                              />
+                      {/* AI 分析结果 */}
+                      {suiteResult.analysis && (
+                        <View style={{ backgroundColor: '#1e1e2e', padding: 12, borderRadius: 8, marginBottom: 12 }}>
+                          <Text style={{ fontSize: 12, color: '#fff', marginBottom: 4 }}>
+                            <Text style={{ fontWeight: 'bold' }}>商品名：</Text>
+                            {suiteResult.analysis.product_name}
+                          </Text>
+                          <Text style={{ fontSize: 12, color: '#fff', marginBottom: 4 }}>
+                            <Text style={{ fontWeight: 'bold' }}>材质：</Text>
+                            {suiteResult.analysis.material}
+                          </Text>
+                          <Text style={{ fontSize: 12, color: '#fff', marginBottom: 4 }}>
+                            <Text style={{ fontWeight: 'bold' }}>适用场景：</Text>
+                            {suiteResult.analysis.scenes?.join('、')}
+                          </Text>
+                          <Text style={{ fontSize: 12, color: '#fff' }}>
+                            <Text style={{ fontWeight: 'bold' }}>核心卖点：</Text>
+                            {suiteResult.analysis.selling_points?.join('、')}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* 图片列表 */}
+                      {suiteResult.images.map((img, i) => {
+                        const displayUrl = typeof img === 'string' ? img : img.watermarked;
+                        return (
+                          <View key={i} style={{ alignItems: 'center', marginBottom: 16 }}>
+                            <Image
+                              source={{ uri: displayUrl }}
+                              style={{ width: '100%', height: 300, resizeMode: 'contain' }}
+                              onClick={() => { setPreviewUrl(displayUrl); setModalVisible(true); }}
+                            />
+                            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, width: '100%' }}>
                               <TouchableOpacity
-                                onPress={async (e) => {
-                                  e.stopPropagation();
-                                  const fileName = `AI_试穿图_${Date.now()}.png`;
-
-                                  // 鸿蒙
-                                  if (window.harmonyBridge?.saveFile) {
-                                    window.harmonyBridge.saveFile(img, fileName);
-                                    showToast('正在下载...');
-                                    return;
-                                  }
-                                  // iOS
-                                  if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
-                                    window.webkit.messageHandlers.iosDownload.postMessage(img);
-                                    return;
-                                  }
-                                  // 安卓
-                                  if (/android/i.test(navigator.userAgent)) {
-                                    try {
-                                      const blob = await addWatermarkToImage(img);
-                                      const base64 = await new Promise((resolve) => {
-                                        const reader = new FileReader();
-                                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                                        reader.readAsDataURL(blob);
-                                      });
-                                      await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Documents });
-                                      showToast('图片已保存');
-                                    } catch (e) { showToast('保存失败'); }
-                                    return;
-                                  }
-                                  // 其他平台
-                                  const res = await fetch(img);
-                                  const blob = await res.blob();
-                                  const url = URL.createObjectURL(blob);
-                                  const link = document.createElement('a');
-                                  link.href = url;
-                                  link.download = fileName;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
-                                  URL.revokeObjectURL(url);
-                                }}
+                                onPress={() => downloadSuiteImage(displayUrl)}
                                 style={{
-                                  backgroundColor: '#2d2d44',
+                                  flex: 1,
+                                  backgroundColor: '#10b981',
                                   borderRadius: 8,
-                                  paddingVertical: 6,
-                                  paddingHorizontal: 16,
-                                  marginTop: 4,
+                                  paddingVertical: 10,
+                                  alignItems: 'center',
                                 }}
                               >
-                                <Text style={{ color: '#10b981', fontSize: 12 }}>下载此图</Text>
+                                <Text style={{ color: '#fff', fontSize: 13, fontWeight: 'bold' }}>
+                                  带水印下载
+                                </Text>
                               </TouchableOpacity>
-                            </View>
-                          ))}
-                        </>
-                      )}
 
-                      {/* 主图下载按钮 */}
-                      {item.main_images && item.main_images.length > 0 && (
-                        <>
-                          <Text style={{ color: '#aaa', marginTop: 8 }}>主图：</Text>
-                          {item.main_images.map((img, i) => (
-                            <View key={i} style={{ alignItems: 'center', marginBottom: 8 }}>
-                              <Image 
-                                source={{ uri: img }} 
-                                style={{ width: '100%', height: 200, resizeMode: 'contain' }}
-                                onClick={() => { setPreviewUrl(img); setModalVisible(true); }}
-                              />
                               <TouchableOpacity
-                                onPress={async (e) => {
-                                  e.stopPropagation();
-                                  const fileName = `AI_商品主图_${Date.now()}.png`;
-
-                                  // 鸿蒙
-                                  if (window.harmonyBridge?.saveFile) {
-                                    window.harmonyBridge.saveFile(img, fileName);
-                                    showToast('正在下载...');
-                                    return;
-                                  }
-                                  // iOS
-                                  if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
-                                    window.webkit.messageHandlers.iosDownload.postMessage(img);
-                                    return;
-                                  }
-                                  // 安卓
-                                  if (/android/i.test(navigator.userAgent)) {
-                                    try {
-                                      const blob = await addWatermarkToImage(img);
-                                      const base64 = await new Promise((resolve) => {
-                                        const reader = new FileReader();
-                                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                                        reader.readAsDataURL(blob);
-                                      });
-                                      await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Documents });
-                                      showToast('图片已保存');
-                                    } catch (e) { showToast('保存失败'); }
-                                    return;
-                                  }
-                                  // 其他平台
-                                  const res = await fetch(img);
-                                  const blob = await res.blob();
-                                  const url = URL.createObjectURL(blob);
-                                  const link = document.createElement('a');
-                                  link.href = url;
-                                  link.download = fileName;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
-                                  URL.revokeObjectURL(url);
+                                onPress={() => {
+                                  const token = localStorage.getItem('access_token');
+                                  const downloadUrl = `${API_URL}/merchant/download_clean_file/${suiteResult.historyId}/${i}?token=${token}`;
+                                  downloadSuiteImage(downloadUrl);
                                 }}
                                 style={{
-                                  backgroundColor: '#2d2d44',
+                                  flex: 1,
+                                  backgroundColor: '#f59e0b',
                                   borderRadius: 8,
-                                  paddingVertical: 6,
-                                  paddingHorizontal: 16,
-                                  marginTop: 4,
+                                  paddingVertical: 10,
+                                  alignItems: 'center',
                                 }}
                               >
-                                <Text style={{ color: '#10b981', fontSize: 12 }}>下载此图</Text>
+                                <Text style={{ color: '#fff', fontSize: 13, fontWeight: 'bold' }}>
+                                  无水印下载
+                                </Text>
                               </TouchableOpacity>
                             </View>
-                          ))}
-                        </>
-                      )}
-
-                      {/* 场景图下载按钮 */}
-                      {item.scene_images && item.scene_images.length > 0 && (
-                        <>
-                          <Text style={{ color: '#aaa', marginTop: 8 }}>场景图：</Text>
-                          {item.scene_images.map((img, i) => (
-                            <View key={i} style={{ alignItems: 'center', marginBottom: 8 }}>
-                              <Image 
-                                source={{ uri: img }} 
-                                style={{ width: '100%', height: 200, resizeMode: 'contain' }}
-                                onClick={() => { setPreviewUrl(img); setModalVisible(true); }}
-                              />
-                              <TouchableOpacity
-                                onPress={async (e) => {
-                                  e.stopPropagation();
-                                  const fileName = `AI_商品场景图_${Date.now()}.png`;
-
-                                  // 鸿蒙
-                                  if (window.harmonyBridge?.saveFile) {
-                                    window.harmonyBridge.saveFile(img, fileName);
-                                    showToast('正在下载...');
-                                    return;
-                                  }
-                                  // iOS
-                                  if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
-                                    window.webkit.messageHandlers.iosDownload.postMessage(img);
-                                    return;
-                                  }
-                                  // 安卓
-                                  if (/android/i.test(navigator.userAgent)) {
-                                    try {
-                                      const blob = await addWatermarkToImage(img);
-                                      const base64 = await new Promise((resolve) => {
-                                        const reader = new FileReader();
-                                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                                        reader.readAsDataURL(blob);
-                                      });
-                                      await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Documents });
-                                      showToast('图片已保存');
-                                    } catch (e) { showToast('保存失败'); }
-                                    return;
-                                  }
-                                  // 其他平台
-                                  const res = await fetch(img);
-                                  const blob = await res.blob();
-                                  const url = URL.createObjectURL(blob);
-                                  const link = document.createElement('a');
-                                  link.href = url;
-                                  link.download = fileName;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
-                                  URL.revokeObjectURL(url);
-                                }}
-                                style={{
-                                  backgroundColor: '#2d2d44',
-                                  borderRadius: 8,
-                                  paddingVertical: 6,
-                                  paddingHorizontal: 16,
-                                  marginTop: 4,
-                                }}
-                              >
-                                <Text style={{ color: '#10b981', fontSize: 12 }}>下载此图</Text>
-                              </TouchableOpacity>
-                            </View>
-                          ))}
-                        </>
-                      )}
-
-                      {item.video_url && (
-                        <>
-                          <Text style={{ color: '#aaa', marginTop: 8 }}>15秒展示视频：</Text>
-                          <Video source={{ uri: item.video_url }} style={styles.resultVideo} useNativeControls resizeMode="contain" />
-                        </>
-                      )}
-
-                      {item.size_table && (
-                        <Text style={{ color: '#aaa', marginTop: 8 }}>
-                          推荐尺码 M：胸围 {item.size_table.M?.bust}cm，腰围 {item.size_table.M?.waist}cm，臀围 {item.size_table.M?.hip}cm
-                        </Text>
-                      )}
+                          </View>
+                        );
+                      })}
                     </Card>
-                  ))}
+                  )}
                 </View>
               </ScrollView>
             )}
-
             {renderResult()}
 
             {history.length > 0 && (
@@ -4292,7 +4161,7 @@ export default function App() {
                     <View key={item.id} style={styles.historyItemContainer}>
                       <TouchableOpacity
                         onPress={() => {
-                          if (item.type.startsWith('视频生成') || item.type === '虚拟试穿' || item.type === '数字人分身' || item.type === 'AI带货视频' || item.type === '多角度试穿') {
+                          if (item.type.startsWith('视频生成') || item.type === '虚拟试穿' || item.type === '数字人分身' || item.type === '口播带货' || item.type === '多角度试穿') {
                             setCurrentVideoUrl(item.url);
                             setVideoModalVisible(true);
                           } else if (item.type === '图片生成') {
@@ -4305,21 +4174,25 @@ export default function App() {
                           } else if (item.type === '电商商品套图') {
                             try {
                               const urls = JSON.parse(item.url);
-                              const images = urls.filter(u => !u.endsWith('.mp4'));
-                              const videoUrl = urls.find(u => u.endsWith('.mp4')) || '';
-                              setMerchantResult({
-                                results: [{
-                                  main_images: images,
-                                  scene_images: [],
-                                  tryon_images: [],
-                                  video_url: videoUrl,
-                                }]
-                              });
-                              setActiveTab('merchant');
+                              if (Array.isArray(urls) && urls.length > 0) {
+                                  const watermarkedUrls = urls.map(u => typeof u === 'string' ? u : u.watermarked);
+                                  setSuiteResult({
+                                      images: watermarkedUrls,
+                                      analysis: null,
+                                      historyId: item.id,
+                                  });
+                                  setActiveTab('merchant');
+                              } else {
+                                // 兼容旧格式
+                                setCurrentVideoUrl(item.url);
+                                setVideoModalVisible(true);
+                              }
                             } catch(e) {
+                              console.error('解析电商套图URL失败:', e);
                               setCurrentVideoUrl(item.url);
                               setVideoModalVisible(true);
                             }
+
                           } else {
                             setCurrentVideoUrl(item.url);
                             setVideoModalVisible(true);
@@ -4363,7 +4236,11 @@ export default function App() {
                           if (item.type === '电商商品套图') {
                             try {
                               const urls = JSON.parse(item.url);
-                              const firstUrl = urls.find(u => !u.endsWith('.mp4')) || urls[0];
+                              let firstUrl = item.url;
+                              if (Array.isArray(urls) && urls.length > 0) {
+                                const first = urls[0];
+                                firstUrl = typeof first === 'string' ? first : (first.watermarked || first.clean);
+                              }
                               const downloadFileName = `AI_电商套图_${Date.now()}.png`;
 
                               // 鸿蒙
@@ -4412,7 +4289,7 @@ export default function App() {
                           const isVideo = item.type.startsWith('视频生成') || 
                                           item.type === '虚拟试穿' || 
                                           item.type === '数字人分身' || 
-                                          item.type === 'AI带货视频' || 
+                                          item.type === '口播带货' || 
                                           item.type === '多角度试穿';
                           const extension = isVideo ? 'mp4' : 'png';
                           const fileName = `${item.type}_${Date.now()}.${extension}`;
@@ -4426,7 +4303,7 @@ export default function App() {
                           
                           // iOS
                           if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
-                            window.webkit.messageHandlers.iosDownload.postMessage(item.url || ecommerceVideoUrl);
+                            window.webkit.messageHandlers.iosDownload.postMessage(item.url);
                             return;
                           }
                           
@@ -4957,6 +4834,69 @@ export default function App() {
           </View>
         </Modal>
 
+        {/* ========== 支付方式选择弹窗 ========== */}
+        <Modal visible={showPayMethodModal} transparent={true} animationType="fade">
+          <View style={styles.modalContainer}>
+            <Card style={{ padding: 24, width: '85%', maxWidth: 400, backgroundColor: '#1e1e2e', borderRadius: 16 }}>
+              <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 }}>
+                选择支付方式
+              </Text>
+              {pendingPkg && (
+                <Text style={{ color: '#888', fontSize: 13, textAlign: 'center', marginBottom: 20 }}>
+                  {pendingPkg.credits} 灵境点 · ¥{pendingPkg.price}
+                </Text>
+              )}
+
+              <TouchableOpacity
+                onPress={() => {
+                  setShowPayMethodModal(false);
+                  if (pendingPkg) handleWechatPay(pendingPkg);
+                }}
+                style={{
+                  backgroundColor: '#07C160',
+                  borderRadius: 10,
+                  paddingVertical: 14,
+                  alignItems: 'center',
+                  marginBottom: 10,
+                }}
+              >
+                <Text style={{ color: '#fff', fontSize: 15, fontWeight: 'bold' }}>
+                  微信支付
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setShowPayMethodModal(false);
+                  if (pendingPkg) handleAlipay(pendingPkg);
+                }}
+                style={{
+                  backgroundColor: '#1677FF',
+                  borderRadius: 10,
+                  paddingVertical: 14,
+                  alignItems: 'center',
+                  marginBottom: 10,
+                }}
+              >
+                <Text style={{ color: '#fff', fontSize: 15, fontWeight: 'bold' }}>
+                  支付宝
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setShowPayMethodModal(false)}
+                style={{
+                  backgroundColor: '#2d2d44',
+                  borderRadius: 10,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ color: '#aaa', fontSize: 14 }}>取消</Text>
+              </TouchableOpacity>
+            </Card>
+          </View>
+        </Modal>
 
         <Modal visible={showPaymentModal} transparent={true} animationType="fade">
           <View style={styles.modalContainer}>
@@ -5033,9 +4973,9 @@ export default function App() {
                 style={styles.generatingCancelBtn}
                 onPress={() => {
                   setIsGenerating(false);
-                  if (activeTab === 'digital_custom' && digitalSubTab === 'ecommerce') {
-                    setEcommerceLoading(true);
-                  } else if (activeTab === 'digital' || (activeTab === 'digital_custom' && digitalSubTab === 'avatar')) {
+                  if (activeTab === 'digital_custom') {
+                    setTalkingLoading(true);
+                  } else if (activeTab === 'digital') {
                     setDigitalLoading(true);
                   } else if (activeTab === 'video') {
                     setVideoLoading(true);
@@ -5580,7 +5520,7 @@ const styles = StyleSheet.create({
     borderRadius: S(12),
     padding: S(12),
     color: '#fff',
-    fontSize: S(14),
+    fontSize: S(15),      // 从 14 改为 15
     marginBottom: S(16),
   },
   secondaryButton: {
