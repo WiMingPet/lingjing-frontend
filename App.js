@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MANUAL_VOICES } from './src/data/manualVoices.js';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
+import { registerPlugin } from '@capacitor/core';
 
 import {
   StyleSheet,
@@ -173,6 +174,11 @@ const purchaseIAP = async (pkg) => {
       return { scriptLength, estimatedSeconds, estimatedCost };
     };
 
+    const WechatPay = registerPlugin('WechatPay');
+
+    if (typeof window !== 'undefined') {
+      window.WechatPay = WechatPay;
+    }
 
 export default function App() {
   // 注入全局样式，禁止移动端浏览器自动缩放字体
@@ -706,8 +712,13 @@ export default function App() {
       setShowPayMethodModal(true);
   };
 
-  // ========== 微信支付 ==========
-  const handleWechatPay = async (pkg) => {
+    // ========== 微信支付 ==========
+    const handleWechatPay = async (pkg) => {
+      console.log('=== 微信支付检查 ===');
+      console.log('window.WechatPay:', window.WechatPay);
+      console.log('window.Capacitor:', window.Capacitor);
+      console.log('window.harmonyBridge:', window.harmonyBridge);
+      console.log('typeof WechatPay:', typeof WechatPay);
       setLoading(true);
       try {
         const res = await axios.post(`${API_URL}/payment/wechat/create_order`, {
