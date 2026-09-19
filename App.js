@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MANUAL_VOICES } from './src/data/manualVoices.js';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
-import { registerPlugin } from '@capacitor/core';
+
+import { CapacitorWechat } from '@capgo/capacitor-wechat';
 
 import {
   StyleSheet,
@@ -174,11 +175,6 @@ const purchaseIAP = async (pkg) => {
       return { scriptLength, estimatedSeconds, estimatedCost };
     };
 
-    const WechatPay = registerPlugin('WechatPay');
-
-    if (typeof window !== 'undefined') {
-      window.WechatPay = WechatPay;
-    }
 
 export default function App() {
   // 注入全局样式，禁止移动端浏览器自动缩放字体
@@ -714,11 +710,6 @@ export default function App() {
 
     // ========== 微信支付 ==========
     const handleWechatPay = async (pkg) => {
-      console.log('=== 微信支付检查 ===');
-      console.log('window.WechatPay:', window.WechatPay);
-      console.log('window.Capacitor:', window.Capacitor);
-      console.log('window.harmonyBridge:', window.harmonyBridge);
-      console.log('typeof WechatPay:', typeof WechatPay);
       setLoading(true);
       try {
         const res = await axios.post(`${API_URL}/payment/wechat/create_order`, {
@@ -737,15 +728,28 @@ export default function App() {
         const { order_no, pay_params } = res.data.data;
         setShowRechargeModal(false);
 
-        // 调起微信支付
-        if (window.WechatPay) {
-          window.WechatPay.pay(pay_params);
-        } else if (window.harmonyBridge?.wechatPay) {
-          window.harmonyBridge.wechatPay(JSON.stringify(pay_params));
-        } else {
-          showToast('当前平台不支持微信支付', true);
-          return;
-        }
+      // 判断平台
+      const isHarmony = !!window.harmonyBridge?.wechatPay;
+      const isAndroid = /android/i.test(navigator.userAgent);
+
+      if (isHarmony) {
+        console.log('走 harmonyBridge.wechatPay');
+        window.harmonyBridge.wechatPay(JSON.stringify(pay_params));
+      } else if (isAndroid) {
+        console.log('走 CapacitorWechat.sendPaymentRequest');
+        await CapacitorWechat.sendPaymentRequest({
+          partnerId: pay_params.partnerid,
+          prepayId: pay_params.prepayid,
+          nonceStr: pay_params.noncestr,
+          timeStamp: pay_params.timestamp,
+          package: pay_params.package,
+          sign: pay_params.sign,
+        });
+      } else {
+        console.log('都不支持，弹提示');
+        showToast('当前平台不支持微信支付', true);
+        return;
+      }
 
         // 复用现有轮询
         startPaymentPolling(order_no);
