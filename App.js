@@ -99,7 +99,7 @@ const extractUrl = (text) => {
       return;
     }
 
-    // 2. 后端验证
+    // 2. 后端验证 + 直接用返回的 credits 更新
     try {
       const token = localStorage.getItem('access_token');
       if (!token) {
@@ -117,20 +117,17 @@ const extractUrl = (text) => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       console.log('后端返回:', res.data);
+
+      // ✅ 直接用后端返回的 credits 更新
+      if (res.data.code === 200 && res.data.credits !== undefined) {
+        setUserCredits(res.data.credits);
+        localStorage.setItem('user_credits', res.data.credits);
+      }
+
+      showToast(`充值成功 +${pkg.credits}灵境点`);
     } catch (apiErr) {
       console.error('后端验证失败:', apiErr.response?.data || apiErr.message);
       showToast('验证失败: ' + (apiErr.response?.data?.detail || apiErr.message), true);
-      return;
-    }
-
-    // 3. 提示成功
-    showToast(`充值成功 +${pkg.credits}灵境点`);
-
-    // 4. 单独刷新余额（失败也不影响）
-    try {
-      await fetchUserCredits();
-    } catch (e) {
-      console.error('刷新余额失败:', e);
     }
   };
 
