@@ -109,7 +109,7 @@ const extractUrl = (text) => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      refreshBalance();
+      fetchUserCredits();
       showToast(`充值成功 +${pkg.credits}灵境点`);
 
     } catch (err) {
