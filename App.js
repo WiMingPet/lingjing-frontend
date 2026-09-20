@@ -76,31 +76,39 @@ const extractUrl = (text) => {
       return;
     }
 
+    // 1. 支付
+    let jws = '';
     try {
       const transaction = await NativePurchases.purchaseProduct({
         productIdentifier: productId,
         productType: PURCHASE_TYPE.INAPP,
       });
-
-      console.log('IAP 完整交易:', JSON.stringify(transaction));
-
-      // ✅ 用 jwsRepresentation，不再用 receipt
-      const jws = transaction.jwsRepresentation || '';
-
+      console.log('IAP 交易:', JSON.stringify(transaction));
+      jws = transaction.jwsRepresentation || '';
       if (!jws) {
-        showToast('未获取到支付凭证，请联系客服', true);
+        showToast('未获取到支付凭证', true);
         return;
       }
+    } catch (err) {
+      console.error('IAP 支付失败:', err);
+      if (err.code === 'USER_CANCELLED' || err.message?.includes('cancel')) {
+        showToast('已取消支付');
+      } else {
+        showToast('支付失败: ' + (err.message || '未知错误'), true);
+      }
+      return;
+    }
 
+    // 2. 后端验证
+    try {
       const token = localStorage.getItem('access_token');
       if (!token) {
         showToast('请先登录', true);
         return;
       }
-
       const userId = JSON.parse(atob(token.split('.')[1])).sub;
 
-      await axios.post(`${API_URL}/payment/iap_verify`, {
+      const res = await axios.post(`${API_URL}/payment/iap_verify`, {
         jws_representation: jws,
         package_id: pkg.id,
         credits: pkg.credits,
@@ -108,17 +116,21 @@ const extractUrl = (text) => {
       }, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      console.log('后端返回:', res.data);
+    } catch (apiErr) {
+      console.error('后端验证失败:', apiErr.response?.data || apiErr.message);
+      showToast('验证失败: ' + (apiErr.response?.data?.detail || apiErr.message), true);
+      return;
+    }
 
-      fetchUserCredits();
-      showToast(`充值成功 +${pkg.credits}灵境点`);
+    // 3. 提示成功
+    showToast(`充值成功 +${pkg.credits}灵境点`);
 
-    } catch (err) {
-      console.error('IAP 错误:', err);
-      if (err.code === 'USER_CANCELLED' || err.message?.includes('cancel')) {
-        showToast('已取消支付');
-      } else {
-        showToast('支付失败: ' + (err.message || '未知错误'), true);
-      }
+    // 4. 单独刷新余额（失败也不影响）
+    try {
+      await fetchUserCredits();
+    } catch (e) {
+      console.error('刷新余额失败:', e);
     }
   };
 
