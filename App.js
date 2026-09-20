@@ -396,13 +396,23 @@ export default function App() {
       const res = await axios.get(`${API_URL}/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      console.log('fetchUserCredits 完整响应:', res.data);
-      const newCredits = res.data.data.credits;
+      console.log('fetchUserCredits 完整响应:', JSON.stringify(res.data));
+      
+      // 兼容多种返回结构
+      const newCredits = res.data?.data?.credits 
+                      ?? res.data?.credits 
+                      ?? res.data?.data?.data?.credits;
+      
+      if (newCredits === undefined || newCredits === null) {
+        console.error('无法从响应中提取余额:', res.data);
+        return;
+      }
+      
       console.log('获取到的余额:', newCredits);
       setUserCredits(newCredits);
       localStorage.setItem('user_credits', newCredits);
     } catch (err) {
-      console.log('获取余额失败', err);
+      console.error('获取余额失败:', err.response?.data || err.message);
     }
   };
 
