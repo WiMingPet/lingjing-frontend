@@ -84,11 +84,11 @@ const extractUrl = (text) => {
 
       console.log('IAP 完整交易:', JSON.stringify(transaction));
 
-      const receipt = transaction.receipt || '';
-      const transactionId = transaction.transactionId || transaction.identifier || '';
+      // ✅ 用 jwsRepresentation，不再用 receipt
+      const jws = transaction.jwsRepresentation || '';
 
-      if (!receipt) {
-        showToast('未获取到收据，请联系客服', true);
+      if (!jws) {
+        showToast('未获取到支付凭证，请联系客服', true);
         return;
       }
 
@@ -101,8 +101,7 @@ const extractUrl = (text) => {
       const userId = JSON.parse(atob(token.split('.')[1])).sub;
 
       await axios.post(`${API_URL}/payment/iap_verify`, {
-        receipt: receipt,
-        transaction_id: transactionId,
+        jws_representation: jws,
         package_id: pkg.id,
         credits: pkg.credits,
         user_id: userId
