@@ -62,70 +62,66 @@ const extractUrl = (text) => {
   return text;
 };
 
-const IAP_PRODUCTS = {
-  1: 'com.lingjing_media.app.credits_100',
-  2: 'com.lingjing_media.app.credits_350',
-  3: 'com.lingjing_media.app.credits_900',
-  4: 'com.lingjing_media.app.credits_2000',
-};
+  const IAP_PRODUCTS = {
+    1: 'com.lingjing_media.app.credits_100',
+    2: 'com.lingjing_media.app.credits_350',
+    3: 'com.lingjing_media.app.credits_900',
+    4: 'com.lingjing_media.app.credits_2000',
+  };
 
-const purchaseIAP = async (pkg) => {
-  const productId = IAP_PRODUCTS[pkg.id];
-  if (!productId) {
-    showToast('商品ID不存在', true);
-    return;
-  }
-
-  try {
-    // 1. 发起购买
-    const transaction = await NativePurchases.purchaseProduct({
-      productIdentifier: productId,
-      productType: PURCHASE_TYPE.INAPP,
-    });
-
-    console.log('IAP 交易结果:', transaction);
-
-    // 2. 拿收据
-    const receipt = transaction.receipt || '';
-    const transactionId = transaction.transactionId || transaction.identifier || '';
-
-    if (!receipt) {
-      showToast('未获取到收据，请联系客服', true);
+  const purchaseIAP = async (pkg) => {
+    const productId = IAP_PRODUCTS[pkg.id];
+    if (!productId) {
+      showToast('商品ID不存在', true);
       return;
     }
 
-    // 3. 调后端验证
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      showToast('请先登录', true);
-      return;
+    try {
+      const transaction = await NativePurchases.purchaseProduct({
+        productIdentifier: productId,
+        productType: PURCHASE_TYPE.INAPP,
+      });
+
+      console.log('IAP 完整交易:', JSON.stringify(transaction));
+
+      const receipt = transaction.receipt || '';
+      const transactionId = transaction.transactionId || transaction.identifier || '';
+
+      if (!receipt) {
+        showToast('未获取到收据，请联系客服', true);
+        return;
+      }
+
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        showToast('请先登录', true);
+        return;
+      }
+
+      const userId = JSON.parse(atob(token.split('.')[1])).sub;
+
+      await axios.post(`${API_URL}/payment/iap_verify`, {
+        receipt: receipt,
+        transaction_id: transactionId,
+        package_id: pkg.id,
+        credits: pkg.credits,
+        user_id: userId
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      refreshBalance();
+      showToast(`充值成功 +${pkg.credits}灵境点`);
+
+    } catch (err) {
+      console.error('IAP 错误:', err);
+      if (err.code === 'USER_CANCELLED' || err.message?.includes('cancel')) {
+        showToast('已取消支付');
+      } else {
+        showToast('支付失败: ' + (err.message || '未知错误'), true);
+      }
     }
-
-    const userId = JSON.parse(atob(token.split('.')[1])).sub;
-
-    await axios.post(`${API_URL}/payment/iap_verify`, {
-      receipt: receipt,
-      transaction_id: transactionId,
-      package_id: pkg.id,
-      credits: pkg.credits,
-      user_id: userId
-    }, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-
-    // 4. 刷新余额
-    refreshBalance();
-    showToast(`充值成功 +${pkg.credits}灵境点`);
-
-  } catch (err) {
-    console.error('IAP 错误:', err);
-    if (err.code === 'USER_CANCELLED' || err.message?.includes('cancel')) {
-      showToast('已取消支付');
-    } else {
-      showToast('支付失败: ' + (err.message || '未知错误'), true);
-    }
-  }
-};
+  };
 
   // ========== 可灵预设形象（口播带货用） ==========
   const PRESET_AVATAR_IDS = [
