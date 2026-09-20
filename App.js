@@ -69,67 +69,6 @@ const extractUrl = (text) => {
     4: 'com.lingjing_media.app.credits_2000',
   };
 
-  const purchaseIAP = async (pkg) => {
-    const productId = IAP_PRODUCTS[pkg.id];
-    if (!productId) {
-      showToast('商品ID不存在', true);
-      return;
-    }
-
-    // 1. 支付
-    let jws = '';
-    try {
-      const transaction = await NativePurchases.purchaseProduct({
-        productIdentifier: productId,
-        productType: PURCHASE_TYPE.INAPP,
-      });
-      console.log('IAP 交易:', JSON.stringify(transaction));
-      jws = transaction.jwsRepresentation || '';
-      if (!jws) {
-        showToast('未获取到支付凭证', true);
-        return;
-      }
-    } catch (err) {
-      console.error('IAP 支付失败:', err);
-      if (err.code === 'USER_CANCELLED' || err.message?.includes('cancel')) {
-        showToast('已取消支付');
-      } else {
-        showToast('支付失败: ' + (err.message || '未知错误'), true);
-      }
-      return;
-    }
-
-    // 2. 后端验证 + 直接用返回的 credits 更新
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        showToast('请先登录', true);
-        return;
-      }
-      const userId = JSON.parse(atob(token.split('.')[1])).sub;
-
-      const res = await axios.post(`${API_URL}/payment/iap_verify`, {
-        jws_representation: jws,
-        package_id: pkg.id,
-        credits: pkg.credits,
-        user_id: userId
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      console.log('后端返回:', res.data);
-
-      // ✅ 直接用后端返回的 credits 更新
-      if (res.data.code === 200 && res.data.credits !== undefined) {
-        setUserCredits(res.data.credits);
-        localStorage.setItem('user_credits', res.data.credits);
-      }
-
-      showToast(`充值成功 +${pkg.credits}灵境点`);
-    } catch (apiErr) {
-      console.error('后端验证失败:', apiErr.response?.data || apiErr.message);
-      showToast('验证失败: ' + (apiErr.response?.data?.detail || apiErr.message), true);
-    }
-  };
 
   // ========== 可灵预设形象（口播带货用） ==========
   const PRESET_AVATAR_IDS = [
@@ -377,10 +316,70 @@ export default function App() {
   const [generatingTitle, setGeneratingTitle] = useState('');
   const [generatingSubtitle, setGeneratingSubtitle] = useState('');
   const pollingRef = useRef(null); // 轮询定时器引用
-
-
   // 新增：创建一个ref来稳定地保存验证码
   const savedRegisterCode = useRef('');
+
+  const purchaseIAP = async (pkg) => {
+    const productId = IAP_PRODUCTS[pkg.id];
+    if (!productId) {
+      showToast('商品ID不存在', true);
+      return;
+    }
+
+    // 1. 支付
+    let jws = '';
+    try {
+      const transaction = await NativePurchases.purchaseProduct({
+        productIdentifier: productId,
+        productType: PURCHASE_TYPE.INAPP,
+      });
+      console.log('IAP 交易:', JSON.stringify(transaction));
+      jws = transaction.jwsRepresentation || '';
+      if (!jws) {
+        showToast('未获取到支付凭证', true);
+        return;
+      }
+    } catch (err) {
+      console.error('IAP 支付失败:', err);
+      if (err.code === 'USER_CANCELLED' || err.message?.includes('cancel')) {
+        showToast('已取消支付');
+      } else {
+        showToast('支付失败: ' + (err.message || '未知错误'), true);
+      }
+      return;
+    }
+
+    // 2. 后端验证 + 直接用返回的 credits 更新
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        showToast('请先登录', true);
+        return;
+      }
+      const userId = JSON.parse(atob(token.split('.')[1])).sub;
+
+      const res = await axios.post(`${API_URL}/payment/iap_verify`, {
+        jws_representation: jws,
+        package_id: pkg.id,
+        credits: pkg.credits,
+        user_id: userId
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      console.log('后端返回:', res.data);
+
+      // ✅ 直接用后端返回的 credits 更新
+      if (res.data.code === 200 && res.data.credits !== undefined) {
+        setUserCredits(res.data.credits);
+        localStorage.setItem('user_credits', res.data.credits);
+      }
+
+      showToast(`充值成功 +${pkg.credits}灵境点`);
+    } catch (apiErr) {
+      console.error('后端验证失败:', apiErr.response?.data || apiErr.message);
+      showToast('验证失败: ' + (apiErr.response?.data?.detail || apiErr.message), true);
+    }
+  };
 
   // 获取当前用户灵境点余额（直接从 localStorage 读取 token）
   const fetchUserCredits = async () => {
