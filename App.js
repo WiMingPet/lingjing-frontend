@@ -1241,13 +1241,36 @@ export default function App() {
             return;
           }
 
+          // iOS：用 Filesystem + Share
           if (/iPhone|iPad/i.test(navigator.platform)) {
-            if (finalBlob) {
-              const reader = new FileReader();
-              const base64 = await new Promise((resolve) => { reader.onloadend = () => resolve(reader.result); reader.readAsDataURL(finalBlob); });
-              window.webkit.messageHandlers.iosDownload.postMessage({ url: base64, filename: filename });
-            } else {
-              window.webkit.messageHandlers.iosDownload.postMessage(url);
+            try {
+              // 1. 获取文件 blob
+              const downloadBlob = finalBlob || await (await fetch(url)).blob();
+              const base64 = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(downloadBlob);
+              });
+
+              // 2. 写入文件
+              const { Filesystem, Directory } = await import('@capacitor/filesystem');
+              const result = await Filesystem.writeFile({
+                path: filename,
+                data: base64,
+                directory: Directory.Cache,
+              });
+
+              // 3. 弹出分享菜单（用户可保存到相册）
+              const { Share } = await import('@capacitor/share');
+              await Share.share({
+                title: filename,
+                url: result.uri,
+                dialogTitle: '保存文件',
+              });
+              showToast('已打开分享菜单');
+            } catch (e) {
+              console.error('iOS 保存失败:', e);
+              showToast('保存失败，请重试', true);
             }
             return;
           }
@@ -1512,7 +1535,31 @@ export default function App() {
       }
       // iOS
       if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
-        window.webkit.messageHandlers.iosDownload.postMessage(imageUrl);
+        try {
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          const base64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            reader.readAsDataURL(blob);
+          });
+          const { Filesystem, Directory } = await import('@capacitor/filesystem');
+          const result = await Filesystem.writeFile({
+            path: fileName,
+            data: base64,
+            directory: Directory.Cache,
+          });
+          const { Share } = await import('@capacitor/share');
+          await Share.share({
+            title: fileName,
+            url: result.uri,
+            dialogTitle: '保存文件',
+          });
+          showToast('已打开分享菜单');
+        } catch (e) {
+          console.error('iOS 保存失败:', e);
+          showToast('保存失败，请重试', true);
+        }
         return;
       }
       // 安卓：加水印（后端已加，这里直接下载）
@@ -2626,7 +2673,6 @@ export default function App() {
     if (!result) return null;
 
   const downloadFile = async (url, filename) => {
-        alert('进入downloadFile');
         try {
           const isImage = /\.(png|jpe?g)$/i.test(filename);
           let finalUrl = url;
@@ -2676,13 +2722,33 @@ export default function App() {
             return;
           }
           
+          // iOS
           if (/iPhone|iPad/i.test(navigator.platform)) {
-            if (finalBlob) {
-              const reader = new FileReader();
-              const base64 = await new Promise((resolve) => { reader.onloadend = () => resolve(reader.result); reader.readAsDataURL(finalBlob); });
-              window.webkit.messageHandlers.iosDownload.postMessage({ url: base64, filename: finalFilename });
-            } else {
-              window.webkit.messageHandlers.iosDownload.postMessage(url);
+            try {
+              const downloadBlob = finalBlob || await (await fetch(url)).blob();
+              const base64 = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(downloadBlob);
+              });
+
+              const { Filesystem, Directory } = await import('@capacitor/filesystem');
+              const result = await Filesystem.writeFile({
+                path: finalFilename,
+                data: base64,
+                directory: Directory.Cache,
+              });
+
+              const { Share } = await import('@capacitor/share');
+              await Share.share({
+                title: finalFilename,
+                url: result.uri,
+                dialogTitle: '保存文件',
+              });
+              showToast('已打开分享菜单');
+            } catch (e) {
+              console.error('iOS 保存失败:', e);
+              showToast('保存失败，请重试', true);
             }
             return;
           }
@@ -4280,7 +4346,30 @@ export default function App() {
                               }
                               // iOS
                               if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
-                                window.webkit.messageHandlers.iosDownload.postMessage(firstUrl);
+                                try {
+                                  const downloadBlob = await addWatermarkToImage(firstUrl);
+                                  const base64 = await new Promise((resolve) => {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                                    reader.readAsDataURL(downloadBlob);
+                                  });
+                                  const { Filesystem, Directory } = await import('@capacitor/filesystem');
+                                  const result = await Filesystem.writeFile({
+                                    path: downloadFileName,
+                                    data: base64,
+                                    directory: Directory.Cache,
+                                  });
+                                  const { Share } = await import('@capacitor/share');
+                                  await Share.share({
+                                    title: downloadFileName,
+                                    url: result.uri,
+                                    dialogTitle: '保存文件',
+                                  });
+                                  showToast('已打开分享菜单');
+                                } catch (e) {
+                                  console.error('iOS 保存失败:', e);
+                                  showToast('保存失败，请重试', true);
+                                }
                                 return;
                               }
                               // 安卓：加水印
@@ -4332,7 +4421,30 @@ export default function App() {
                           
                           // iOS
                           if (navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) {
-                            window.webkit.messageHandlers.iosDownload.postMessage(item.url);
+                            try {
+                              const downloadBlob = await (await fetch(item.url)).blob();
+                              const base64 = await new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                                reader.readAsDataURL(downloadBlob);
+                              });
+                              const { Filesystem, Directory } = await import('@capacitor/filesystem');
+                              const result = await Filesystem.writeFile({
+                                path: fileName,
+                                data: base64,
+                                directory: Directory.Cache,
+                              });
+                              const { Share } = await import('@capacitor/share');
+                              await Share.share({
+                                title: fileName,
+                                url: result.uri,
+                                dialogTitle: '保存文件',
+                              });
+                              showToast('已打开分享菜单');
+                            } catch (e) {
+                              console.error('iOS 保存失败:', e);
+                              showToast('保存失败，请重试', true);
+                            }
                             return;
                           }
                           
