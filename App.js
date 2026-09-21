@@ -749,19 +749,35 @@ export default function App() {
         console.log('走 harmonyBridge.wechatPay');
         window.harmonyBridge.wechatPay(JSON.stringify(pay_params));
       } else if (isAndroid) {
-        console.log('走 CapacitorWechat.sendPaymentRequest');
-        await CapacitorWechat.sendPaymentRequest({
-          partnerId: pay_params.partnerid,
-          prepayId: pay_params.prepayid,
-          nonceStr: pay_params.noncestr,
-          timeStamp: pay_params.timestamp,
-          package: pay_params.package,
-          sign: pay_params.sign,
-        });
-      } else {
-        console.log('都不支持，弹提示');
-        showToast('当前平台不支持微信支付', true);
-        return;
+        try {
+          console.log('1. 检查微信是否安装');
+          const installed = await CapacitorWechat.isInstalled();
+          console.log('isInstalled:', installed);
+          if (!installed) {
+            showToast('请先安装微信', true);
+            return;
+          }
+
+          console.log('2. 初始化微信 SDK');
+          await CapacitorWechat.initialize({ appId: 'wx8ea409526d38866d' });
+          console.log('initialize 成功');
+
+          console.log('3. 调起微信支付');
+          const result = await CapacitorWechat.sendPaymentRequest({
+            partnerId: pay_params.partnerid,
+            prepayId: pay_params.prepayid,
+            nonceStr: pay_params.noncestr,
+            timeStamp: pay_params.timestamp,
+            package: pay_params.package,
+            sign: pay_params.sign,
+          });
+          console.log('sendPaymentRequest 返回:', result);
+
+        } catch (e) {
+          console.error('微信支付失败:', e);
+          showToast('微信支付失败: ' + (e.message || JSON.stringify(e)), true);
+          return;
+        }
       }
 
         // 复用现有轮询
