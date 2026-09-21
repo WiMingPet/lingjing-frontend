@@ -3439,6 +3439,8 @@ export default function App() {
                       <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={true}
+                        nestedScrollEnabled={true}
+                        keyboardShouldPersistTaps="handled"
                         contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 4 }}
                         style={{ marginTop: 8 }}
                       >
@@ -3636,20 +3638,24 @@ export default function App() {
                     ))}
                   </View>
 
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <Text style={styles.label}>允许系统润色口播文案</Text>
-                    <Switch
-                      value={talkingAllowPolish}
-                      onValueChange={setTalkingAllowPolish}
-                    />
-                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={{ color: '#fff', fontSize: 13 }}>允许系统润色口播文案</Text>
+                      <Switch
+                        value={talkingAllowPolish}
+                        onValueChange={setTalkingAllowPolish}
+                        style={{ marginLeft: 6 }}
+                      />
+                    </View>
 
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={styles.label}>添加背景音乐</Text>
-                    <Switch
-                      value={talkingBgmEnabled}
-                      onValueChange={setTalkingBgmEnabled}
-                    />
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={{ color: '#fff', fontSize: 13 }}>添加背景音乐</Text>
+                      <Switch
+                        value={talkingBgmEnabled}
+                        onValueChange={setTalkingBgmEnabled}
+                        style={{ marginLeft: 6 }}
+                      />
+                    </View>
                   </View>
                 </Card>
 
