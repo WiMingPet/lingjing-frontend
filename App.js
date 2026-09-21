@@ -759,7 +759,7 @@ export default function App() {
           }
 
           console.log('2. 初始化微信 SDK');
-          await CapacitorWechat.initialize({ appId: 'wx8ea409526d38866d' });
+          await CapacitorWechat.initialize({ appId: 'wxe0bd5e295cdd77c0' });
           console.log('initialize 成功');
 
           console.log('3. 调起微信支付');
