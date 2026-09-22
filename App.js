@@ -3371,28 +3371,107 @@ export default function App() {
             )}
 
             {activeTab === 'digital_custom' && (
-              <ScrollView contentContainerStyle={styles.content}>
-                {/* ========== 人物来源 ========== */}
-                <Card style={styles.imageCard}>
-                  <Text style={styles.cardTitle}>👤 人物来源</Text>
-                  
-                  <View style={{ flexDirection: 'row', marginBottom: 12, gap: 8 }}>
-                    <TouchableOpacity
-                      style={[styles.subTab, { flex: 1 }, avatarMode === 'upload' && styles.activeSubTab]}
-                      onPress={() => setAvatarMode('upload')}
-                    >
-                      <Text style={[styles.subTabText, avatarMode === 'upload' && styles.activeSubTabText]}>上传照片</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.subTab, { flex: 1 }, avatarMode === 'preset' && styles.activeSubTab]}
-                      onPress={() => setAvatarMode('preset')}
-                    >
-                      <Text style={[styles.subTabText, avatarMode === 'preset' && styles.activeSubTabText]}>选择形象</Text>
-                    </TouchableOpacity>
-                  </View>
+              <>
+                {/* ===== 形象选择区：不在纵向 ScrollView 里，横向能滑 ===== */}
+                {avatarMode === 'preset' && (
+                  <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+                    <Text style={styles.cardTitle}>👤 人物来源</Text>
 
-                  {avatarMode === 'upload' ? (
-                    <>
+                    {/* tab 切换 */}
+                    <View style={{ flexDirection: 'row', marginBottom: 12, gap: 8 }}>
+                      <TouchableOpacity
+                        style={[styles.subTab, { flex: 1 }, avatarMode === 'upload' && styles.activeSubTab]}
+                        onPress={() => setAvatarMode('upload')}
+                      >
+                        <Text style={[styles.subTabText, avatarMode === 'upload' && styles.activeSubTabText]}>上传照片</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.subTab, { flex: 1 }, avatarMode === 'preset' && styles.activeSubTab]}
+                        onPress={() => setAvatarMode('preset')}
+                      >
+                        <Text style={[styles.subTabText, avatarMode === 'preset' && styles.activeSubTabText]}>选择形象</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* 横向滚动 */}
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+                      {PRESET_AVATAR_IDS.map(avatar => (
+                        <TouchableOpacity
+                          key={avatar.id}
+                          style={[
+                            {
+                              width: 100,
+                              marginRight: 12,
+                              alignItems: 'center',
+                              padding: 8,
+                              borderRadius: 12,
+                              backgroundColor: '#2d2d44',
+                            },
+                            talkingAvatarId === avatar.id && { backgroundColor: '#7c3aed' }
+                          ]}
+                          onPress={() => setTalkingAvatarId(avatar.id)}
+                        >
+                          <View style={{
+                            width: 50,
+                            height: 50,
+                            borderRadius: 25,
+                            backgroundColor: talkingAvatarId === avatar.id ? '#5b21b6' : '#444',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            marginBottom: 6,
+                          }}>
+                            <Icon name="person" size={28} color={talkingAvatarId === avatar.id ? '#fff' : '#aaa'} />
+                          </View>
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: talkingAvatarId === avatar.id ? '#fff' : '#ccc',
+                              textAlign: 'center',
+                            }}
+                            numberOfLines={1}
+                          >
+                            {avatar.name}
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              color: talkingAvatarId === avatar.id ? '#fff' : '#888',
+                              marginTop: 2,
+                              textAlign: 'center',
+                            }}
+                            numberOfLines={1}
+                          >
+                            {avatar.gender}·{avatar.age}岁
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                {/* ===== 其余内容：包在纵向 ScrollView 里 ===== */}
+                <ScrollView contentContainerStyle={styles.content}>
+
+                  {/* ========== 人物来源（上传照片模式） ========== */}
+                  {avatarMode === 'upload' && (
+                    <Card style={styles.imageCard}>
+                      <Text style={styles.cardTitle}>👤 人物来源</Text>
+
+                      <View style={{ flexDirection: 'row', marginBottom: 12, gap: 8 }}>
+                        <TouchableOpacity
+                          style={[styles.subTab, { flex: 1 }, avatarMode === 'upload' && styles.activeSubTab]}
+                          onPress={() => setAvatarMode('upload')}
+                        >
+                          <Text style={[styles.subTabText, avatarMode === 'upload' && styles.activeSubTabText]}>上传照片</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.subTab, { flex: 1 }, avatarMode === 'preset' && styles.activeSubTab]}
+                          onPress={() => setAvatarMode('preset')}
+                        >
+                          <Text style={[styles.subTabText, avatarMode === 'preset' && styles.activeSubTabText]}>选择形象</Text>
+                        </TouchableOpacity>
+                      </View>
+
                       <TouchableOpacity onPress={pickTalkingAvatarImage} style={styles.imagePicker}>
                         {talkingAvatarImage ? (
                           <View style={{ width: '100%', height: 200, position: 'relative' }}>
@@ -3412,7 +3491,7 @@ export default function App() {
                           </View>
                         )}
                       </TouchableOpacity>
-                      
+
                       <Text style={[styles.label, { marginTop: 12 }]}>选择音色</Text>
                       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         {TALKING_VOICE_OPTIONS.map(voice => (
@@ -3433,230 +3512,170 @@ export default function App() {
                           </TouchableOpacity>
                         ))}
                       </ScrollView>
-                    </>
-                  ) : (
-                    <>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-                        {PRESET_AVATAR_IDS.map(avatar => (
+                    </Card>
+                  )}
+
+                  {/* ========== 商品信息 ========== */}
+                  <Card style={styles.imageCard}>
+                    <View style={styles.cardHeader}>
+                      <Text style={styles.cardTitle}>🛍️ 商品信息（可选）</Text>
+                      <Text style={{ fontSize: 11, color: '#888' }}>不填则为达人口播</Text>
+                    </View>
+
+                    <Text style={styles.label}>商品图片（最多5张）</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      {talkingProductImages.map((img, index) => (
+                        <View key={index} style={{ marginRight: 8, position: 'relative' }}>
+                          <Image source={{ uri: URL.createObjectURL(img) }} style={{ width: 80, height: 80, borderRadius: 8 }} />
                           <TouchableOpacity
-                            key={avatar.id}
-                            style={[
-                              {
-                                width: 100,
-                                marginRight: 12,
-                                alignItems: 'center',
-                                padding: 8,
-                                borderRadius: 12,
-                                backgroundColor: '#2d2d44',
-                              },
-                              talkingAvatarId === avatar.id && { backgroundColor: '#7c3aed' }
-                            ]}
-                            onPress={() => setTalkingAvatarId(avatar.id)}
+                            style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#ef4444', borderRadius: 12, width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }}
+                            onPress={() => {
+                              const newImages = [...talkingProductImages];
+                              newImages.splice(index, 1);
+                              setTalkingProductImages(newImages);
+                            }}
                           >
-                            <View style={{
-                              width: 50,
-                              height: 50,
-                              borderRadius: 25,
-                              backgroundColor: talkingAvatarId === avatar.id ? '#5b21b6' : '#444',
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                              marginBottom: 6,
-                            }}>
-                              <Icon name="person" size={28} color={talkingAvatarId === avatar.id ? '#fff' : '#aaa'} />
-                            </View>
-                            <Text
-                              style={{
-                                fontSize: 12,
-                                color: talkingAvatarId === avatar.id ? '#fff' : '#ccc',
-                                textAlign: 'center',
-                              }}
-                              numberOfLines={1}
-                            >
-                              {avatar.name}
-                            </Text>
-                            <Text
-                              style={{
-                                fontSize: 10,
-                                color: talkingAvatarId === avatar.id ? '#fff' : '#888',
-                                marginTop: 2,
-                                textAlign: 'center',
-                              }}
-                              numberOfLines={1}
-                            >
-                              {avatar.gender}·{avatar.age}岁
-                            </Text>
+                            <Icon name="close" size={14} color="#fff" />
                           </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    </>
-                  )}
-                </Card>
-
-                {/* ========== 商品信息（可选） ========== */}
-                <Card style={styles.imageCard}>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle}>🛍️ 商品信息（可选）</Text>
-                    <Text style={{ fontSize: 11, color: '#888' }}>不填则为达人口播</Text>
-                  </View>
-                  
-                  <Text style={styles.label}>商品图片（最多5张）</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    {talkingProductImages.map((img, index) => (
-                      <View key={index} style={{ marginRight: 8, position: 'relative' }}>
-                        <Image source={{ uri: URL.createObjectURL(img) }} style={{ width: 80, height: 80, borderRadius: 8 }} />
+                        </View>
+                      ))}
+                      {talkingProductImages.length < 5 && (
                         <TouchableOpacity
-                          style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#ef4444', borderRadius: 12, width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }}
-                          onPress={() => {
-                            const newImages = [...talkingProductImages];
-                            newImages.splice(index, 1);
-                            setTalkingProductImages(newImages);
-                          }}
+                          onPress={pickTalkingProductImage}
+                          style={{ width: 80, height: 80, borderRadius: 8, borderWidth: 1, borderColor: '#ddd', borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center' }}
                         >
-                          <Icon name="close" size={14} color="#fff" />
+                          <Icon name="add" size={32} color="#888" />
                         </TouchableOpacity>
-                      </View>
-                    ))}
-                    {talkingProductImages.length < 5 && (
-                      <TouchableOpacity
-                        onPress={pickTalkingProductImage}
-                        style={{ width: 80, height: 80, borderRadius: 8, borderWidth: 1, borderColor: '#ddd', borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center' }}
-                      >
-                        <Icon name="add" size={32} color="#888" />
-                      </TouchableOpacity>
+                      )}
+                    </ScrollView>
+
+                    <Text style={[styles.label, { marginTop: 12 }]}>商品标题</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="例如：JBL GO 4 便携蓝牙音箱"
+                      placeholderTextColor="#888"
+                      value={talkingGoodsTitle}
+                      onChangeText={setTalkingGoodsTitle}
+                    />
+
+                    <Text style={[styles.label, { marginTop: 12 }]}>商品价格（可选）</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="例如：399元"
+                      placeholderTextColor="#888"
+                      value={talkingGoodsPrice}
+                      onChangeText={setTalkingGoodsPrice}
+                    />
+
+                    <Text style={[styles.label, { marginTop: 12 }]}>目标人群（可选）</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="例如：露营人群"
+                      placeholderTextColor="#888"
+                      value={talkingTargetAudience}
+                      onChangeText={setTalkingTargetAudience}
+                    />
+
+                    <Text style={[styles.label, { marginTop: 12 }]}>商品卖点（可选）</Text>
+                    <TextInput
+                      style={[styles.input, { minHeight: 60 }]}
+                      placeholder="例如：IP67级防尘防水"
+                      placeholderTextColor="#888"
+                      value={talkingSellingPoint}
+                      onChangeText={setTalkingSellingPoint}
+                      multiline
+                    />
+                  </Card>
+
+                  {/* ========== 口播稿 ========== */}
+                  <Card style={styles.promptCard}>
+                    <Text style={styles.cardTitle}>🎙️ 口播稿 *</Text>
+                    <TextInput
+                      style={[styles.promptInput, { minHeight: 120 }]}
+                      value={talkingScript}
+                      onChangeText={setTalkingScript}
+                      placeholder="视频长短取决于文案长短，最长 2000 字，每秒 16 点"
+                      placeholderTextColor="#888"
+                      multiline
+                    />
+                    {talkingScript.length > 0 && (
+                      <Text style={{ fontSize: 11, color: '#7c3aed', marginTop: 4 }}>
+                        {(() => {
+                          const { scriptLength, estimatedSeconds, estimatedCost } = calcTalkingAgentCost(talkingScript);
+                          return `口播稿 ${scriptLength} 字，预估 ${estimatedSeconds} 秒，预扣 ${estimatedCost} 点`;
+                        })()}
+                      </Text>
                     )}
-                  </ScrollView>
+                  </Card>
 
-                  <Text style={[styles.label, { marginTop: 12 }]}>商品标题</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="例如：JBL GO 4 便携蓝牙音箱"
-                    placeholderTextColor="#888"
-                    value={talkingGoodsTitle}
-                    onChangeText={setTalkingGoodsTitle}
-                  />
+                  {/* ========== 视频设置 ========== */}
+                  <Card style={{ padding: 16, backgroundColor: '#1e1e2d', borderRadius: 12, marginBottom: 12 }}>
+                    <Text style={styles.cardTitle}>⚙️ 视频设置</Text>
 
-                  <Text style={[styles.label, { marginTop: 12 }]}>商品价格（可选）</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="例如：399元"
-                    placeholderTextColor="#888"
-                    value={talkingGoodsPrice}
-                    onChangeText={setTalkingGoodsPrice}
-                  />
+                    {/* 第 1 行：分辨率 + 画幅 */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                      <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>分辨率</Text>
+                      {['720p', '1080p'].map(res => (
+                        <TouchableOpacity
+                          key={res}
+                          style={[
+                            styles.durationButton,
+                            talkingResolution === res && styles.durationButtonActive,
+                            { marginRight: 4 }
+                          ]}
+                          onPress={() => setTalkingResolution(res)}
+                        >
+                          <Text style={[
+                            styles.durationText,
+                            talkingResolution === res && styles.durationTextActive
+                          ]}>{res}</Text>
+                        </TouchableOpacity>
+                      ))}
+                      <Text style={{ color: '#fff', fontSize: 13, marginLeft: 16, marginRight: 6 }}>画幅</Text>
+                      {['9:16', '16:9'].map(ratio => (
+                        <TouchableOpacity
+                          key={ratio}
+                          style={[
+                            styles.durationButton,
+                            talkingAspectRatio === ratio && styles.durationButtonActive,
+                            { marginRight: 4 }
+                          ]}
+                          onPress={() => setTalkingAspectRatio(ratio)}
+                        >
+                          <Text style={[
+                            styles.durationText,
+                            talkingAspectRatio === ratio && styles.durationTextActive
+                          ]}>{ratio === '9:16' ? '竖屏 9:16' : '横屏 16:9'}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
 
-                  <Text style={[styles.label, { marginTop: 12 }]}>目标人群（可选）</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="例如：露营人群"
-                    placeholderTextColor="#888"
-                    value={talkingTargetAudience}
-                    onChangeText={setTalkingTargetAudience}
-                  />
+                    {/* 第 2 行：允许系统润色 + 添加背景音乐 */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>允许系统润色口播文案</Text>
+                      <Switch value={talkingAllowPolish} onValueChange={setTalkingAllowPolish} />
+                      <Text style={{ color: '#fff', fontSize: 13, marginLeft: 16, marginRight: 6 }}>添加背景音乐</Text>
+                      <Switch value={talkingBgmEnabled} onValueChange={setTalkingBgmEnabled} />
+                    </View>
+                  </Card>
 
-                  <Text style={[styles.label, { marginTop: 12 }]}>商品卖点（可选）</Text>
-                  <TextInput
-                    style={[styles.input, { minHeight: 60 }]}
-                    placeholder="例如：IP67级防尘防水"
-                    placeholderTextColor="#888"
-                    value={talkingSellingPoint}
-                    onChangeText={setTalkingSellingPoint}
-                    multiline
-                  />
-                </Card>
-
-                {/* ========== 口播稿 ========== */}
-                <Card style={styles.promptCard}>
-                  <Text style={styles.cardTitle}>🎙️ 口播稿 *</Text>
-                  <TextInput
-                    style={[styles.promptInput, { minHeight: 120 }]}
-                    value={talkingScript}
-                    onChangeText={setTalkingScript}
-                    placeholder="视频长短取决于文案长短，最长 2000 字，每秒 16 点"
-                    placeholderTextColor="#888"
-                    multiline
-                  />
-                  {talkingScript.length > 0 && (
-                    <Text style={{ fontSize: 11, color: '#7c3aed', marginTop: 4 }}>
-                      {(() => {
-                        const { scriptLength, estimatedSeconds, estimatedCost } = calcTalkingAgentCost(talkingScript);
-                        return `口播稿 ${scriptLength} 字，预估 ${estimatedSeconds} 秒，预扣 ${estimatedCost} 点`;
-                      })()}
-                    </Text>
-                  )}
-                </Card>
-
-                <Card style={styles.inputCard}>
-                  <Text style={styles.cardTitle}>⚙️ 视频设置</Text>
-
-                  {/* 第 1 行：分辨率 + 画幅 */}
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                    <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>分辨率</Text>
-                    {['720p', '1080p'].map(res => (
-                      <TouchableOpacity
-                        key={res}
-                        style={[
-                          styles.durationButton,
-                          talkingResolution === res && styles.durationButtonActive,
-                          { marginRight: 4 }
-                        ]}
-                        onPress={() => setTalkingResolution(res)}
-                      >
-                        <Text style={[
-                          styles.durationText,
-                          talkingResolution === res && styles.durationTextActive
-                        ]}>{res}</Text>
-                      </TouchableOpacity>
-                    ))}
-                    <Text style={{ color: '#fff', fontSize: 13, marginLeft: 16, marginRight: 6 }}>画幅</Text>
-                    {['9:16', '16:9'].map(ratio => (
-                      <TouchableOpacity
-                        key={ratio}
-                        style={[
-                          styles.durationButton,
-                          talkingAspectRatio === ratio && styles.durationButtonActive,
-                          { marginRight: 4 }
-                        ]}
-                        onPress={() => setTalkingAspectRatio(ratio)}
-                      >
-                        <Text style={[
-                          styles.durationText,
-                          talkingAspectRatio === ratio && styles.durationTextActive
-                        ]}>{ratio === '9:16' ? '竖屏 9:16' : '横屏 16:9'}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-
-                  {/* 第 2 行：允许系统润色 + 添加背景音乐 */}
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>允许系统润色口播文案</Text>
-                    <Switch
-                      value={talkingAllowPolish}
-                      onValueChange={setTalkingAllowPolish}
-                    />
-                    <Text style={{ color: '#fff', fontSize: 13, marginLeft: 16, marginRight: 6 }}>添加背景音乐</Text>
-                    <Switch
-                      value={talkingBgmEnabled}
-                      onValueChange={setTalkingBgmEnabled}
-                    />
-                  </View>
-                </Card>
-
-                {/* ========== 生成按钮 ========== */}
-                <TouchableOpacity
-                  onPress={generateTalkingAgent}
-                  disabled={talkingLoading}
-                  style={styles.generateButton}
-                >
-                  {talkingLoading ? (
-                    <ActivityIndicator color="#fff" size="small" />
-                  ) : (
-                    <Text style={styles.generateText}>
-                      生成口播视频
-                      {talkingScript.length > 0 && `（预扣 ${calcTalkingAgentCost(talkingScript).estimatedCost} 点）`}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </ScrollView>
+                  {/* ========== 生成按钮 ========== */}
+                  <TouchableOpacity
+                    onPress={generateTalkingAgent}
+                    disabled={talkingLoading}
+                    style={styles.generateButton}
+                  >
+                    {talkingLoading ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.generateText}>
+                        生成口播视频
+                        {talkingScript.length > 0 && `（预扣 ${calcTalkingAgentCost(talkingScript).estimatedCost} 点）`}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </ScrollView>
+              </>
             )}
 
             {activeTab === 'multi' && (
