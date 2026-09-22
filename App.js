@@ -2223,35 +2223,21 @@ export default function App() {
 
     // ========== 口播带货：选择人物图 ==========
     const pickTalkingAvatarImage = async () => {
-      // Web / 浏览器：用文件选择器
-      if (typeof window !== 'undefined' && !window.harmonyBridge) {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.onchange = (e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            setTalkingAvatarImage(file);
-          }
-        };
-        input.click();
-        return;
+      if (/android/i.test(navigator.userAgent)) {
+        const choice = await showPhotoPicker();
+        if (choice === 'camera') { takeTalkingAvatarPhoto(); return; }
       }
+      ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
+        if (res.assets && res.assets[0]) {
+          setTalkingAvatarImage(res.assets[0]);
+        }
+      });
+    };
 
-      // 原生 App（Capacitor）：用相机/相册
-      try {
-        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
-        const image = await Camera.getPhoto({
-          resultType: CameraResultType.Uri,
-          source: CameraSource.Prompt,
-          quality: 90,
-        });
-        const response = await fetch(image.webPath);
-        const blob = await response.blob();
-        const file = new File([blob], `talking_avatar_${Date.now()}.jpg`, { type: 'image/jpeg' });
-        setTalkingAvatarImage(file);
-      } catch (e) {
-        console.log('选择图片取消或失败:', e);
+    const takeTalkingAvatarPhoto = async () => {
+      const res = await ImagePicker.launchCameraAsync({ mediaType: 'photo', quality: 0.8 });
+      if (!res.canceled && res.assets && res.assets[0]) {
+        setTalkingAvatarImage(res.assets[0]);
       }
     };
 
@@ -2262,36 +2248,26 @@ export default function App() {
         return;
       }
 
-      // Web / 浏览器：用文件选择器
-      if (typeof window !== 'undefined' && !window.harmonyBridge) {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.multiple = true;
-        input.onchange = (e) => {
-          const files = Array.from(e.target.files || []);
-          const remaining = 5 - talkingProductImages.length;
-          const newFiles = files.slice(0, remaining);
-          setTalkingProductImages([...talkingProductImages, ...newFiles]);
-        };
-        input.click();
-        return;
+      if (/android/i.test(navigator.userAgent)) {
+        const choice = await showPhotoPicker();
+        if (choice === 'camera') { takeTalkingProductPhoto(); return; }
       }
 
-      // 原生 App
-      try {
-        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
-        const image = await Camera.getPhoto({
-          resultType: CameraResultType.Uri,
-          source: CameraSource.Prompt,
-          quality: 90,
-        });
-        const response = await fetch(image.webPath);
-        const blob = await response.blob();
-        const file = new File([blob], `talking_product_${Date.now()}.jpg`, { type: 'image/jpeg' });
-        setTalkingProductImages([...talkingProductImages, file]);
-      } catch (e) {
-        console.log('选择图片取消或失败:', e);
+      ImagePicker.launchImageLibrary(
+        { mediaType: 'photo', quality: 0.8, selectionLimit: 5 - talkingProductImages.length },
+        (res) => {
+          if (res.assets) {
+            const newImages = [...talkingProductImages, ...res.assets].slice(0, 5);
+            setTalkingProductImages(newImages);
+          }
+        }
+      );
+    };
+
+    const takeTalkingProductPhoto = async () => {
+      const res = await ImagePicker.launchCameraAsync({ mediaType: 'photo', quality: 0.8 });
+      if (!res.canceled && res.assets && res.assets[0]) {
+        setTalkingProductImages([...talkingProductImages, res.assets[0]].slice(0, 5));
       }
     };
 
