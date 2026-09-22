@@ -3463,7 +3463,14 @@ export default function App() {
                   {/* ========== 人物来源（上传照片模式） ========== */}
                   {avatarMode === 'upload' && (
                     <Card style={styles.imageCard}>
-                      <Text style={styles.cardTitle}>👤 人物来源</Text>
+                      <View style={styles.cardHeader}>
+                        <Text style={styles.cardTitle}>👤 人物来源</Text>
+                        {talkingAvatarImage && (
+                          <TouchableOpacity onPress={() => setTalkingAvatarImage(null)} style={styles.deleteButton}>
+                            <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
 
                       <View style={{ flexDirection: 'row', marginBottom: 12, gap: 8 }}>
                         <TouchableOpacity
@@ -3490,23 +3497,6 @@ export default function App() {
                             <View style={styles.imageOverlay}>
                               <Text style={styles.overlayText}>点击更换</Text>
                             </View>
-                            <TouchableOpacity
-                              onPress={() => setTalkingAvatarImage(null)}
-                              style={{
-                                position: 'absolute',
-                                top: 8,
-                                right: 8,
-                                backgroundColor: '#ef4444',
-                                borderRadius: 16,
-                                width: 32,
-                                height: 32,
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                zIndex: 10,
-                              }}
-                            >
-                              <Icon name="close" size={20} color="#fff" />
-                            </TouchableOpacity>
                           </View>
                         ) : (
                           <View style={styles.placeholder}>
@@ -3550,10 +3540,21 @@ export default function App() {
                     <Text style={styles.label}>商品图片（最多5张）</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                       {talkingProductImages.map((img, index) => (
-                        <View key={index} style={{ marginRight: 8, position: 'relative' }}>
+                        <View key={index} style={{ marginRight: 8, position: 'relative', width: 80, height: 80 }}>
                           <Image source={{ uri: img.uri }} style={{ width: 80, height: 80, borderRadius: 8 }} />
                           <TouchableOpacity
-                            style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#ef4444', borderRadius: 12, width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }}
+                            style={{
+                              position: 'absolute',
+                              top: 4,
+                              right: 4,
+                              backgroundColor: '#ef4444',
+                              borderRadius: 12,
+                              width: 24,
+                              height: 24,
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              zIndex: 10,
+                            }}
                             onPress={() => {
                               const newImages = [...talkingProductImages];
                               newImages.splice(index, 1);
@@ -3941,7 +3942,15 @@ export default function App() {
 
                   {/* ========== 上传商品图 ========== */}
                   <Card style={styles.imageCard}>
-                    <Text style={styles.cardTitle}>📸 上传商品图</Text>
+                    <View style={styles.cardHeader}>
+                      <Text style={styles.cardTitle}>📸 上传商品图</Text>
+                      {merchantImages.length > 0 && (
+                        <TouchableOpacity onPress={() => setMerchantImages([])} style={styles.deleteButton}>
+                          <Icon name="close-circle-outline" size={24} color="#ef4444" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
                     <TouchableOpacity
                       onPress={() => {
                         const input = document.createElement('input');
@@ -3966,23 +3975,6 @@ export default function App() {
                           <View style={styles.imageOverlay}>
                             <Text style={styles.overlayText}>点击更换</Text>
                           </View>
-                          <TouchableOpacity
-                            onPress={() => setMerchantImages([])}
-                            style={{
-                              position: 'absolute',
-                              top: 8,
-                              right: 8,
-                              backgroundColor: '#ef4444',
-                              borderRadius: 16,
-                              width: 32,
-                              height: 32,
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                              zIndex: 10,
-                            }}
-                          >
-                            <Icon name="close" size={20} color="#fff" />
-                          </TouchableOpacity>
                         </View>
                       ) : (
                         <View style={styles.placeholder}>
