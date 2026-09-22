@@ -2247,15 +2247,16 @@ export default function App() {
 
     // ========== 口播带货：选择人物图 ==========
     const pickTalkingAvatarImage = async () => {
-      if (/android/i.test(navigator.userAgent)) {
-        const choice = await showPhotoPicker();
-        if (choice === 'camera') { takeTalkingAvatarPhoto(); return; }
-      }
-      ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
-        if (res.assets && res.assets[0]) {
-          setTalkingAvatarImage(res.assets[0]);
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          setTalkingAvatarImage(file);
         }
-      });
+      };
+      input.click();
     };
 
     const takeTalkingAvatarPhoto = async () => {
@@ -2272,20 +2273,17 @@ export default function App() {
         return;
       }
 
-      if (/android/i.test(navigator.userAgent)) {
-        const choice = await showPhotoPicker();
-        if (choice === 'camera') { takeTalkingProductPhoto(); return; }
-      }
-
-      ImagePicker.launchImageLibrary(
-        { mediaType: 'photo', quality: 0.8, selectionLimit: 5 - talkingProductImages.length },
-        (res) => {
-          if (res.assets) {
-            const newImages = [...talkingProductImages, ...res.assets].slice(0, 5);
-            setTalkingProductImages(newImages);
-          }
-        }
-      );
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.multiple = true;
+      input.onchange = (e) => {
+        const files = Array.from(e.target.files || []);
+        const remaining = 5 - talkingProductImages.length;
+        const newFiles = files.slice(0, remaining);
+        setTalkingProductImages([...talkingProductImages, ...newFiles]);
+      };
+      input.click();
     };
 
     const takeTalkingProductPhoto = async () => {
@@ -2349,11 +2347,7 @@ export default function App() {
       
       // 人物来源
       if (avatarMode === 'upload' && talkingAvatarImage) {
-        formData.append('avatar_image', {
-          uri: talkingAvatarImage.uri,
-          name: talkingAvatarImage.fileName || 'avatar.jpg',
-          type: talkingAvatarImage.mimeType || 'image/jpeg',
-        });
+        formData.append('avatar_image', talkingAvatarImage);
         formData.append('voice_id', talkingVoiceId);
       } else if (avatarMode === 'preset' && talkingAvatarId) {
         formData.append('avatar_id', talkingAvatarId);
@@ -2362,11 +2356,7 @@ export default function App() {
       // 商品信息
       if (talkingProductImages.length > 0) {
         talkingProductImages.forEach(img => {
-          formData.append('product_images', {
-            uri: img.uri,
-            name: img.fileName || 'product.jpg',
-            type: img.mimeType || 'image/jpeg',
-          });
+          formData.append('product_images', img);
         });
       }
       if (talkingGoodsTitle) formData.append('goods_title', talkingGoodsTitle);
@@ -3491,7 +3481,7 @@ export default function App() {
                         {talkingAvatarImage ? (
                           <View style={{ width: '100%', height: 200, position: 'relative' }}>
                             <Image
-                              source={{ uri: talkingAvatarImage.uri }}
+                              source={{ uri: URL.createObjectURL(talkingAvatarImage) }}
                               style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                             />
                             <View style={styles.imageOverlay}>
@@ -3541,7 +3531,7 @@ export default function App() {
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                       {talkingProductImages.map((img, index) => (
                         <View key={index} style={{ marginRight: 8, position: 'relative', width: 80, height: 80 }}>
-                          <Image source={{ uri: img.uri }} style={{ width: 80, height: 80, borderRadius: 8 }} />
+                          <Image source={{ uri: URL.createObjectURL(img) }} style={{ width: 80, height: 80, borderRadius: 8 }} />
                           <TouchableOpacity
                             style={{
                               position: 'absolute',
@@ -5212,7 +5202,7 @@ export default function App() {
               playsInline
               style={{
                 position: 'absolute',
-                top: 40,
+                top: 0,
                 left: 0,
                 width: '100%',
                 height: '100%',
@@ -5225,7 +5215,7 @@ export default function App() {
             {/* 标题栏 - 左上角 */}
             <View style={{
               position: 'absolute',
-              top: 0,
+              top: 40,
               left: 0,
               right: 0,
               height: 50,
