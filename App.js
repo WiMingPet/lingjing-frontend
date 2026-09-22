@@ -24,7 +24,6 @@ import {
   Switch,
   Platform,
   Linking,
-  FlatList,
 } from 'react-native';
 import * as ImagePicker from 'react-native-image-picker';
 import { NativePurchases, PURCHASE_TYPE } from '@capgo/native-purchases';
@@ -3437,24 +3436,17 @@ export default function App() {
                     </>
                   ) : (
                     <>
-                      <FlatList
-                        horizontal
-                        data={PRESET_AVATAR_IDS}
-                        keyExtractor={(item) => item.id}
-                        showsHorizontalScrollIndicator={true}
-                        nestedScrollEnabled={true}
-                        contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 4 }}
-                        style={{ marginTop: 8 }}
-                        renderItem={({ item: avatar }) => (
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+                        {PRESET_AVATAR_IDS.map(avatar => (
                           <TouchableOpacity
+                            key={avatar.id}
                             style={[
                               {
                                 width: 100,
+                                marginRight: 12,
                                 alignItems: 'center',
-                                paddingVertical: 10,
-                                paddingHorizontal: 6,
-                                marginRight: 8,
-                                borderRadius: 8,
+                                padding: 8,
+                                borderRadius: 12,
                                 backgroundColor: '#2d2d44',
                               },
                               talkingAvatarId === avatar.id && { backgroundColor: '#7c3aed' }
@@ -3477,10 +3469,8 @@ export default function App() {
                                 fontSize: 12,
                                 color: talkingAvatarId === avatar.id ? '#fff' : '#ccc',
                                 textAlign: 'center',
-                                width: '100%',
                               }}
                               numberOfLines={1}
-                              ellipsizeMode="tail"
                             >
                               {avatar.name}
                             </Text>
@@ -3490,15 +3480,14 @@ export default function App() {
                                 color: talkingAvatarId === avatar.id ? '#fff' : '#888',
                                 marginTop: 2,
                                 textAlign: 'center',
-                                width: '100%',
                               }}
                               numberOfLines={1}
                             >
                               {avatar.gender}·{avatar.age}岁
                             </Text>
                           </TouchableOpacity>
-                        )}
-                      />
+                        ))}
+                      </ScrollView>
                     </>
                   )}
                 </Card>
@@ -3600,7 +3589,7 @@ export default function App() {
                   <Text style={styles.cardTitle}>⚙️ 视频设置</Text>
 
                   {/* 第 1 行：分辨率 + 画幅 */}
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
                     <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>分辨率</Text>
                     {['720p', '1080p'].map(res => (
                       <TouchableOpacity
