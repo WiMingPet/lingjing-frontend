@@ -2325,7 +2325,11 @@ export default function App() {
       
       // 人物来源
       if (avatarMode === 'upload' && talkingAvatarImage) {
-        formData.append('avatar_image', talkingAvatarImage);
+        formData.append('avatar_image', {
+          uri: talkingAvatarImage.uri,
+          name: talkingAvatarImage.fileName || 'avatar.jpg',
+          type: talkingAvatarImage.mimeType || 'image/jpeg',
+        });
         formData.append('voice_id', talkingVoiceId);
       } else if (avatarMode === 'preset' && talkingAvatarId) {
         formData.append('avatar_id', talkingAvatarId);
@@ -2334,7 +2338,11 @@ export default function App() {
       // 商品信息
       if (talkingProductImages.length > 0) {
         talkingProductImages.forEach(img => {
-          formData.append('product_images', img);
+          formData.append('product_images', {
+            uri: img.uri,
+            name: img.fileName || 'product.jpg',
+            type: img.mimeType || 'image/jpeg',
+          });
         });
       }
       if (talkingGoodsTitle) formData.append('goods_title', talkingGoodsTitle);
@@ -3452,7 +3460,7 @@ export default function App() {
                         {talkingAvatarImage ? (
                           <View style={{ width: '100%', height: 200, position: 'relative' }}>
                             <Image
-                              source={{ uri: URL.createObjectURL(talkingAvatarImage) }}
+                              source={{ uri: talkingAvatarImage.uri }}
                               style={{ width: '100%', height: 200, resizeMode: 'contain' }}
                             />
                             <View style={styles.imageOverlay}>
@@ -3502,7 +3510,7 @@ export default function App() {
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                       {talkingProductImages.map((img, index) => (
                         <View key={index} style={{ marginRight: 8, position: 'relative' }}>
-                          <Image source={{ uri: URL.createObjectURL(img) }} style={{ width: 80, height: 80, borderRadius: 8 }} />
+                          <Image source={{ uri: img.uri }} style={{ width: 80, height: 80, borderRadius: 8 }} />
                           <TouchableOpacity
                             style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#ef4444', borderRadius: 12, width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }}
                             onPress={() => {
