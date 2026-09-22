@@ -3466,6 +3466,23 @@ export default function App() {
                             <View style={styles.imageOverlay}>
                               <Text style={styles.overlayText}>点击更换</Text>
                             </View>
+                            <TouchableOpacity
+                              onPress={() => setTalkingAvatarImage(null)}
+                              style={{
+                                position: 'absolute',
+                                top: 8,
+                                right: 8,
+                                backgroundColor: '#ef4444',
+                                borderRadius: 16,
+                                width: 32,
+                                height: 32,
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                zIndex: 10,
+                              }}
+                            >
+                              <Icon name="close" size={20} color="#fff" />
+                            </TouchableOpacity>
                           </View>
                         ) : (
                           <View style={styles.placeholder}>
@@ -3895,9 +3912,7 @@ export default function App() {
                   <View style={styles.profileHeaderBar}>
                     <View style={{ width: 40 }} />
                     <Text style={styles.headerTitle}>📦 电商商品套图</Text>
-                    <TouchableOpacity onPress={() => setActiveTab('profile')} style={styles.menuButton}>
-                      <Icon name="close-outline" size={24} color="#fff" />
-                    </TouchableOpacity>
+                    <View style={{ width: 40 }} />
                   </View>
 
                   {/* ========== 上传商品图 ========== */}
@@ -3927,6 +3942,23 @@ export default function App() {
                           <View style={styles.imageOverlay}>
                             <Text style={styles.overlayText}>点击更换</Text>
                           </View>
+                          <TouchableOpacity
+                            onPress={() => setMerchantImages([])}
+                            style={{
+                              position: 'absolute',
+                              top: 8,
+                              right: 8,
+                              backgroundColor: '#ef4444',
+                              borderRadius: 16,
+                              width: 32,
+                              height: 32,
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              zIndex: 10,
+                            }}
+                          >
+                            <Icon name="close" size={20} color="#fff" />
+                          </TouchableOpacity>
                         </View>
                       ) : (
                         <View style={styles.placeholder}>
