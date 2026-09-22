@@ -3436,17 +3436,16 @@ export default function App() {
                     </>
                   ) : (
                     <>
-                      <ScrollView
+                      <FlatList
                         horizontal
+                        data={PRESET_AVATAR_IDS}
+                        keyExtractor={(item) => item.id}
                         showsHorizontalScrollIndicator={true}
                         nestedScrollEnabled={true}
-                        keyboardShouldPersistTaps="handled"
                         contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 4 }}
                         style={{ marginTop: 8 }}
-                      >
-                        {PRESET_AVATAR_IDS.map(avatar => (
+                        renderItem={({ item: avatar }) => (
                           <TouchableOpacity
-                            key={avatar.id}
                             style={[
                               {
                                 width: 100,
@@ -3497,8 +3496,8 @@ export default function App() {
                               {avatar.gender}·{avatar.age}岁
                             </Text>
                           </TouchableOpacity>
-                        ))}
-                      </ScrollView>
+                        )}
+                      />
                     </>
                   )}
                 </Card>
@@ -3596,64 +3595,67 @@ export default function App() {
                   )}
                 </Card>
 
-                {/* ========== 视频设置 ========== */}
                 <Card style={styles.inputCard}>
                   <Text style={styles.cardTitle}>⚙️ 视频设置</Text>
-                  
-                  <Text style={styles.label}>分辨率</Text>
-                  <View style={{ flexDirection: 'row', marginBottom: 12 }}>
-                    {['720p', '1080p'].map(res => (
-                      <TouchableOpacity
-                        key={res}
-                        style={[
-                          styles.durationButton,
-                          talkingResolution === res && styles.durationButtonActive
-                        ]}
-                        onPress={() => setTalkingResolution(res)}
-                      >
-                        <Text style={[
-                          styles.durationText,
-                          talkingResolution === res && styles.durationTextActive
-                        ]}>{res}</Text>
-                      </TouchableOpacity>
-                    ))}
+
+                  {/* 第 1 行：分辨率 + 画幅 */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>分辨率</Text>
+                      {['720p', '1080p'].map(res => (
+                        <TouchableOpacity
+                          key={res}
+                          style={[
+                            styles.durationButton,
+                            talkingResolution === res && styles.durationButtonActive,
+                            { marginRight: 4 }
+                          ]}
+                          onPress={() => setTalkingResolution(res)}
+                        >
+                          <Text style={[
+                            styles.durationText,
+                            talkingResolution === res && styles.durationTextActive
+                          ]}>{res}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>画幅</Text>
+                      {['9:16', '16:9'].map(ratio => (
+                        <TouchableOpacity
+                          key={ratio}
+                          style={[
+                            styles.durationButton,
+                            talkingAspectRatio === ratio && styles.durationButtonActive,
+                            { marginRight: 4 }
+                          ]}
+                          onPress={() => setTalkingAspectRatio(ratio)}
+                        >
+                          <Text style={[
+                            styles.durationText,
+                            talkingAspectRatio === ratio && styles.durationTextActive
+                          ]}>{ratio === '9:16' ? '竖屏 9:16' : '横屏 16:9'}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                   </View>
 
-                  <Text style={styles.label}>画幅</Text>
-                  <View style={{ flexDirection: 'row', marginBottom: 12 }}>
-                    {['9:16', '16:9'].map(ratio => (
-                      <TouchableOpacity
-                        key={ratio}
-                        style={[
-                          styles.durationButton,
-                          talkingAspectRatio === ratio && styles.durationButtonActive
-                        ]}
-                        onPress={() => setTalkingAspectRatio(ratio)}
-                      >
-                        <Text style={[
-                          styles.durationText,
-                          talkingAspectRatio === ratio && styles.durationTextActive
-                        ]}>{ratio === '9:16' ? '竖屏 9:16' : '横屏 16:9'}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Text style={{ color: '#fff', fontSize: 13 }}>允许系统润色口播文案</Text>
+                  {/* 第 2 行：允许系统润色 + 添加背景音乐 */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>允许系统润色口播文案</Text>
                       <Switch
                         value={talkingAllowPolish}
                         onValueChange={setTalkingAllowPolish}
-                        style={{ marginLeft: 6 }}
                       />
                     </View>
 
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Text style={{ color: '#fff', fontSize: 13 }}>添加背景音乐</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>添加背景音乐</Text>
                       <Switch
                         value={talkingBgmEnabled}
                         onValueChange={setTalkingBgmEnabled}
-                        style={{ marginLeft: 6 }}
                       />
                     </View>
                   </View>
