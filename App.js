@@ -24,6 +24,7 @@ import {
   Switch,
   Platform,
   Linking,
+  FlatList,
 } from 'react-native';
 import * as ImagePicker from 'react-native-image-picker';
 import { NativePurchases, PURCHASE_TYPE } from '@capgo/native-purchases';
@@ -3599,65 +3600,55 @@ export default function App() {
                   <Text style={styles.cardTitle}>⚙️ 视频设置</Text>
 
                   {/* 第 1 行：分辨率 + 画幅 */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                      <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>分辨率</Text>
-                      {['720p', '1080p'].map(res => (
-                        <TouchableOpacity
-                          key={res}
-                          style={[
-                            styles.durationButton,
-                            talkingResolution === res && styles.durationButtonActive,
-                            { marginRight: 4 }
-                          ]}
-                          onPress={() => setTalkingResolution(res)}
-                        >
-                          <Text style={[
-                            styles.durationText,
-                            talkingResolution === res && styles.durationTextActive
-                          ]}>{res}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                      <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>画幅</Text>
-                      {['9:16', '16:9'].map(ratio => (
-                        <TouchableOpacity
-                          key={ratio}
-                          style={[
-                            styles.durationButton,
-                            talkingAspectRatio === ratio && styles.durationButtonActive,
-                            { marginRight: 4 }
-                          ]}
-                          onPress={() => setTalkingAspectRatio(ratio)}
-                        >
-                          <Text style={[
-                            styles.durationText,
-                            talkingAspectRatio === ratio && styles.durationTextActive
-                          ]}>{ratio === '9:16' ? '竖屏 9:16' : '横屏 16:9'}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                    <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>分辨率</Text>
+                    {['720p', '1080p'].map(res => (
+                      <TouchableOpacity
+                        key={res}
+                        style={[
+                          styles.durationButton,
+                          talkingResolution === res && styles.durationButtonActive,
+                          { marginRight: 4 }
+                        ]}
+                        onPress={() => setTalkingResolution(res)}
+                      >
+                        <Text style={[
+                          styles.durationText,
+                          talkingResolution === res && styles.durationTextActive
+                        ]}>{res}</Text>
+                      </TouchableOpacity>
+                    ))}
+                    <Text style={{ color: '#fff', fontSize: 13, marginLeft: 16, marginRight: 6 }}>画幅</Text>
+                    {['9:16', '16:9'].map(ratio => (
+                      <TouchableOpacity
+                        key={ratio}
+                        style={[
+                          styles.durationButton,
+                          talkingAspectRatio === ratio && styles.durationButtonActive,
+                          { marginRight: 4 }
+                        ]}
+                        onPress={() => setTalkingAspectRatio(ratio)}
+                      >
+                        <Text style={[
+                          styles.durationText,
+                          talkingAspectRatio === ratio && styles.durationTextActive
+                        ]}>{ratio === '9:16' ? '竖屏 9:16' : '横屏 16:9'}</Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
 
                   {/* 第 2 行：允许系统润色 + 添加背景音乐 */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                      <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>允许系统润色口播文案</Text>
-                      <Switch
-                        value={talkingAllowPolish}
-                        onValueChange={setTalkingAllowPolish}
-                      />
-                    </View>
-
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                      <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>添加背景音乐</Text>
-                      <Switch
-                        value={talkingBgmEnabled}
-                        onValueChange={setTalkingBgmEnabled}
-                      />
-                    </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>允许系统润色口播文案</Text>
+                    <Switch
+                      value={talkingAllowPolish}
+                      onValueChange={setTalkingAllowPolish}
+                    />
+                    <Text style={{ color: '#fff', fontSize: 13, marginLeft: 16, marginRight: 6 }}>添加背景音乐</Text>
+                    <Switch
+                      value={talkingBgmEnabled}
+                      onValueChange={setTalkingBgmEnabled}
+                    />
                   </View>
                 </Card>
 
