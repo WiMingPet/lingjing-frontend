@@ -296,10 +296,10 @@ export default function App() {
   const [resetPassword, setResetPassword] = useState('');
   const [resetCountdown, setResetCountdown] = useState(0);
   const [rechargePackages, setRechargePackages] = useState([
-    { id: 1, name: '小试牛刀', credits: 100, price: 9.9, discount: 0 },
-    { id: 2, name: '进阶创作', credits: 350, price: 29.9, discount: 20, bonus: 20 },
-    { id: 3, name: '专业玩家', credits: 900, price: 69.9, discount: 100, bonus: 100 },
-    { id: 4, name: '商业大师', credits: 2000, price: 149.9, discount: 300, bonus: 300 },
+    { id: 1, name: '小试牛刀', credits: 100, price: 9.9, iosPrice: 12, discount: 0 },
+    { id: 2, name: '进阶创作', credits: 370, price: 29.9, iosPrice: 38, discount: 20, bonus: 20 },
+    { id: 3, name: '专业玩家', credits: 1000, price: 69.9, iosPrice: 78, discount: 100, bonus: 100 },
+    { id: 4, name: '商业大师', credits: 2300, price: 149.9, iosPrice: 168, discount: 300, bonus: 300 },
   ]);
 
   // 注册三步流程状态
@@ -5017,11 +5017,13 @@ export default function App() {
                   <TouchableOpacity key={pkg.id} style={styles.rechargeItem} onPress={() => handleRecharge(pkg)}>
                     <View style={styles.rechargeItemLeft}>
                       <Text style={styles.rechargeItemName}>{pkg.name}</Text>
-                      <Text style={styles.rechargeItemCredits}>{pkg.credits} 灵境点</Text>
+                      <Text style={styles.rechargeItemCredits}>{pkg.credits - (pkg.bonus || 0)} 灵境点</Text>
                       {pkg.bonus && <Text style={styles.rechargeItemBonus}>赠送 {pkg.bonus} 点</Text>}
                     </View>
                     <View style={styles.rechargeItemRight}>
-                      <Text style={styles.rechargeItemPrice}>¥{pkg.price}</Text>
+                      <Text style={styles.rechargeItemPrice}>
+                        ¥{(navigator.platform.indexOf('iPhone') !== -1 || navigator.platform.indexOf('iPad') !== -1) && pkg.iosPrice ? pkg.iosPrice : pkg.price}
+                      </Text>
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -5210,7 +5212,7 @@ export default function App() {
               playsInline
               style={{
                 position: 'absolute',
-                top: 0,
+                top: 40,
                 left: 0,
                 width: '100%',
                 height: '100%',
@@ -5261,7 +5263,7 @@ export default function App() {
         <Modal visible={modalVisible} transparent={true} animationType="fade">
           <View style={{ width: '100%', height: '100%', backgroundColor: '#000' }}>
             <TouchableOpacity 
-              style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, padding: 12 }}
+              style={{ position: 'absolute', top: 60, right: 16, zIndex: 10, padding: 12 }}
               onPress={() => setModalVisible(false)}
             >
               <Icon name="close" size={40} color="#fff" />
