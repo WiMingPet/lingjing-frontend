@@ -451,7 +451,31 @@ export default function App() {
     setPrompt('');
     setHeight('170');
     setResult(null);
-    
+
+    // 口播带货：切走时清空
+    if (activeTab !== 'digital_custom') {
+      setTalkingAvatarImage(null);
+      setTalkingProductImages([]);
+      setTalkingAvatarId('');
+      setTalkingVoiceId('male_calm_informative');
+      setTalkingGoodsTitle('');
+      setTalkingGoodsPrice('');
+      setTalkingTargetAudience('');
+      setTalkingSellingPoint('');
+      setTalkingScript('');
+      setTalkingAllowPolish(false);
+      setTalkingBgmEnabled(false);
+      setTalkingResolution('720p');
+      setTalkingAspectRatio('9:16');
+      setAvatarMode('upload');
+    }
+
+    // 电商套图：切走时清空
+    if (activeTab !== 'merchant') {
+      setMerchantImages([]);
+      setSuiteResult(null);
+    }
+
     // 切换任何模块都停止音色
     if (soundRef.current) {
       try {
