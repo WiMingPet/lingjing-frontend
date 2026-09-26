@@ -39,6 +39,13 @@ const SCALE = isSmallScreen ? 0.72 : 1;
 const S = (n) => n * SCALE;
 const API_URL = 'https://api.lingjing-media.com/api';
 const HISTORY_KEY = 'lingjing_image_history'; 
+const SUITE_PRICES = {
+  white_bg: 10,
+  scene: 15,
+  premium_aplus: 50,
+  standard_aplus: 30,
+  phone_aplus: 20,
+};
 
 const Card = ({ children, style }) => (
   <View style={[styles.card, style]}>{children}</View>
@@ -184,16 +191,17 @@ export default function App() {
 
   // ========== 电商套图新状态 ==========
   const [suiteType, setSuiteType] = useState('scene');
+  const [suiteCount, setSuiteCount] = useState(2);
   const [suiteSellingPoints, setSuiteSellingPoints] = useState('');
   const [suiteUsage, setSuiteUsage] = useState('');
   const [suiteRegion, setSuiteRegion] = useState('');
   const [suitePlatform, setSuitePlatform] = useState('');
-  const [suiteSceneCount, setSuiteSceneCount] = useState(4);
+  
   const [suiteAnalysis, setSuiteAnalysis] = useState(null);
   const [suiteResult, setSuiteResult] = useState(null);
   const [suiteLoading, setSuiteLoading] = useState(false);
   const [merchantImages, setMerchantImages] = useState([]);
-  const [suiteAplusCount, setSuiteAplusCount] = useState(2);
+ 
   const [downloadModalVisible, setDownloadModalVisible] = useState(false);
   const [downloadTarget, setDownloadTarget] = useState({ url: '', index: 0 });
   // ====================================
@@ -1471,12 +1479,14 @@ export default function App() {
       }
       
       // 计算预估费用
-      const costMap = { 
-          white_bg: 10, 
-          scene: 15 * suiteSceneCount, 
-          aplus: 50 * suiteAplusCount   // ← 乘以数量
+      const SUITE_PRICES = {
+        white_bg: 10,
+        scene: 15,
+        premium_aplus: 50,
+        standard_aplus: 30,
+        phone_aplus: 20,
       };
-      const estimatedCost = costMap[suiteType] || 10;
+      const estimatedCost = suiteType === 'white_bg' ? 10 : (SUITE_PRICES[suiteType] || 10) * suiteCount;
       
       if (userCredits < estimatedCost) {
         showToast(`需要 ${estimatedCost} 点，余额不足`);
@@ -1495,12 +1505,11 @@ export default function App() {
         const safeFile = new File([file], `merchant_${Date.now()}.jpg`, { type: file.type || 'image/jpeg' });
         formData.append('image', safeFile);
         formData.append('suite_type', suiteType);
+        formData.append('count', suiteType === 'white_bg' ? 1 : suiteCount);
         formData.append('selling_points', suiteSellingPoints);
         formData.append('usage', suiteUsage);
         formData.append('region', suiteRegion);
         formData.append('platform', suitePlatform);
-        formData.append('scene_count', suiteSceneCount);
-        formData.append('aplus_count', suiteAplusCount);
         
         const token = localStorage.getItem('access_token');
         const res = await axios.post(`${API_URL}/merchant/generate_suite`, formData, {
@@ -2444,120 +2453,120 @@ export default function App() {
   // ==============================================
 
   // 通用后台轮询：完成后自动保存历史记录
-    const startPollingTask = (taskId, type, queryUrl, onComplete) => {
+  const startPollingTask = (taskId, type, queryUrl, onComplete) => {
       // 持久化任务信息
       localStorage.setItem('pending_task', JSON.stringify({ taskId, type, queryUrl }));
-      
+
       let attempts = 0;
-      const maxAttempts = 60;
-      
+      const maxAttempts = 180;   // ★ 从 60 改成 180
+
       // ========== 轮询间隔：根据 type 调整 ==========
       const getInterval = () => {
-        if (type === '图片生成') return 3000;
-        if (type === '虚拟试穿') return 3000;
-        if (type === '多角度试穿') return 5000;
-        if (type === '视频生成') return 5000;
-        if (type === '数字人分身') return 5000;
-        if (type === '口播带货') return 5000;
-        if (type === '电商商品套图') return 8000;
-        return 5000;
+          if (type === '图片生成') return 3000;
+          if (type === '虚拟试穿') return 3000;
+          if (type === '多角度试穿') return 5000;
+          if (type === '视频生成') return 5000;
+          if (type === '数字人分身') return 5000;
+          if (type === '口播带货') return 5000;
+          if (type === '电商商品套图') return 8000;
+          return 5000;
       };
       // ============================================
-      
+
       if (pollingRef.current) clearInterval(pollingRef.current);
-      
+
       pollingRef.current = setInterval(async () => {
-        attempts++;
-        try {
-          const token = localStorage.getItem('access_token');
-          if (!token) { 
-            clearInterval(pollingRef.current); 
-            localStorage.removeItem('pending_task');
-            if (onComplete) onComplete(null, 'no_token');
-            setIsGenerating(false); 
-            return; 
+          attempts++;
+          try {
+              const token = localStorage.getItem('access_token');
+              if (!token) {
+                  clearInterval(pollingRef.current);
+                  localStorage.removeItem('pending_task');
+                  if (onComplete) onComplete(null, 'no_token');
+                  setIsGenerating(false);
+                  return;
+              }
+
+              const statusRes = await axios.get(queryUrl, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+              });
+              console.log('轮询返回:', JSON.stringify(statusRes.data));
+              const task = statusRes.data.data;
+              if (!task) return;
+
+              if (task.status === 'completed') {
+                  clearInterval(pollingRef.current);
+                  localStorage.removeItem('pending_task');
+
+                  if (onComplete) {
+                      onComplete(task, 'completed');
+                  }
+
+                  setIsGenerating(false);
+
+                  const videoUrl = task.video_url || task.output_data?.video_url;
+
+                  if (type === '图片生成') {
+                      if (task.output_data?.images?.length > 0) {
+                          setResult({ images: task.output_data.images });
+                      }
+                  } else if (type === '视频生成') {
+                      if (videoUrl) {
+                          setResult({ video_url: videoUrl });
+                      }
+                  } else if (type === '虚拟试穿' || type === '多角度试穿') {
+                      if (videoUrl) {
+                          setResult({ video_url: videoUrl });
+                      }
+                  } else if (type === '数字人分身') {
+                      if (videoUrl) {
+                          setResult({ video_url: videoUrl });
+                      }
+                  } else if (type === '口播带货') {
+                      if (videoUrl) {
+                          setResult({ video_url: videoUrl });
+                      }
+                  }
+
+                  showToast(`🎉 ${type}生成成功！`);
+                  await loadHistory();
+                  return;   // ★ 加 return
+              } else if (task.status === 'failed') {
+                  clearInterval(pollingRef.current);
+                  localStorage.removeItem('pending_task');
+                  if (onComplete) {
+                      onComplete(task, 'failed');
+                  }
+                  setIsGenerating(false);
+                  showToast(`${type}生成失败: ${task.message || '请重试'}`, true);
+                  return;   // ★ 加 return
+              }
+
+              // ★ 只有"还在处理中"时，才判断超时
+              if (attempts >= maxAttempts) {
+                  clearInterval(pollingRef.current);
+                  localStorage.removeItem('pending_task');
+                  if (onComplete) onComplete(null, 'timeout');
+                  setIsGenerating(false);
+                  showToast('生成超时，请稍后在历史记录中查看', true);
+              }
+          } catch (err) {
+              console.error('轮询错误:', err);
+              if (attempts >= maxAttempts) {
+                  clearInterval(pollingRef.current);
+                  localStorage.removeItem('pending_task');
+                  if (onComplete) onComplete(null, 'error');
+                  setIsGenerating(false);
+              }
           }
-          
-          const statusRes = await axios.get(queryUrl, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          console.log('轮询返回:', JSON.stringify(statusRes.data));
-          const task = statusRes.data.data;
-          if (!task) return;
-          
-          if (task.status === 'completed') {
-            clearInterval(pollingRef.current);
-            localStorage.removeItem('pending_task');
-            
-            // 调用完成回调
-            if (onComplete) {
-              onComplete(task, 'completed');
-            }
-            
-            setIsGenerating(false);
-            
-            // 根据 type 处理结果
-            const videoUrl = task.video_url || task.output_data?.video_url;
-            const thumbnail = task.thumbnail || null;
-            
-            if (type === '图片生成') {
-              if (task.output_data?.images?.length > 0) {
-                setResult({ images: task.output_data.images });
-              }
-            } else if (type === '视频生成') {
-              if (videoUrl) {
-                setResult({ video_url: videoUrl });
-              }
-            } else if (type === '虚拟试穿' || type === '多角度试穿') {
-              if (videoUrl) {
-                setResult({ video_url: videoUrl });
-              }
-            } else if (type === '数字人分身') {
-              if (videoUrl) {
-                setResult({ video_url: videoUrl });
-              }
-            } else if (type === '口播带货') {
-              if (videoUrl) {
-                setResult({ video_url: videoUrl });
-              }
-            }
-            
-            showToast(`🎉 ${type}生成成功！`);
-            await loadHistory();
-          } else if (task.status === 'failed') {
-            clearInterval(pollingRef.current);
-            localStorage.removeItem('pending_task');
-            if (onComplete) {
-              onComplete(task, 'failed');
-            }
-            setIsGenerating(false);
-            showToast(`${type}生成失败: ${task.message || '请重试'}`, true);
-          }
-          
-          if (attempts >= maxAttempts) {
-            clearInterval(pollingRef.current);
-            localStorage.removeItem('pending_task');
-            if (onComplete) onComplete(null, 'timeout');
-            setIsGenerating(false);
-            showToast('生成超时，请稍后在历史记录中查看', true);
-          }
-        } catch (err) {
-          console.error('轮询错误:', err);
-          if (attempts >= maxAttempts) {
-            clearInterval(pollingRef.current);
-            localStorage.removeItem('pending_task');
-            if (onComplete) onComplete(null, 'error');
-            setIsGenerating(false);
-          }
-        }
       }, getInterval());
 
       return () => {
-        if (pollingRef.current) {
-          clearInterval(pollingRef.current);
-        }
+          if (pollingRef.current) {
+              clearInterval(pollingRef.current);
+          }
       };
-    };
+  };
 
   const generateMultiAngle = async () => {
       const consented = await checkAIPrivacyConsent();
@@ -4056,7 +4065,7 @@ export default function App() {
                             height: S(50),
                             width: '100%',
                           }}
-                          placeholder="美国、日本"
+                          placeholder="不填默认为中文"
                           placeholderTextColor="#888"
                           value={suiteRegion}
                           onChangeText={setSuiteRegion}
@@ -4126,25 +4135,57 @@ export default function App() {
                       <TouchableOpacity
                         style={[
                           styles.durationButton,
-                          suiteType === 'aplus' && styles.durationButtonActive
+                          suiteType === 'premium_aplus' && styles.durationButtonActive
                         ]}
-                        onPress={() => setSuiteType('aplus')}
+                        onPress={() => setSuiteType('premium_aplus')}
                       >
                         <Text style={[
                           styles.durationText,
-                          suiteType === 'aplus' && styles.durationTextActive
-                        ]}>A+图</Text>
-                        <Text style={{ fontSize: 10, color: suiteType === 'aplus' ? '#fff' : '#888', marginTop: 2 }}>
-                          50点
+                          suiteType === 'premium_aplus' && styles.durationTextActive
+                        ]}>高级A+</Text>
+                        <Text style={{ fontSize: 10, color: suiteType === 'premium_aplus' ? '#fff' : '#888', marginTop: 2 }}>
+                          50点/张
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.durationButton,
+                          suiteType === 'standard_aplus' && styles.durationButtonActive
+                        ]}
+                        onPress={() => setSuiteType('standard_aplus')}
+                      >
+                        <Text style={[
+                          styles.durationText,
+                          suiteType === 'standard_aplus' && styles.durationTextActive
+                        ]}>标准A+</Text>
+                        <Text style={{ fontSize: 10, color: suiteType === 'standard_aplus' ? '#fff' : '#888', marginTop: 2 }}>
+                          30点/张
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.durationButton,
+                          suiteType === 'phone_aplus' && styles.durationButtonActive
+                        ]}
+                        onPress={() => setSuiteType('phone_aplus')}
+                      >
+                        <Text style={[
+                          styles.durationText,
+                          suiteType === 'phone_aplus' && styles.durationTextActive
+                        ]}>手机A+</Text>
+                        <Text style={{ fontSize: 10, color: suiteType === 'phone_aplus' ? '#fff' : '#888', marginTop: 2 }}>
+                          20点/张
                         </Text>
                       </TouchableOpacity>
                     </View>
 
-                    {/* 场景数量 */}
-                    {suiteType === 'scene' && (
+                    {/* 生成数量（白底图固定1张，不显示）*/}
+                    {suiteType !== 'white_bg' && (
                       <View style={{ marginTop: 12 }}>
                         <Text style={{ color: '#fff', fontSize: S(14), fontWeight: 'bold', marginBottom: S(8) }}>
-                          场景数量
+                          生成数量
                         </Text>
                         <View style={{ flexDirection: 'row', gap: 8 }}>
                           {[2, 4, 6].map(n => (
@@ -4152,39 +4193,13 @@ export default function App() {
                               key={n}
                               style={[
                                 styles.durationButton,
-                                suiteSceneCount === n && styles.durationButtonActive
+                                suiteCount === n && styles.durationButtonActive
                               ]}
-                              onPress={() => setSuiteSceneCount(n)}
+                              onPress={() => setSuiteCount(n)}
                             >
                               <Text style={[
                                 styles.durationText,
-                                suiteSceneCount === n && styles.durationTextActive
-                              ]}>{n}张</Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      </View>
-                    )}
-
-                    {/* A+图数量 - 移到这里，Card 内 */}
-                    {suiteType === 'aplus' && (
-                      <View style={{ marginTop: 12 }}>
-                        <Text style={{ color: '#fff', fontSize: S(14), fontWeight: 'bold', marginBottom: S(8) }}>
-                          A+图数量
-                        </Text>
-                        <View style={{ flexDirection: 'row', gap: 8 }}>
-                          {[2, 4, 6].map(n => (
-                            <TouchableOpacity
-                              key={n}
-                              style={[
-                                styles.durationButton,
-                                suiteAplusCount === n && styles.durationButtonActive
-                              ]}
-                              onPress={() => setSuiteAplusCount(n)}
-                            >
-                              <Text style={[
-                                styles.durationText,
-                                suiteAplusCount === n && styles.durationTextActive
+                                suiteCount === n && styles.durationTextActive
                               ]}>{n}张</Text>
                             </TouchableOpacity>
                           ))}
@@ -4195,7 +4210,7 @@ export default function App() {
 
                   {/* ========== 费用提示 ========== */}
                   <Text style={{ color: '#f59e0b', fontSize: 13, textAlign: 'center', marginBottom: 8 }}>
-                    预计消耗：{suiteType === 'white_bg' ? '10' : suiteType === 'scene' ? suiteSceneCount * 15 : suiteAplusCount * 50} 灵境点
+                    预计消耗：{suiteType === 'white_bg' ? 10 : (SUITE_PRICES[suiteType] || 10) * suiteCount} 灵境点
                   </Text>
 
                   {/* ========== 生成按钮 ========== */}
