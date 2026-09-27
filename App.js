@@ -41,10 +41,10 @@ const API_URL = 'https://api.lingjing-media.com/api';
 const HISTORY_KEY = 'lingjing_image_history'; 
 const SUITE_PRICES = {
   white_bg: 10,
-  scene: 15,
-  premium_aplus: 50,
-  standard_aplus: 30,
-  phone_aplus: 20,
+  scene: 10,
+  premium_aplus: 15,
+  standard_aplus: 15,
+  phone_aplus: 15,
 };
 
 const Card = ({ children, style }) => (
@@ -1481,10 +1481,10 @@ export default function App() {
       // 计算预估费用
       const SUITE_PRICES = {
         white_bg: 10,
-        scene: 15,
-        premium_aplus: 50,
-        standard_aplus: 30,
-        phone_aplus: 20,
+        scene: 10,
+        premium_aplus: 15,
+        standard_aplus: 15,
+        phone_aplus: 15,
       };
       const estimatedCost = suiteType === 'white_bg' ? 10 : (SUITE_PRICES[suiteType] || 10) * suiteCount;
       
@@ -4386,6 +4386,9 @@ export default function App() {
                         style={styles.historyDownloadBtn}
                         onPress={async (e) => {
                           e.stopPropagation();
+                          if (!window.harmonyBridge?.saveFile) {
+                              showToast('正在下载，请稍后...');
+                          }
 
                           // ========== 电商商品套图下载（新增） ==========  
                           if (item.type === '电商商品套图') {
