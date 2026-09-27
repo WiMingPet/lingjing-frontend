@@ -4112,7 +4112,7 @@ export default function App() {
                           suiteType === 'white_bg' && styles.durationTextActive
                         ]}>白底图</Text>
                         <Text style={{ fontSize: 10, color: suiteType === 'white_bg' ? '#fff' : '#888', marginTop: 2 }}>
-                          10点
+                          {SUITE_PRICES.white_bg}点
                         </Text>
                       </TouchableOpacity>
 
@@ -4128,7 +4128,7 @@ export default function App() {
                           suiteType === 'scene' && styles.durationTextActive
                         ]}>场景图</Text>
                         <Text style={{ fontSize: 10, color: suiteType === 'scene' ? '#fff' : '#888', marginTop: 2 }}>
-                          15点/张
+                          {SUITE_PRICES.scene}点/张
                         </Text>
                       </TouchableOpacity>
 
@@ -4144,7 +4144,7 @@ export default function App() {
                           suiteType === 'premium_aplus' && styles.durationTextActive
                         ]}>高级A+</Text>
                         <Text style={{ fontSize: 10, color: suiteType === 'premium_aplus' ? '#fff' : '#888', marginTop: 2 }}>
-                          50点/张
+                          {SUITE_PRICES.premium_aplus}点/张
                         </Text>
                       </TouchableOpacity>
 
@@ -4160,7 +4160,7 @@ export default function App() {
                           suiteType === 'standard_aplus' && styles.durationTextActive
                         ]}>标准A+</Text>
                         <Text style={{ fontSize: 10, color: suiteType === 'standard_aplus' ? '#fff' : '#888', marginTop: 2 }}>
-                          30点/张
+                          {SUITE_PRICES.standard_aplus}点/张
                         </Text>
                       </TouchableOpacity>
 
@@ -4176,7 +4176,7 @@ export default function App() {
                           suiteType === 'phone_aplus' && styles.durationTextActive
                         ]}>手机A+</Text>
                         <Text style={{ fontSize: 10, color: suiteType === 'phone_aplus' ? '#fff' : '#888', marginTop: 2 }}>
-                          20点/张
+                          {SUITE_PRICES.phone_aplus}点/张
                         </Text>
                       </TouchableOpacity>
                     </View>
