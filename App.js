@@ -41,10 +41,17 @@ const API_URL = 'https://api.lingjing-media.com/api';
 const HISTORY_KEY = 'lingjing_image_history'; 
 const SUITE_PRICES = {
   white_bg: 10,
-  scene: 10,
-  premium_aplus: 15,
-  standard_aplus: 15,
-  phone_aplus: 15,
+  scene: 15,
+  premium_aplus: 50,
+  standard_aplus: 30,
+  phone_aplus: 20,
+};
+
+const HUIHUA_PRICES = {
+  '720-10': 180,
+  '720-15': 260,
+  '1080-10': 200,
+  '1080-15': 300,
 };
 
 const Card = ({ children, style }) => (
@@ -77,38 +84,6 @@ const extractUrl = (text) => {
   };
 
 
-  // ========== 可灵预设形象（口播带货用） ==========
-  const PRESET_AVATAR_IDS = [
-    { id: 'avatar_vivian_female', name: 'Vivian（佳佳）', gender: '女', age: 23 },
-    { id: 'avatar_lee_male', name: 'Lee（李阳）', gender: '男', age: 28 },
-    { id: 'avatar_chenjing_female', name: '陈静', gender: '女', age: 30 },
-    { id: 'avatar_zhaochen_male', name: '赵晨', gender: '男', age: 25 },
-    { id: 'avatar_wanglei_male', name: '王磊', gender: '男', age: 45 },
-    { id: 'avatar_eva_female', name: 'Eva', gender: '女', age: 18 },
-    { id: 'avatar_oliver_male', name: 'Oliver', gender: '男', age: 30 },
-    { id: 'avatar_elena_female', name: 'Elena', gender: '女', age: 30 },
-    { id: 'avatar_adam_male', name: 'Adam', gender: '男', age: 25 },
-    { id: 'avatar_anna_female', name: 'Anna', gender: '女', age: 25 },
-    { id: 'avatar_rajput_male', name: 'Rajput', gender: '男', age: 40 },
-    { id: 'avatar_mia_female', name: 'Mia', gender: '女', age: 28 },
-    { id: 'avatar_river_male', name: 'River', gender: '男', age: 27 },
-    { id: 'avatar_marcus_male', name: 'Marcus', gender: '男', age: 35 },
-    { id: 'avatar_toto_cartoon', name: 'Toto（卡通）', gender: '男', age: 15 },
-  ];
-
-    // ========== 可灵预设音色（口播带货用） ==========
-    const TALKING_VOICE_OPTIONS = [
-      { id: 'male_calm_informative', name: '男声·沉稳科普' },
-      { id: 'female_clear_rational', name: '女声·理性讲解' },
-      { id: 'female_gentle_soothing', name: '女声·温柔治愈' },
-      { id: 'female_bright_engaging', name: '女声·明亮带货' },
-      { id: 'male_crisp_persuasive', name: '男声·利落种草' },
-      { id: 'female_intelligent_narrative', name: '女声·知性叙事' },
-      { id: 'male_clear_professional', name: '男声·清朗主持' },
-      { id: 'male_energetic_sporty', name: '男声·清爽竞技' },
-      { id: 'female_warm_rich', name: '女声·醇厚分享' },
-    ];
-
     // ========== 口播带货价格 ==========
     const TALKING_AGENT_COST_PER_SECOND = 16;
     const TALKING_AGENT_MIN_SECONDS = 5;
@@ -125,6 +100,256 @@ const extractUrl = (text) => {
       return { scriptLength, estimatedSeconds, estimatedCost };
     };
 
+    const HomePage = ({ onNavigate, onCaseClick, onOpenTemplates, onImagePreview, onVideoPlay }) => {
+      const [cases, setCases] = useState([]);
+
+      useEffect(() => {
+        const fetchCases = async () => {
+          try {
+            const res = await axios.get(`${API_URL}/cases?is_case=true`);
+            setCases(res.data.data || []);
+          } catch (e) {
+            console.error('案例加载失败:', e);
+          }
+        };
+        fetchCases();
+      }, []);
+
+      // 视频 / 图片 分开
+      const videoCases = cases.filter(c =>
+        c.result_url && /\.(mp4|mov)$/i.test(c.result_url)
+      );
+      const imageCases = cases.filter(c =>
+        c.result_url && /\.(png|jpe?g)$/i.test(c.result_url)
+      );
+
+      // 热门案例（视频）
+      const aiVideo = videoCases
+        .filter(c => c.section === 'ai_video')
+        .sort((a, b) => a.position - b.position);
+      const bigCard = aiVideo[0];
+      const smallCard1 = aiVideo[1];
+      const smallCard2 = aiVideo[2];
+      const row2Cards = aiVideo.slice(3, 6);
+
+      // 更多案例（图片）
+      const aiFun = imageCases
+        .filter(c => c.section === 'ai_fun')
+        .sort((a, b) => a.position - b.position);
+      const funCards = aiFun.slice(0, 6);
+
+      const SimpleCard = ({ item, style, imageStyle }) => {
+        if (!item) return <View style={[style, { backgroundColor: '#1a1a1a' }]} />;
+        return (
+          <TouchableOpacity
+            style={style}
+            onPress={() => onVideoPlay ? onVideoPlay(item) : onCaseClick(item)}
+          >
+            <Image source={{ uri: item.thumbnail }} style={imageStyle} />
+            <View style={styles.cardAIBadge}>
+              <Text style={styles.cardAIBadgeText}>AI</Text>
+            </View>
+            <View style={styles.cardLabelWrap}>
+              <Text style={styles.cardLabel} numberOfLines={1}>{item.title}</Text>
+            </View>
+          </TouchableOpacity>
+        );
+      };
+
+      return (
+        <View style={styles.homeContainer}>
+          {/* Banner */}
+          <View style={styles.bannerRow}>
+            <TouchableOpacity style={styles.bannerCard} onPress={() => onNavigate('ai_drama')}>
+              <Text style={styles.bannerTitle}>AI剧场</Text>
+              <Text style={styles.bannerSubtitle}>真人短剧 · 动漫短剧</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.bannerCard} onPress={() => onNavigate('digital_custom')}>
+              <Text style={styles.bannerTitle}>口播带货</Text>
+              <Text style={styles.bannerSubtitle}>AI 自动生成口播</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* 🔥 热门案例 */}
+          <TouchableOpacity
+            style={styles.sectionHeader}
+            onPress={() => onOpenTemplates && onOpenTemplates('video')}
+          >
+            <Text style={styles.sectionTitle}>🔥 热门案例</Text>
+            <Icon name="chevron-forward" size={20} color="#888" />
+          </TouchableOpacity>
+
+          {/* 大卡 + 2 小卡 */}
+          <View style={styles.row1}>
+            <TouchableOpacity
+              style={styles.bigCard}
+              onPress={() => bigCard && onVideoPlay && onVideoPlay(bigCard)}
+            >
+              {bigCard?.preview_video ? (
+                <Video
+                  source={{ uri: bigCard.preview_video }}
+                  style={styles.bigCardImage}
+                  shouldPlay
+                  isLooping
+                  isMuted
+                  useNativeControls={false}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Image source={{ uri: bigCard?.thumbnail }} style={styles.bigCardImage} />
+              )}
+              <View style={styles.cardAIBadge}>
+                <Text style={styles.cardAIBadgeText}>AI</Text>
+              </View>
+              <View style={styles.cardLabelWrap}>
+                <Text style={styles.cardLabel} numberOfLines={1}>{bigCard?.title}</Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.smallColumn}>
+              <SimpleCard item={smallCard1} style={styles.smallCard} imageStyle={styles.smallCardImage} />
+              <SimpleCard item={smallCard2} style={styles.smallCard} imageStyle={styles.smallCardImage} />
+            </View>
+          </View>
+
+          {/* 三卡 */}
+          <View style={styles.row3}>
+            {row2Cards.map((item, i) => (
+              <SimpleCard key={item.id || i} item={item} style={styles.thirdCard} imageStyle={styles.thirdCardImage} />
+            ))}
+          </View>
+
+          {/* 图片案例（点击预览） */}
+          {funCards.length > 0 && (
+            <>
+              <View style={styles.row3}>
+                {funCards.slice(0, 3).map((item, i) => (
+                  <TouchableOpacity
+                    key={item.id || i}
+                    style={styles.thirdCard}
+                    onPress={() => onImagePreview && onImagePreview(item)}
+                  >
+                    <Image source={{ uri: item.thumbnail }} style={styles.thirdCardImage} />
+                    <View style={styles.cardAIBadge}>
+                      <Text style={styles.cardAIBadgeText}>AI</Text>
+                    </View>
+                    <View style={styles.cardLabelWrap}>
+                      <Text style={styles.cardLabel} numberOfLines={1}>{item.title}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {funCards.length > 3 && (
+                <View style={styles.row3}>
+                  {funCards.slice(3, 6).map((item, i) => (
+                    <TouchableOpacity
+                      key={item.id || i}
+                      style={styles.thirdCard}
+                      onPress={() => onImagePreview && onImagePreview(item)}
+                    >
+                      <Image source={{ uri: item.thumbnail }} style={styles.thirdCardImage} />
+                      <View style={styles.cardAIBadge}>
+                        <Text style={styles.cardAIBadgeText}>AI</Text>
+                      </View>
+                      <View style={styles.cardLabelWrap}>
+                        <Text style={styles.cardLabel} numberOfLines={1}>{item.title}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
+        </View>
+      );
+    };
+
+    // 模块名映射
+    const getModuleLabel = (module) => {
+      const map = {
+        image: '图片生成',
+        video: '视频生成',
+        tryon: '虚拟试穿',
+        ai_drama: 'AI剧场',
+        digital_custom: '口播带货',
+        merchant: '电商套图',
+      };
+      return map[module] || module;
+    };
+
+    const TemplateLibrary = ({ type = 'video', onClose, onVideoPlay }) => {
+      const [templates, setTemplates] = useState([]);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        const fetchTemplates = async () => {
+          try {
+            const res = await axios.get(`${API_URL}/cases?is_case=true`);
+            const all = res.data.data || [];
+            const filtered = all.filter(c => {
+              if (!c.result_url) return false;
+              if (type === 'video') return /\.(mp4|mov)$/i.test(c.result_url);
+              if (type === 'image') return /\.(png|jpe?g)$/i.test(c.result_url);
+              return true;
+            });
+            setTemplates(filtered);
+          } catch (e) {
+            console.error('模板加载失败:', e);
+          } finally {
+            setLoading(false);
+          }
+        };
+        fetchTemplates();
+      }, [type]);
+
+      return (
+        <View style={styles.tplContainer}>
+          {/* 顶部栏 */}
+          <View style={styles.tplHeader}>
+            <TouchableOpacity onPress={onClose} style={styles.tplBackBtn}>
+              <Icon name="arrow-back" size={24} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.tplTitle}>
+              {type === 'video' ? '视频模板' : '图片模板'}
+            </Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          {/* 网格 */}
+          <ScrollView contentContainerStyle={styles.tplContent}>
+            {loading ? (
+              <ActivityIndicator size="large" color="#7c3aed" style={{ marginTop: 60 }} />
+            ) : templates.length === 0 ? (
+              <Text style={{ color: '#888', textAlign: 'center', marginTop: 60 }}>
+                暂无模板
+              </Text>
+            ) : (
+              <View style={styles.tplGrid}>
+                {templates.map(item => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.tplCard}
+                    onPress={() => onVideoPlay && onVideoPlay(item)}   /* ★ 点击弹播放 */
+                  >
+                    <View style={styles.tplThumbWrap}>
+                      <Image source={{ uri: item.thumbnail }} style={styles.tplThumb} />
+                      <View style={styles.tplPlayIcon}>
+                        <Icon name="play-circle" size={40} color="#fff" />
+                      </View>
+                    </View>
+                    <Text style={styles.tplCardTitle} numberOfLines={1}>{item.title}</Text>
+                    <Text style={styles.tplCardModule} numberOfLines={1}>
+                      {getModuleLabel(item.module)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      );
+    };
 
 export default function App() {
   // 注入全局样式，禁止移动端浏览器自动缩放字体
@@ -188,6 +413,13 @@ export default function App() {
   const [videoModalVisible, setVideoModalVisible] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
   const fullscreenVideoRef = useRef(null);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templateType, setTemplateType] = useState('video');
+  const [caseModalVisible, setCaseModalVisible] = useState(false);
+  const [caseVideoUrl, setCaseVideoUrl] = useState('');
+  const [caseItem, setCaseItem] = useState(null);
+  const skipResetRef = useRef(false);
+
 
   // ========== 电商套图新状态 ==========
   const [suiteType, setSuiteType] = useState('scene');
@@ -205,24 +437,32 @@ export default function App() {
   const [downloadModalVisible, setDownloadModalVisible] = useState(false);
   const [downloadTarget, setDownloadTarget] = useState({ url: '', index: 0 });
   // ====================================
-  // ========== 口播带货状态 ==========
-  const [avatarMode, setAvatarMode] = useState('upload'); // 'upload' 或 'preset'
-  const [talkingAvatarImage, setTalkingAvatarImage] = useState(null);
-  const [talkingAvatarId, setTalkingAvatarId] = useState('');
-  const [talkingVoiceId, setTalkingVoiceId] = useState('male_calm_informative');
-  const [talkingProductImages, setTalkingProductImages] = useState([]);
-  const [talkingGoodsTitle, setTalkingGoodsTitle] = useState('');
-  const [talkingGoodsPrice, setTalkingGoodsPrice] = useState('');
-  const [talkingTargetAudience, setTalkingTargetAudience] = useState('');
-  const [talkingSellingPoint, setTalkingSellingPoint] = useState('');
-  const [talkingScript, setTalkingScript] = useState('');
-  const [talkingResolution, setTalkingResolution] = useState('720p');
-  const [talkingAspectRatio, setTalkingAspectRatio] = useState('9:16');
-  const [talkingAllowPolish, setTalkingAllowPolish] = useState(false);
-  const [talkingBgmEnabled, setTalkingBgmEnabled] = useState(false);
+  // ========== 口播带货状态（绘蛙版）==========
+  const [talkingProductImages, setTalkingProductImages] = useState([]);       // 商品图 1~4 张
+  const [talkingItemDescription, setTalkingItemDescription] = useState('');   // 商品描述
+  const [talkingRatio, setTalkingRatio] = useState('16:9');                   // 比例
+  const [talkingResolution, setTalkingResolution] = useState('720');          // 分辨率 720/1080
+  const [talkingLanguage, setTalkingLanguage] = useState('zh');               // 语言
+  const [talkingEnableVoiceover, setTalkingEnableVoiceover] = useState(true); // 口播
+  const [talkingEnableSubtitle, setTalkingEnableSubtitle] = useState(true);   // 字幕
+  const [talkingDuration, setTalkingDuration] = useState(15);                 // 时长 10/15
+
   const [talkingLoading, setTalkingLoading] = useState(false);
-  const [talkingEstimatedInfo, setTalkingEstimatedInfo] = useState(null); // 预估信息
-  // ===================================
+
+
+  // AI 剧场
+  const [aiDramaMode, setAiDramaMode] = useState('real');
+  const [aiDramaTheme, setAiDramaTheme] = useState('');
+  const [aiDramaDuration, setAiDramaDuration] = useState(1);
+  const [aiDramaStyle, setAiDramaStyle] = useState('古风');
+  const [aiDramaLoading, setAiDramaLoading] = useState(false);
+  const [aiDramaResult, setAiDramaResult] = useState(null);
+  const [aiDramaImages, setAiDramaImages] = useState([]);
+  const [aiDramaLanguage, setAiDramaLanguage] = useState('zh');
+
+
+  // 更多
+  const [moreSubTab, setMoreSubTab] = useState(null);
 
   // 形象预览视频 Modal 状态
   const [previewVideoVisible, setPreviewVideoVisible] = useState(false);
@@ -240,10 +480,10 @@ export default function App() {
   const [parsingLoading, setParsingLoading] = useState(false);
   const [multiLoading, setMultiLoading] = useState(false);
   const [result, setResult] = useState(null);
-  const [activeTab, setActiveTab] = useState('image');
+  const [activeTab, setActiveTab] = useState('home');
   const [history, setHistory] = useState([]);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [prompt, setPrompt] = useState('');
@@ -421,12 +661,41 @@ export default function App() {
   };
 
   useEffect(() => {
-    // 恢复未完成的轮询任务
-    const pending = localStorage.getItem('pending_task');
-    if (pending) {
-      const { taskId, type, queryUrl } = JSON.parse(pending);
-      startPollingTask(taskId, type, queryUrl);
-    }
+      // 恢复未完成的轮询任务
+      const pending = localStorage.getItem('pending_task');
+      if (pending) {
+        const { taskId, type, queryUrl } = JSON.parse(pending);
+
+        // ★ 补上 onComplete，按 type 恢复对应状态
+        startPollingTask(
+          taskId,
+          type,
+          queryUrl,
+          async (task, status) => {
+            if (type === 'AI短剧') {
+              if (status === 'completed') {
+                setAiDramaResult({
+                  video_url: task.video_url || task.output_data?.video_url,
+                  thumbnail: task.output_data?.thumbnail,
+                });
+                showToast('短剧生成成功');
+                await loadHistory();
+              } else if (status === 'failed') {
+                const errMsg = task?.error_message || task?.message || '';
+                if (errMsg.includes('余额') || errMsg.toLowerCase().includes('balance')) {
+                  showToast('生成失败（服务端余额不足），已退款', true);
+                } else {
+                  showToast('短剧生成失败，已退款', true);
+                }
+              } else if (status === 'timeout') {
+                showToast('任务超时，生成失败，退款已处理', true);
+              }
+            }
+            // 其他 type 如果也有恢复需求，在这里加
+          }
+        );
+      }
+        
         
     // 初始化音频模式
     Audio.setAudioModeAsync({
@@ -456,26 +725,26 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    // ★ 如果是从"一键同款"跳过来的，跳过这次清空
+    if (skipResetRef.current) {
+      skipResetRef.current = false;
+      return;
+    }
+
     setPrompt('');
     setHeight('170');
     setResult(null);
 
     // 口播带货：切走时清空
     if (activeTab !== 'digital_custom') {
-      setTalkingAvatarImage(null);
       setTalkingProductImages([]);
-      setTalkingAvatarId('');
-      setTalkingVoiceId('male_calm_informative');
-      setTalkingGoodsTitle('');
-      setTalkingGoodsPrice('');
-      setTalkingTargetAudience('');
-      setTalkingSellingPoint('');
-      setTalkingScript('');
-      setTalkingAllowPolish(false);
-      setTalkingBgmEnabled(false);
-      setTalkingResolution('720p');
-      setTalkingAspectRatio('9:16');
-      setAvatarMode('upload');
+      setTalkingItemDescription('');
+      setTalkingRatio('16:9');
+      setTalkingResolution('720');
+      setTalkingLanguage('zh');
+      setTalkingEnableVoiceover(true);
+      setTalkingEnableSubtitle(true);
+      setTalkingDuration(15);
     }
 
     // 电商套图：切走时清空
@@ -1481,10 +1750,10 @@ export default function App() {
       // 计算预估费用
       const SUITE_PRICES = {
         white_bg: 10,
-        scene: 10,
-        premium_aplus: 15,
-        standard_aplus: 15,
-        phone_aplus: 15,
+        scene: 15,
+        premium_aplus: 50,
+        standard_aplus: 30,
+        phone_aplus: 20,
       };
       const estimatedCost = suiteType === 'white_bg' ? 10 : (SUITE_PRICES[suiteType] || 10) * suiteCount;
       
@@ -1923,50 +2192,57 @@ export default function App() {
   // ==============================
 
   const generateVideo = async () => {
-      const consented = await checkAIPrivacyConsent();
-      if (!consented) return;
-      const isVerified = await checkPhoneVerified();
-      if (!isVerified) {
-        showToast('根据法规要求，使用AI功能前需完成手机号认证');
-        setShowLoginModal(true);
-        return;
-      }
-      
-      const cost = getVideoPrice();
-      if (cost === 0) {
-        showToast('请选择有效的视频参数', true);
-        return;
-      }
-      
-      if (userCredits < cost) {
-        showToast(`余额不足，需要${cost}点`);
-        setShowRechargeModal(true);
-        return;
-      }
-      
-      if (!selectedImage) return showToast('请先选择一张图片');
-      setVideoLoading(true);
-      setIsGenerating(true);
-      setGeneratingTitle('AI正在生成视频');
-      setGeneratingSubtitle(
-        videoModel === '3.0' && videoSound === 'native' 
-          ? '3.0增强版 有声视频生成中' 
-          : videoModel === '3.0' 
-            ? '3.0增强版 无声视频生成中' 
-            : '2.6基础版 无声视频生成中'
-      );
-    
-      const formData = new FormData();
+    const consented = await checkAIPrivacyConsent();
+    if (!consented) return;
+    const isVerified = await checkPhoneVerified();
+    if (!isVerified) {
+      showToast('根据法规要求，使用AI功能前需完成手机号认证');
+      setShowLoginModal(true);
+      return;
+    }
+
+    const cost = getVideoPrice();
+    if (cost === 0) {
+      showToast('请选择有效的视频参数', true);
+      return;
+    }
+
+    if (userCredits < cost) {
+      showToast(`余额不足，需要${cost}点`);
+      setShowRechargeModal(true);
+      return;
+    }
+
+    // ★ 改成：无图必须有提示词
+    if (!selectedImage && !prompt.trim()) {
+      return showToast('无参考图则为图生视频');
+    }
+
+    setVideoLoading(true);
+    setIsGenerating(true);
+    setGeneratingTitle('AI正在生成视频');
+    setGeneratingSubtitle(
+      videoModel === '3.0' && videoSound === 'native'
+        ? '3.0增强版 有声视频生成中'
+        : videoModel === '3.0'
+          ? '3.0增强版 无声视频生成中'
+          : '2.6基础版 无声视频生成中'
+    );
+
+    const formData = new FormData();
+    // ★ 有图才传 image
+    if (selectedImage) {
       const file = await convertToFile(selectedImage);
       const ext = file.name?.split('.').pop() || 'jpg';
       const safeFile = new File([file], `video_${Date.now()}.${ext}`, { type: file.type });
       formData.append('image', safeFile);
-      formData.append('prompt', prompt || '生成动态视频');
-      formData.append('duration', duration.toString());
-      formData.append('mode', 'std');
-      formData.append('model', videoModel);
-      formData.append('sound', videoSound);
-      formData.append('credits', cost.toString());
+    }
+    formData.append('prompt', prompt || '');
+    formData.append('duration', duration.toString());
+    formData.append('mode', 'std');
+    formData.append('model', videoModel);
+    formData.append('sound', videoSound);
+    formData.append('credits', cost.toString());
 
       try {
         const token = localStorage.getItem('access_token');
@@ -2137,6 +2413,133 @@ export default function App() {
       }
     };
 
+  const pickAiDramaImage = async () => {
+    if (aiDramaImages.length >= 10) {
+      showToast('最多上传 10 张', true);
+      return;
+    }
+    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
+      if (res.assets?.[0]) {
+        setAiDramaImages([...aiDramaImages, res.assets[0]]);
+      }
+    });
+  };
+
+  const takeAiDramaPhoto = async () => {
+    if (aiDramaImages.length >= 10) {
+      showToast('最多上传 10 张', true);
+      return;
+    }
+    try {
+      const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+      const image = await Camera.getPhoto({
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Camera,
+        quality: 90,
+      });
+      setAiDramaImages([...aiDramaImages, { uri: image.webPath }]);
+    } catch (e) {
+      showToast('拍照失败', true);
+    }
+  };
+
+  const generateAiDrama = async (mode) => {
+    const consented = await checkAIPrivacyConsent();
+    if (!consented) return;
+    const isVerified = await checkPhoneVerified();
+    if (!isVerified) {
+      showToast('根据法规要求，使用AI功能前需完成手机号认证');
+      setShowLoginModal(true);
+      return;
+    }
+
+    if (!aiDramaTheme.trim()) {
+      showToast('请输入主题 / 提示词', true);
+      return;
+    }
+
+    setAiDramaLoading(true);
+    setIsGenerating(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('mode', mode);
+      formData.append('theme', aiDramaTheme);
+      formData.append('duration', aiDramaDuration);
+      formData.append('language', aiDramaLanguage); 
+
+
+      // ★ 上传参考图（如果有）
+      if (aiDramaImages.length > 0) {
+        for (let i = 0; i < aiDramaImages.length; i++) {
+          const file = await convertToFile(aiDramaImages[i]);
+          const safeFile = new File(
+            [file],
+            `ref_${i + 1}.${file.name.split('.').pop() || 'jpg'}`,
+            { type: file.type }
+          );
+          formData.append('reference_images', safeFile);
+        }
+      }
+
+      const token = localStorage.getItem('access_token');
+      const res = await axios.post(`${API_URL}/short-drama/generate`, formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (res.data.code === 200) {
+        if (res.data.data.async) {
+          const taskId = res.data.data.task_id;
+          const cost = res.data.data.cost || 0;
+          showToast(`AI短剧预计生成30分钟，请稍后查看（${cost} 点）`);
+
+          fetchUserCredits();
+          startPollingTask(
+            taskId,
+            'AI短剧',
+            `${API_URL}/short-drama/task/${taskId}`,
+            async (task, status) => {
+              setAiDramaLoading(false);
+              setIsGenerating(false);
+              if (status === 'completed') {
+                setAiDramaResult({
+                  video_url: task.output_data?.video_url,
+                  thumbnail: task.output_data?.thumbnail,
+                });
+                showToast('短剧生成成功');
+                fetchUserCredits();
+                await loadHistory(); 
+              } else if (status === 'failed') {
+                const errMsg = task?.error_message || task?.message || '';
+                if (errMsg.includes('余额') || errMsg.toLowerCase().includes('balance')) {
+                  showToast('生成失败（服务端余额不足），已退款', true);
+                } else if (errMsg.includes('超时') || errMsg.toLowerCase().includes('timeout')) {
+                  showToast('任务超时，生成失败，退款已处理', true);
+                } else {
+                  showToast('短剧生成失败，已退款', true);
+                }
+                fetchUserCredits();
+              }
+            }
+          );
+          return;
+        }
+      } else {
+        showToast(res.data.message || '生成失败', true);
+        setAiDramaLoading(false);
+        setIsGenerating(false);
+      }
+    } catch (e) {
+      console.error('短剧生成失败:', e);
+      showToast(e.message || '生成失败', true);
+      setAiDramaLoading(false);
+      setIsGenerating(false);
+    }
+  };
+
   const generateDigitalHuman = async () => {
       const consented = await checkAIPrivacyConsent();
       if (!consented) return;
@@ -2254,19 +2657,6 @@ export default function App() {
       }
     };
 
-    // ========== 口播带货：选择人物图 ==========
-    const pickTalkingAvatarImage = async () => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = (e) => {
-        const file = e.target.files?.[0];
-        if (file) {
-          setTalkingAvatarImage(file);
-        }
-      };
-      input.click();
-    };
 
     const takeTalkingAvatarPhoto = async () => {
       const res = await ImagePicker.launchCameraAsync({ mediaType: 'photo', quality: 0.8 });
@@ -2312,127 +2702,93 @@ export default function App() {
       setShowLoginModal(true);
       return;
     }
-    
+
     // ========== 参数验证 ==========
-    if (avatarMode === 'upload' && !talkingAvatarImage) {
-      return showToast('请上传人物照片');
+    if (talkingProductImages.length === 0) {
+      return showToast('请上传商品图（至少 1 张）');
     }
-    if (avatarMode === 'preset' && !talkingAvatarId) {
-      return showToast('请选择预设形象');
+    if (talkingProductImages.length > 4) {
+      return showToast('商品图最多 4 张');
     }
-    if (!talkingScript.trim()) {
-      return showToast('请填写口播稿');
+    if (talkingItemDescription.length > 3000) {
+      return showToast('商品描述不超过 3000 字');
     }
-    
-    // 有商品信息时，必须上传商品图和标题
-    const hasProduct = talkingProductImages.length > 0 || talkingGoodsTitle || talkingGoodsPrice || talkingTargetAudience || talkingSellingPoint;
-    if (hasProduct) {
-      if (talkingProductImages.length === 0) {
-        return showToast('请上传商品图（至少 1 张）');
-      }
-      if (!talkingGoodsTitle.trim()) {
-        return showToast('请填写商品标题');
-      }
+
+    // ========== 扣费检查 ==========
+    const cost = HUIHUA_PRICES[`${talkingResolution}-${talkingDuration}`];
+    if (!cost) {
+      return showToast('无效的分辨率或时长', true);
     }
-    
-    // ========== 计算预估 ==========
-    const { scriptLength, estimatedSeconds, estimatedCost } = calcTalkingAgentCost(talkingScript);
-    setTalkingEstimatedInfo({ scriptLength, estimatedSeconds, estimatedCost });
-    
-    // 检查余额
-    if (userCredits < estimatedCost) {
-      showToast(`口播稿 ${scriptLength} 字，预估 ${estimatedSeconds} 秒，需要 ${estimatedCost} 点，当前余额 ${userCredits} 点`);
+    if (userCredits < cost) {
+      showToast(`需要 ${cost} 点，当前余额 ${userCredits} 点`);
       setShowRechargeModal(true);
       return;
     }
-    
+
     setTalkingLoading(true);
     setIsGenerating(true);
     setGeneratingTitle('AI正在生成口播视频');
-    setGeneratingSubtitle(`口播稿 ${scriptLength} 字，预估 ${estimatedSeconds} 秒`);
-    
+    setGeneratingSubtitle('绘蛙生成中，预计 10~15 分钟');
+
     try {
       const formData = new FormData();
-      
-      // 人物来源
-      if (avatarMode === 'upload' && talkingAvatarImage) {
-        formData.append('avatar_image', talkingAvatarImage);
-        formData.append('voice_id', talkingVoiceId);
-      } else if (avatarMode === 'preset' && talkingAvatarId) {
-        formData.append('avatar_id', talkingAvatarId);
-      }
-      
-      // 商品信息
-      if (talkingProductImages.length > 0) {
-        talkingProductImages.forEach(img => {
-          formData.append('product_images', img);
-        });
-      }
-      if (talkingGoodsTitle) formData.append('goods_title', talkingGoodsTitle);
-      if (talkingGoodsPrice) formData.append('goods_price', talkingGoodsPrice);
-      if (talkingTargetAudience) formData.append('target_audience', talkingTargetAudience);
-      if (talkingSellingPoint) formData.append('selling_point', talkingSellingPoint);
-      
-      // 口播稿
-      formData.append('script', talkingScript);
-      
-      // 设置
+
+      // 商品图（1~4 张）
+      talkingProductImages.forEach((img) => {
+        formData.append('product_images', img);
+      });
+
+      formData.append('item_description', talkingItemDescription);
+      formData.append('ratio', talkingRatio);
       formData.append('resolution', talkingResolution);
-      formData.append('aspect_ratio', talkingAspectRatio);
-      formData.append('allow_polish', talkingAllowPolish.toString());
-      formData.append('bgm_enabled', talkingBgmEnabled.toString());
-      
+      formData.append('output_language', talkingLanguage);
+      formData.append('enable_voiceover', talkingEnableVoiceover.toString());
+      formData.append('enable_subtitle', talkingEnableSubtitle.toString());
+      formData.append('duration', talkingDuration.toString());
+
       const token = localStorage.getItem('access_token');
       const response = await fetch(`${API_URL}/talking-agent/generate`, {
         method: 'POST',
         headers: { 'Authorization': token ? `Bearer ${token}` : undefined },
         body: formData,
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || '生成失败');
       }
-      
+
       const res = await response.json();
       console.log('口播带货响应:', res);
-      
-      // ========== 异步模式 ==========
+
+      // 异步模式
       if (res.data?.async === true) {
         const taskId = res.data.task_id;
-        showToast(`口播稿 ${scriptLength} 字，预估 ${estimatedSeconds} 秒，已预扣 ${estimatedCost} 点`);
-        
+        showToast(`已提交，预扣 ${cost} 点，预计 10~15 分钟完成`);
+        fetchUserCredits();
+
         startPollingTask(
           taskId,
           '口播带货',
           `${API_URL}/talking-agent/task/${taskId}`,
           (task, status) => {
             setTalkingLoading(false);
+            setIsGenerating(false);
             if (status === 'completed') {
               const videoUrl = task?.output_data?.video_url;
-              const duration = task?.output_data?.duration;
-              const actualCost = task?.output_data?.actual_cost;
-              const refund = task?.output_data?.refund;
-              
-              if (videoUrl) {
-                setResult({ video_url: videoUrl });
-              }
-              
-              // 通知用户实际费用
-              showToast(
-                `口播视频生成成功\n实际时长：${duration}秒\n实际费用：${actualCost}点` +
-                (refund > 0 ? `\n退款：${refund}点` : '')
-              );
-              
-              // 更新余额
+              if (videoUrl) setResult({ video_url: videoUrl });
+              showToast('口播视频生成成功');
+              fetchUserCredits();
+              loadHistory();
+            } else if (status === 'failed') {
+              showToast('口播视频生成失败，已退款', true);
               fetchUserCredits();
             }
           }
         );
         return;
       }
-      // ==========================
-      
+
       // 同步模式
       const videoUrl = res.data?.video_url;
       if (videoUrl) {
@@ -2458,7 +2814,7 @@ export default function App() {
       localStorage.setItem('pending_task', JSON.stringify({ taskId, type, queryUrl }));
 
       let attempts = 0;
-      const maxAttempts = 180;   // ★ 从 60 改成 180
+      const maxAttempts = 360;
 
       // ========== 轮询间隔：根据 type 调整 ==========
       const getInterval = () => {
@@ -2469,6 +2825,7 @@ export default function App() {
           if (type === '数字人分身') return 5000;
           if (type === '口播带货') return 5000;
           if (type === '电商商品套图') return 8000;
+          if (type === 'AI短剧') return 10000;
           return 5000;
       };
       // ============================================
@@ -2504,6 +2861,9 @@ export default function App() {
 
                   setIsGenerating(false);
 
+                  // ★ 无条件刷新余额（不依赖 onComplete）
+                  fetchUserCredits();
+
                   const videoUrl = task.video_url || task.output_data?.video_url;
 
                   if (type === '图片生成') {
@@ -2530,7 +2890,7 @@ export default function App() {
 
                   showToast(`🎉 ${type}生成成功！`);
                   await loadHistory();
-                  return;   // ★ 加 return
+                  return;
               } else if (task.status === 'failed') {
                   clearInterval(pollingRef.current);
                   localStorage.removeItem('pending_task');
@@ -2538,8 +2898,12 @@ export default function App() {
                       onComplete(task, 'failed');
                   }
                   setIsGenerating(false);
+
+                  // ★ 无条件刷新余额
+                  fetchUserCredits();
+
                   showToast(`${type}生成失败: ${task.message || '请重试'}`, true);
-                  return;   // ★ 加 return
+                  return;
               }
 
               // ★ 只有"还在处理中"时，才判断超时
@@ -2548,6 +2912,10 @@ export default function App() {
                   localStorage.removeItem('pending_task');
                   if (onComplete) onComplete(null, 'timeout');
                   setIsGenerating(false);
+
+                  // ★ 无条件刷新余额
+                  fetchUserCredits();
+
                   showToast('生成超时，请稍后在历史记录中查看', true);
               }
           } catch (err) {
@@ -2557,6 +2925,9 @@ export default function App() {
                   localStorage.removeItem('pending_task');
                   if (onComplete) onComplete(null, 'error');
                   setIsGenerating(false);
+
+                  // ★ 无条件刷新余额
+                  fetchUserCredits();
               }
           }
       }, getInterval());
@@ -2685,8 +3056,7 @@ export default function App() {
             case 'image': generateImage(); break;
             case 'video': generateVideo(); break;
             case 'tryon': generateTryon(); break;
-            case 'multi': generateMultiAngle(); break;  // ✅ 新增多角度
-            case 'digital': generateDigitalHuman(); break;
+            case 'ai_drama': generateAiDrama(aiDramaMode); break;
             case 'digital_custom': generateTalkingAgent(); break;  // ← 改这里
             default: break;
           }
@@ -2792,6 +3162,7 @@ export default function App() {
         }
       };
 
+
     // 尺码推荐
     // if (activeTab === 'size') {
     //   return (
@@ -2817,7 +3188,7 @@ export default function App() {
     // }
 
     // 图片或图片数组
-    if ((activeTab === 'image' || activeTab === 'multi') && result.images) {
+    if (activeTab === 'image' && result.images) {
       const imageUrl = result.images[0].url;
       const filename = `AI_${activeTab === 'image' ? 'image' : 'multiangle'}_${Date.now()}.png`;
       return (
@@ -2871,7 +3242,7 @@ export default function App() {
     }
 
     // 视频（包括虚拟试穿、数字人分身等）
-    if ((activeTab === 'video' || activeTab === 'tryon' || activeTab === 'digital') && result.video_url) {
+    if ((activeTab === 'video' || activeTab === 'tryon') && result.video_url) {
       const videoUrl = result.video_url;
       const filename = `AI_${activeTab === 'video' ? 'video' : activeTab === 'tryon' ? 'tryon' : 'digital'}_${Date.now()}.mp4`;
 
@@ -2961,14 +3332,14 @@ export default function App() {
   };
 
   const tabs = [
-    // { key: 'size', icon: 'body-outline', label: '尺码', color: '#7c3aed' },
+    { key: 'home', icon: 'home-outline', label: '首页', color: '#10b981' }, 
     { key: 'image', icon: 'image-outline', label: '图片', color: '#10b981' },
     { key: 'video', icon: 'videocam-outline', label: '视频', color: '#f59e0b' },
     { key: 'tryon', icon: 'shirt-outline', label: '试穿', color: '#ef4444' },
-    { key: 'digital', icon: 'person-circle-outline', label: '数字人', color: '#06b6d4' },
+    { key: 'ai_drama', icon: 'film-outline', label: 'AI剧场', color: '#06b6d4' },
     { key: 'digital_custom', icon: 'mic-outline', label: '口播带货', color: '#f97316' },
-    { key: 'multi', icon: 'albums-outline', label: '多角度', color: '#8b5cf6' },
     { key: 'merchant', icon: 'bag-handle-outline', label: '电商套图', color: '#ec4899' },
+    { key: 'more', icon: 'ellipsis-horizontal-outline', label: '更多', color: '#8b5cf6' },
     { key: 'profile', icon: 'person-outline', label: '我的', color: '#7c3aed' },
   ];
 
@@ -2980,47 +3351,99 @@ export default function App() {
           <Text style={styles.logo}>灵境AI</Text>
         </View>
 
-        <View style={styles.tabContainer}>
-          {tabs.map(tab => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[styles.tab, activeTab === tab.key && styles.activeTab]}
-              onPress={() => {
-                if (activeTab !== tab.key) {
-                  setSelectedImage(null);
-                  setResult(null);
-                  setModelImage(null);
-                  setGarmentImage(null);
-                  setDigitalImage(null);
-                }
-                setActiveTab(tab.key);
-                if (tab.key === 'digital') {
-                  fetchPresetAvatars();
-                  fetchTtsVoices();
-                }
-              }}
-            >
-              <Icon name={tab.icon} size={24} color={activeTab === tab.key ? tab.color : '#888'} />
-              <Text 
-                style={[styles.tabText, activeTab === tab.key && { color: tab.color }]}
-                numberOfLines={1}
+        <View style={styles.tabScrollWrap}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabScrollContent}
+          >
+            {tabs.map(tab => (
+              <TouchableOpacity
+                key={tab.key}
+                style={styles.circleTab}
+                onPress={() => {
+                  if (activeTab !== tab.key) {
+                    setSelectedImage(null);
+                    setResult(null);
+                    setModelImage(null);
+                    setGarmentImage(null);
+                    setDigitalImage(null);
+                  }
+                  setActiveTab(tab.key);
+                  if (tab.key === 'digital') {
+                    fetchPresetAvatars();
+                    fetchTtsVoices();
+                  }
+                }}
               >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <View style={[
+                  styles.circleTabIconWrap,
+                  activeTab === tab.key && { backgroundColor: tab.color }
+                ]}>
+                  <Icon name={tab.icon} size={24} color={activeTab === tab.key ? '#fff' : '#888'} />
+                </View>
+                <Text style={[styles.circleTabLabel, activeTab === tab.key && { color: tab.color }]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         {/* 其他 Tab 内容（放在 ScrollView 内） */}
         {activeTab !== 'profile' && (
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-            {activeTab !== 'tryon' && activeTab !== 'digital' && activeTab !== 'multi' && activeTab !== 'merchant' && activeTab !== 'digital_custom' && (
+            {activeTab === 'home' && (
+              <HomePage
+                onNavigate={(tab) => setActiveTab(tab)}
+                onOpenTemplates={(type) => {
+                  setTemplateType(type);
+                  setShowTemplates(true);
+                }}
+                onCaseClick={(caseItem) => {
+                  // 点卡片：直接跳模块 + 填提示词
+                  setActiveTab(caseItem.module);
+                  if (caseItem.template_prompt) {
+                    if (caseItem.module === 'image' || caseItem.module === 'video') {
+                      setPrompt(caseItem.template_prompt);
+                    } else if (caseItem.module === 'ai_drama') {
+                      setAiDramaTheme(caseItem.template_prompt);
+                    } else if (caseItem.module === 'digital_custom') {
+                      setTalkingScript(caseItem.template_prompt);
+                    }
+                  }
+                  if (caseItem.module === 'ai_drama') {
+                    const params = JSON.parse(caseItem.template_params || '{}');
+                    if (params.mode) setAiDramaMode(params.mode);
+                    if (params.duration) setAiDramaDuration(params.duration);
+                    if (params.language) setAiDramaLanguage(params.language);
+                  }
+                  if (caseItem.module === 'video') {
+                    const params = JSON.parse(caseItem.template_params || '{}');
+                    if (params.duration) setVideoDuration(params.duration);
+                    if (params.model) setVideoModel(params.model);
+                    if (params.sound) setVideoSound(params.sound);
+                  }
+                }}
+                onImagePreview={(item) => {
+                  setPreviewUrl(item.result_url || item.thumbnail);
+                  setModalVisible(true);
+                }}
+                onVideoPlay={(item) => {
+                  setCaseVideoUrl(item.result_url);
+                  setCaseItem(item);
+                  setCaseModalVisible(true);
+                }}
+              />
+            )}
+
+            {activeTab !== 'home' && activeTab !== 'tryon' && activeTab !== 'digital' && activeTab !== 'multi' && activeTab !== 'merchant' && activeTab !== 'digital_custom' && activeTab !== 'ai_drama' && activeTab !== 'more' && activeTab !== 'profile' && (
               <Card style={styles.imageCard}>
                 <View style={styles.cardHeader}>
                   <Text style={styles.cardTitle}>
                     {activeTab === 'size' ? '📸 上传全身照' :
                     activeTab === 'image' ? '🎨 上传参考图（可选）' :
-                    activeTab === 'video' ? '🎥 上传图片' : ''}
+                    activeTab === 'video' ? '🎥 （可选，上传则图生视频）' : ''}
                   </Text>
                   {selectedImage && (
                     <TouchableOpacity onPress={() => { setSelectedImage(null); setResult(null); }} style={styles.deleteButton}>
@@ -3043,7 +3466,7 @@ export default function App() {
                   ) : (
                     <View style={styles.placeholder}>
                       <Icon name="cloud-upload-outline" size={48} color="#666" />
-                      <Text style={styles.placeholderText}>点击上传图片</Text>
+                      <Text style={styles.placeholderText}>点击上传图片（可选）</Text>
                       {activeTab === 'image' && (
                         <Text style={{ color: '#888', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
                           上传图片为图生图模式（人物还原增强）{'\n'}不上传则直接输入描述文字生成
@@ -3207,292 +3630,477 @@ export default function App() {
               </>
             )}
 
-            {activeTab === 'digital' && (
+            {activeTab === 'ai_drama' && (
               <>
-                {/* ========== 新增：形象分类筛选 ========== */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-                  <TouchableOpacity 
-                    style={[styles.categoryChip, avatarCategory === 'all' && styles.categoryChipActive]}
-                    onPress={() => setAvatarCategory('all')}
-                  >
-                    <Text style={[styles.categoryChipText, avatarCategory === 'all' && styles.categoryChipTextActive]}>全部</Text>
-                  </TouchableOpacity>
-                  {[...new Set(presetAvatars.map(a => a.category))].map(cat => (
-                    <TouchableOpacity 
-                      key={cat}
-                      style={[styles.categoryChip, avatarCategory === cat && styles.categoryChipActive]}
-                      onPress={() => setAvatarCategory(cat)}
-                    >
-                      <Text style={[styles.categoryChipText, avatarCategory === cat && styles.categoryChipTextActive]}>{cat}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-                
-                {/* 刷新按钮 */}
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, marginBottom: 4 }}>
-                  <TouchableOpacity 
-                    onPress={() => {
-                      fetchPresetAvatars();
-                      fetchTtsVoices();
-                    }}
-                    style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}
-                  >
-                    <Icon name="refresh-outline" size={18} color="#7c3aed" />
-                    <Text style={{ color: '#7c3aed', fontSize: 12, marginLeft: 4 }}>刷新</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* ========== 预设形象横向滚动列表 ========== */}
-
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarScroll}>
-                    {presetAvatars
-                      .filter(avatar => avatarCategory === 'all' || avatar.category === avatarCategory)
-                      .map(avatar => (
-                        <TouchableOpacity
-                          key={avatar.id}
-                          style={[styles.avatarCard, selectedAvatarId === avatar.id && styles.avatarCardActive]}
-                          onPress={() => {
-                            if (avatar.preview_video_url) {
-                              setCurrentPreviewVideoUrl(avatar.preview_video_url);
-                              setPreviewVideoVisible(true);
-                            } else {
-                              setSelectedAvatarId(avatar.id);
-                              setDigitalImage({ uri: avatar.model_image, isUrl: true });
-                            }
-                          }}
-                        >
-                          <Image source={{ uri: avatar.preview_image }} style={styles.avatarImage} />
-                          <Text style={styles.avatarName}>{avatar.name}</Text>
-                        </TouchableOpacity>
-                      ))}
-                  </ScrollView>
-               
-
-                {/* 原有的上传照片卡片 */}
+                {/* 模式选择 */}
                 <Card style={styles.imageCard}>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle}>📸 上传照片</Text>
-                    {digitalImage && (
-                      <TouchableOpacity onPress={() => setDigitalImage(null)} style={styles.deleteButton}>
-                        <Icon name="close-circle-outline" size={24} color="#ef4444" />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                  <TouchableOpacity onPress={pickDigitalImage} style={styles.imagePicker}>
-                    {digitalImage ? (
-                      <View style={{ width: '100%', height: 200, position: 'relative' }}>
-                        <Image
-                          key={digitalImage?.uri}
-                          source={{ uri: digitalImage?.uri }}
-                          style={{ width: '100%', height: 200, resizeMode: 'contain' }}
-                        />
-                        <View style={styles.imageOverlay}>
-                          <Text style={styles.overlayText}>点击更换</Text>
-                        </View>
-                      </View>
-                    ) : (
-                      <View style={styles.placeholder}>
-                        <Icon name="person-outline" size={48} color="#666" />
-                        <Text style={styles.placeholderText}>点击上传照片</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                </Card>
-
-                {/* 输入说话内容 */}
-                <Card style={styles.promptCard}>
-                  <Text style={styles.cardTitle}>💬 输入说话内容</Text>
-                  <TextInput
-                    style={styles.promptInput}
-                    value={digitalText}
-                    onChangeText={setDigitalText}
-                    placeholder="例如：大家好，我是灵境AI平台创造的数字人，很高兴认识大家！"
-                    placeholderTextColor="#888"
-                    multiline
-                  />
-                </Card>
-
-                {/* 选择音色 */}
-                <Card style={styles.inputCard}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={styles.cardTitle}>🎵 选择音色</Text>
-                    <TouchableOpacity onPress={fetchTtsVoices} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
-                      <Icon name="refresh-outline" size={18} color="#7c3aed" />
-                      <Text style={{ color: '#7c3aed', fontSize: 12, marginLeft: 4 }}>刷新</Text>
+                  <Text style={styles.cardTitle}>🎬 AI 剧场</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                    <TouchableOpacity
+                      style={[styles.durationButton, aiDramaMode === 'real' && styles.durationButtonActive]}
+                      onPress={() => setAiDramaMode('real')}
+                    >
+                      <Text style={[styles.durationText, aiDramaMode === 'real' && styles.durationTextActive]}>真人短剧</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.durationButton, aiDramaMode === 'anime' && styles.durationButtonActive]}
+                      onPress={() => setAiDramaMode('anime')}
+                    >
+                      <Text style={[styles.durationText, aiDramaMode === 'anime' && styles.durationTextActive]}>动漫短剧</Text>
                     </TouchableOpacity>
                   </View>
-
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      {ttsVoices.map(voice => (
-                        <View key={voice.id} style={styles.voiceItemWrapper}>
-                          <TouchableOpacity
-                            style={styles.voiceItem}
-                            onPress={() => {
-                              setSelectedVoiceId(voice.id);
-                              setDigitalVoice(voice.name);
-                            }}
-                            activeOpacity={0.7}
-                          >
-                            <Text style={[styles.voiceItemText, selectedVoiceId === voice.id && styles.voiceItemTextActive]}>
-                              {voice.name}
-                            </Text>
-                          </TouchableOpacity>
-                          {voice.preview_url && (
-                            <TouchableOpacity
-                              onPress={(e) => {
-                                e.stopPropagation();
-                                playVoicePreview(voice.id, voice.preview_url);
-                              }}
-                              style={styles.voicePlayButton}
-                              activeOpacity={0.7}
-                            >
-                              <Icon 
-                                name={playingVoiceId === voice.id ? "pause-circle" : "play-circle"} 
-                                size={24} 
-                                color="#7c3aed" 
-                              />
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      ))}
-                    </ScrollView>
                 </Card>
 
-                {/* 数字人名称（可选） */}
+                {/* ★ 上传参考图（真人短剧才显示） */}
+                {aiDramaMode === 'real' && (
+                  <Card style={styles.imageCard}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={styles.cardTitle}>🖼️ 参考图（可选，最多 10 张）</Text>
+                      <Text style={{ color: '#888', fontSize: 12 }}>{aiDramaImages.length}/10</Text>
+                    </View>
+
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                      {aiDramaImages.map((img, idx) => (
+                        <View key={idx} style={{ position: 'relative' }}>
+                          <Image
+                            source={{ uri: img.uri }}
+                            style={{ width: 80, height: 80, borderRadius: 8 }}
+                          />
+                          <View style={{
+                            position: 'absolute', bottom: 0, left: 0, right: 0,
+                            backgroundColor: 'rgba(0,0,0,0.6)',
+                            borderBottomLeftRadius: 8, borderBottomRightRadius: 8,
+                            alignItems: 'center', paddingVertical: 2
+                          }}>
+                            <Text style={{ color: '#fff', fontSize: 10 }}>图{idx + 1}</Text>
+                          </View>
+                          <TouchableOpacity
+                            onPress={() => setAiDramaImages(aiDramaImages.filter((_, i) => i !== idx))}
+                            style={{ position: 'absolute', top: -8, right: -8 }}
+                          >
+                            <Icon name="close-circle" size={20} color="#ef4444" />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+
+                      {aiDramaImages.length < 10 && (
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                          <TouchableOpacity onPress={takeAiDramaPhoto} style={styles.addImageButton}>
+                            <Icon name="camera-outline" size={32} color="#666" />
+                            <Text style={styles.addImageText}>拍照</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={pickAiDramaImage} style={styles.addImageButton}>
+                            <Icon name="image-outline" size={32} color="#666" />
+                            <Text style={styles.addImageText}>相册</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+
+                    <Text style={{ color: '#888', fontSize: 11, marginTop: 8, lineHeight: 18 }}>
+                      💡 在下方"主题/提示词"中说明每张图的角色，例如："图 1 是唐僧，图 2 是孙悟空，图 3 是猪八戒。主题：三打白骨精"。
+                    </Text>
+                    <Text style={{ color: '#f59e0b', fontSize: 12, fontWeight: 'bold', marginTop: 6, lineHeight: 18 }}>
+                      不上传参考图则 AI 自动生成
+                    </Text>
+                  </Card>
+                )}
+
                 <Card style={styles.inputCard}>
-                  <Text style={styles.cardTitle}>📛 数字人名称（可选）</Text>
+                  <Text style={styles.cardTitle}>🌍 语言</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                    {[
+                      { code: 'zh', name: '中文' },
+                      { code: 'ja', name: '日语' },
+                      { code: 'en', name: '英语' },
+                      { code: 'fr', name: '法语' },
+                      { code: 'ko', name: '韩语' },
+                      { code: 'dongbei', name: '东北话' },
+                      { code: 'sichuan', name: '四川话' },
+                      { code: 'chongqing', name: '重庆话' },
+                      { code: 'yue', name: '粤语' },
+                      { code: 'nan', name: '闽南语' },
+                    ].map(lang => (
+                      <TouchableOpacity
+                        key={lang.code}
+                        style={[styles.durationButton, aiDramaLanguage === lang.code && styles.durationButtonActive]}
+                        onPress={() => setAiDramaLanguage(lang.code)}
+                      >
+                        <Text style={[styles.durationText, aiDramaLanguage === lang.code && styles.durationTextActive]}>
+                          {lang.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </Card>
+
+                {/* 主题 / 提示词 */}
+                <Card style={styles.promptCard}>
+                  <Text style={styles.cardTitle}>📝 主题 / 提示词</Text>
                   <TextInput
-                    style={styles.promptInput}
-                    value={digitalName}
-                    onChangeText={setDigitalName}
-                    placeholder="我的数字人"
+                    style={[styles.promptInput, { minHeight: S(200) }]}      // ★ 加大到 200
+                    placeholder={
+                      aiDramaMode === 'real'
+                        ? "例如：图 1 是唐僧，图 2 是孙悟空，图 3 是猪八戒。主题：三打白骨精。"
+                        : "例如：穿越古代，主角是女将军"
+                    }
                     placeholderTextColor="#888"
+                    value={aiDramaTheme}
+                    onChangeText={setAiDramaTheme}
+                    multiline
+                    textAlignVertical="top"
                   />
+                </Card>
+
+                {/* 时长 */}
+                <Card style={styles.inputCard}>
+                  <Text style={styles.cardTitle}>⏱️ 选时长</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                    {[1, 3, 5].map(d => (
+                      <TouchableOpacity
+                        key={d}
+                        style={[styles.durationButton, aiDramaDuration === d && styles.durationButtonActive]}
+                        onPress={() => setAiDramaDuration(d)}
+                      >
+                        <Text style={[styles.durationText, aiDramaDuration === d && styles.durationTextActive]}>{d}分钟</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </Card>
 
                 {/* 生成按钮 */}
-                <TouchableOpacity onPress={generateDigitalHuman} disabled={digitalLoading} style={styles.generateButton}>
-                  {digitalLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>生成数字人视频</Text>}
+                <TouchableOpacity
+                  onPress={() => generateAiDrama(aiDramaMode)}
+                  disabled={aiDramaLoading}
+                  style={styles.generateButton}
+                >
+                  {aiDramaLoading
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Text style={styles.generateText}>生成{aiDramaMode === 'real' ? '真人' : '动漫'}短剧</Text>
+                  }
                 </TouchableOpacity>
+
+                {/* 结果 */}
+                {aiDramaResult?.video_url && (
+                  <Card style={styles.resultCard}>
+                    <Text style={styles.resultTitle}>🎬 短剧结果</Text>
+                    <Video
+                      ref={fullscreenVideoRef}
+                      source={{ uri: aiDramaResult.video_url }}
+                      style={{ width: '100%', height: 400, borderRadius: 12, marginTop: 8 }}
+                      useNativeControls
+                      resizeMode="contain"
+                      isLooping={false}
+                    />
+                    <TouchableOpacity
+                      onPress={() => {
+                        setDownloadTarget({ url: aiDramaResult.video_url, index: 0 });
+                        setDownloadModalVisible(true);
+                      }}
+                      style={styles.downloadButton}
+                    >
+                      <Icon name="download-outline" size={20} color="#fff" />
+                      <Text style={styles.downloadText}>下载</Text>
+                    </TouchableOpacity>
+                  </Card>
+                )}
               </>
             )}
 
             {activeTab === 'digital_custom' && (
               <>
-                {/* ===== 形象选择区：不在纵向 ScrollView 里，横向能滑 ===== */}
-                {avatarMode === 'preset' && (
-                  <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-                    <Text style={styles.cardTitle}>👤 人物来源</Text>
+                {/* ========== 商品图上传 ========== */}
+                <Card style={styles.imageCard}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.cardTitle}>🛍️ 上传商品图（1~4 张）</Text>
+                    <Text style={{ color: '#888', fontSize: 12 }}>{talkingProductImages.length}/4</Text>
+                  </View>
 
-                    {/* tab 切换 */}
-                    <View style={{ flexDirection: 'row', marginBottom: 12, gap: 8 }}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                    {talkingProductImages.map((img, idx) => (
+                      <View key={idx} style={{ position: 'relative' }}>
+                        <Image
+                          source={{ uri: img.uri || URL.createObjectURL(img) }}
+                          style={{ width: 100, height: 100, borderRadius: 8 }}
+                        />
+                        <TouchableOpacity
+                          onPress={() => setTalkingProductImages(talkingProductImages.filter((_, i) => i !== idx))}
+                          style={{ position: 'absolute', top: -8, right: -8 }}
+                        >
+                          <Icon name="close-circle" size={20} color="#ef4444" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+
+                    {talkingProductImages.length < 4 && (
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity onPress={pickTalkingProductImage} style={styles.addImageButton}>
+                          <Icon name="image-outline" size={32} color="#666" />
+                          <Text style={styles.addImageText}>相册</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={takeTalkingProductPhoto} style={styles.addImageButton}>
+                          <Icon name="camera-outline" size={32} color="#666" />
+                          <Text style={styles.addImageText}>拍照</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                </Card>
+
+                {/* ========== 商品描述 ========== */}
+                <Card style={{
+                  backgroundColor: '#1a1a2e',
+                  borderRadius: 16,
+                  padding: 16,
+                  marginBottom: 12,
+                }}>
+                  <Text style={styles.cardTitle}>📝 商品描述（可选，不填 AI 自动分析）</Text>
+                  <TextInput
+                    style={{
+                      width: '100%',
+                      minHeight: 180,
+                      backgroundColor: '#2a2a3a',
+                      borderRadius: 12,
+                      padding: 14,
+                      color: '#fff',
+                      fontSize: 14,
+                      textAlignVertical: 'top',
+                      marginTop: 12,
+                    }}
+                    placeholder="不填则 AI 自动分析商品图生成描述"
+                    placeholderTextColor="#888"
+                    value={talkingItemDescription}
+                    onChangeText={setTalkingItemDescription}
+                    multiline
+                    textAlignVertical="top"
+                    maxLength={3000}
+                  />
+                  <Text style={{ color: '#888', fontSize: 11, marginTop: 4, textAlign: 'right' }}>
+                    {talkingItemDescription.length}/3000
+                  </Text>
+                </Card>
+
+                {/* ========== 比例 ========== */}
+                <Card style={styles.inputCard}>
+                  <Text style={styles.cardTitle}>📐 比例</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                    {[
+                      { code: '16:9', name: '横屏' },
+                      { code: '9:16', name: '竖屏' },
+                      { code: '1:1', name: '方形' },
+                    ].map(r => (
                       <TouchableOpacity
-                        style={[styles.subTab, { flex: 1 }, avatarMode === 'upload' && styles.activeSubTab]}
-                        onPress={() => setAvatarMode('upload')}
+                        key={r.code}
+                        style={[styles.durationButton, talkingRatio === r.code && styles.durationButtonActive]}
+                        onPress={() => setTalkingRatio(r.code)}
                       >
-                        <Text style={[styles.subTabText, avatarMode === 'upload' && styles.activeSubTabText]}>上传照片</Text>
+                        <Text style={[styles.durationText, talkingRatio === r.code && styles.durationTextActive]}>
+                          {r.name}
+                        </Text>
                       </TouchableOpacity>
+                    ))}
+                  </View>
+                </Card>
+
+                {/* ========== 分辨率 ========== */}
+                <Card style={styles.inputCard}>
+                  <Text style={styles.cardTitle}>🖼️ 分辨率</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                    {['720', '1080'].map(r => (
                       <TouchableOpacity
-                        style={[styles.subTab, { flex: 1 }, avatarMode === 'preset' && styles.activeSubTab]}
-                        onPress={() => setAvatarMode('preset')}
+                        key={r}
+                        style={[styles.durationButton, talkingResolution === r && styles.durationButtonActive]}
+                        onPress={() => setTalkingResolution(r)}
                       >
-                        <Text style={[styles.subTabText, avatarMode === 'preset' && styles.activeSubTabText]}>选择形象</Text>
+                        <Text style={[styles.durationText, talkingResolution === r && styles.durationTextActive]}>
+                          {r}p
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </Card>
+
+                {/* ========== 语言 ========== */}
+                <Card style={styles.inputCard}>
+                  <Text style={styles.cardTitle}>🌍 语言</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                    {[
+                      { code: 'zh', name: '中文' },
+                      { code: 'en', name: 'English' },
+                    ].map(l => (
+                      <TouchableOpacity
+                        key={l.code}
+                        style={[styles.durationButton, talkingLanguage === l.code && styles.durationButtonActive]}
+                        onPress={() => setTalkingLanguage(l.code)}
+                      >
+                        <Text style={[styles.durationText, talkingLanguage === l.code && styles.durationTextActive]}>
+                          {l.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </Card>
+
+                {/* ========== 时长 ========== */}
+                <Card style={styles.inputCard}>
+                  <Text style={styles.cardTitle}>⏱️ 时长</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                    {[10, 15].map(d => (
+                      <TouchableOpacity
+                        key={d}
+                        style={[styles.durationButton, talkingDuration === d && styles.durationButtonActive]}
+                        onPress={() => setTalkingDuration(d)}
+                      >
+                        <Text style={[styles.durationText, talkingDuration === d && styles.durationTextActive]}>
+                          {d}秒
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </Card>
+
+                {/* ========== 口播 / 字幕开关 ========== */}
+                <Card style={styles.inputCard}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <Text style={styles.cardTitle}>🎙️ 口播</Text>
+                    <Switch value={talkingEnableVoiceover} onValueChange={setTalkingEnableVoiceover} />
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={styles.cardTitle}>📺 字幕</Text>
+                    <Switch value={talkingEnableSubtitle} onValueChange={setTalkingEnableSubtitle} />
+                  </View>
+                </Card>
+
+                {/* ========== 生成按钮 ========== */}
+                <TouchableOpacity
+                  onPress={generateTalkingAgent}
+                  disabled={talkingLoading}
+                  style={styles.generateButton}
+                >
+                  {talkingLoading
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Text style={styles.generateText}>
+                        生成口播视频（{HUIHUA_PRICES[`${talkingResolution}-${talkingDuration}`] || 0}点）
+                      </Text>
+                  }
+                </TouchableOpacity>
+
+                {/* ========== 结果 ========== */}
+                {result?.video_url && (
+                  <Card style={styles.resultCard}>
+                    <Text style={styles.resultTitle}>🎬 口播视频</Text>
+                    <Video
+                      source={{ uri: result.video_url }}
+                      style={{ width: '100%', height: 400, borderRadius: 12, marginTop: 8 }}
+                      useNativeControls
+                      resizeMode="contain"
+                    />
+                  </Card>
+                )}
+              </>
+            )}
+
+            {activeTab === 'more' && (
+              <>
+                {/* 更多入口 */}
+                {!moreSubTab && (
+                  <Card style={styles.imageCard}>
+                    <Text style={styles.cardTitle}>➕ 更多</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 }}>
+                      <TouchableOpacity
+                        onPress={() => setMoreSubTab('digital')}
+                        style={{ alignItems: 'center', width: 80 }}
+                      >
+                        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#1a1a1a', justifyContent: 'center', alignItems: 'center' }}>
+                          <Icon name="person-circle-outline" size={28} color="#06b6d4" />
+                        </View>
+                        <Text style={{ color: '#fff', fontSize: 12, marginTop: 6 }}>数字人</Text>
                       </TouchableOpacity>
                     </View>
+                  </Card>
+                )}
 
-                    {/* 横向滚动 */}
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-                      {PRESET_AVATAR_IDS.map(avatar => (
+                {/* 数字人子模块 */}
+                {moreSubTab === 'digital' && (
+                  <>
+                    <TouchableOpacity
+                      onPress={() => setMoreSubTab(null)}
+                      style={{ flexDirection: 'row', alignItems: 'center', padding: 8 }}
+                    >
+                      <Icon name="chevron-back-outline" size={24} color="#fff" />
+                      <Text style={{ color: '#fff', fontSize: 14, marginLeft: 4 }}>返回更多</Text>
+                    </TouchableOpacity>
+
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+                      <TouchableOpacity
+                        style={[styles.categoryChip, avatarCategory === 'all' && styles.categoryChipActive]}
+                        onPress={() => setAvatarCategory('all')}
+                      >
+                        <Text style={[styles.categoryChipText, avatarCategory === 'all' && styles.categoryChipTextActive]}>全部</Text>
+                      </TouchableOpacity>
+                      {[...new Set(presetAvatars.map(a => a.category))].map(cat => (
                         <TouchableOpacity
-                          key={avatar.id}
-                          style={[
-                            {
-                              width: 100,
-                              marginRight: 12,
-                              alignItems: 'center',
-                              padding: 8,
-                              borderRadius: 12,
-                              backgroundColor: '#2d2d44',
-                            },
-                            talkingAvatarId === avatar.id && { backgroundColor: '#7c3aed' }
-                          ]}
-                          onPress={() => setTalkingAvatarId(avatar.id)}
+                          key={cat}
+                          style={[styles.categoryChip, avatarCategory === cat && styles.categoryChipActive]}
+                          onPress={() => setAvatarCategory(cat)}
                         >
-                          <View style={{
-                            width: 50,
-                            height: 50,
-                            borderRadius: 25,
-                            backgroundColor: talkingAvatarId === avatar.id ? '#5b21b6' : '#444',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            marginBottom: 6,
-                          }}>
-                            <Icon name="person" size={28} color={talkingAvatarId === avatar.id ? '#fff' : '#aaa'} />
-                          </View>
-                          <Text
-                            style={{
-                              fontSize: 12,
-                              color: talkingAvatarId === avatar.id ? '#fff' : '#ccc',
-                              textAlign: 'center',
-                            }}
-                            numberOfLines={1}
-                          >
-                            {avatar.name}
-                          </Text>
-                          <Text
-                            style={{
-                              fontSize: 10,
-                              color: talkingAvatarId === avatar.id ? '#fff' : '#888',
-                              marginTop: 2,
-                              textAlign: 'center',
-                            }}
-                            numberOfLines={1}
-                          >
-                            {avatar.gender}·{avatar.age}岁
-                          </Text>
+                          <Text style={[styles.categoryChipText, avatarCategory === cat && styles.categoryChipTextActive]}>{cat}</Text>
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
-                  </View>
-                )}
 
-                {/* ===== 其余内容：包在纵向 ScrollView 里 ===== */}
-                <ScrollView contentContainerStyle={styles.content}>
+                    {/* 刷新按钮 */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, marginBottom: 4 }}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          fetchPresetAvatars();
+                          fetchTtsVoices();
+                        }}
+                        style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}
+                      >
+                        <Icon name="refresh-outline" size={18} color="#7c3aed" />
+                        <Text style={{ color: '#7c3aed', fontSize: 12, marginLeft: 4 }}>刷新</Text>
+                      </TouchableOpacity>
+                    </View>
 
-                  {/* ========== 人物来源（上传照片模式） ========== */}
-                  {avatarMode === 'upload' && (
+                    {/* 预设形象横向滚动列表 */}
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarScroll}>
+                      {presetAvatars
+                        .filter(avatar => avatarCategory === 'all' || avatar.category === avatarCategory)
+                        .map(avatar => (
+                          <TouchableOpacity
+                            key={avatar.id}
+                            style={[styles.avatarCard, selectedAvatarId === avatar.id && styles.avatarCardActive]}
+                            onPress={() => {
+                              if (avatar.preview_video_url) {
+                                setCurrentPreviewVideoUrl(avatar.preview_video_url);
+                                setPreviewVideoVisible(true);
+                              } else {
+                                setSelectedAvatarId(avatar.id);
+                                setDigitalImage({ uri: avatar.model_image, isUrl: true });
+                              }
+                            }}
+                          >
+                            <Image source={{ uri: avatar.preview_image }} style={styles.avatarImage} />
+                            <Text style={styles.avatarName}>{avatar.name}</Text>
+                          </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+
+                    {/* 上传照片 */}
                     <Card style={styles.imageCard}>
                       <View style={styles.cardHeader}>
-                        <Text style={styles.cardTitle}>👤 人物来源</Text>
-                        {talkingAvatarImage && (
-                          <TouchableOpacity onPress={() => setTalkingAvatarImage(null)} style={styles.deleteButton}>
+                        <Text style={styles.cardTitle}>📸 上传照片</Text>
+                        {digitalImage && (
+                          <TouchableOpacity onPress={() => setDigitalImage(null)} style={styles.deleteButton}>
                             <Icon name="close-circle-outline" size={24} color="#ef4444" />
                           </TouchableOpacity>
                         )}
                       </View>
-
-                      <View style={{ flexDirection: 'row', marginBottom: 12, gap: 8 }}>
-                        <TouchableOpacity
-                          style={[styles.subTab, { flex: 1 }, avatarMode === 'upload' && styles.activeSubTab]}
-                          onPress={() => setAvatarMode('upload')}
-                        >
-                          <Text style={[styles.subTabText, avatarMode === 'upload' && styles.activeSubTabText]}>上传照片</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.subTab, { flex: 1 }, avatarMode === 'preset' && styles.activeSubTab]}
-                          onPress={() => setAvatarMode('preset')}
-                        >
-                          <Text style={[styles.subTabText, avatarMode === 'preset' && styles.activeSubTabText]}>选择形象</Text>
-                        </TouchableOpacity>
-                      </View>
-
-                      <TouchableOpacity onPress={pickTalkingAvatarImage} style={styles.imagePicker}>
-                        {talkingAvatarImage ? (
+                      <TouchableOpacity onPress={pickDigitalImage} style={styles.imagePicker}>
+                        {digitalImage ? (
                           <View style={{ width: '100%', height: 200, position: 'relative' }}>
-                            <Image
-                              source={{ uri: URL.createObjectURL(talkingAvatarImage) }}
-                              style={{ width: '100%', height: 200, resizeMode: 'contain' }}
-                            />
+                            <Image key={digitalImage?.uri} source={{ uri: digitalImage?.uri }} style={{ width: '100%', height: 200, resizeMode: 'contain' }} />
                             <View style={styles.imageOverlay}>
                               <Text style={styles.overlayText}>点击更换</Text>
                             </View>
@@ -3500,243 +4108,84 @@ export default function App() {
                         ) : (
                           <View style={styles.placeholder}>
                             <Icon name="person-outline" size={48} color="#666" />
-                            <Text style={styles.placeholderText}>点击上传人物照片</Text>
-                            <Text style={styles.hintText}>建议单人、正脸清晰、嘴部无遮挡</Text>
+                            <Text style={styles.placeholderText}>点击上传照片</Text>
                           </View>
                         )}
                       </TouchableOpacity>
+                    </Card>
 
-                      <Text style={[styles.label, { marginTop: 12 }]}>选择音色</Text>
+                    {/* 说话内容 */}
+                    <Card style={styles.promptCard}>
+                      <Text style={styles.cardTitle}>💬 输入说话内容</Text>
+                      <TextInput
+                        style={styles.promptInput}
+                        value={digitalText}
+                        onChangeText={setDigitalText}
+                        placeholder="例如：大家好，我是灵境AI平台创造的数字人，很高兴认识大家！"
+                        placeholderTextColor="#888"
+                        multiline
+                      />
+                    </Card>
+
+                    {/* 音色 */}
+                    <Card style={styles.inputCard}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={styles.cardTitle}>🎵 选择音色</Text>
+                        <TouchableOpacity onPress={fetchTtsVoices} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
+                          <Icon name="refresh-outline" size={18} color="#7c3aed" />
+                          <Text style={{ color: '#7c3aed', fontSize: 12, marginLeft: 4 }}>刷新</Text>
+                        </TouchableOpacity>
+                      </View>
                       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        {TALKING_VOICE_OPTIONS.map(voice => (
-                          <TouchableOpacity
-                            key={voice.id}
-                            style={[
-                              styles.voiceItem,
-                              talkingVoiceId === voice.id && { backgroundColor: '#7c3aed' }
-                            ]}
-                            onPress={() => setTalkingVoiceId(voice.id)}
-                          >
-                            <Text style={[
-                              styles.voiceItemText,
-                              talkingVoiceId === voice.id && { color: '#fff' }
-                            ]}>
-                              {voice.name}
-                            </Text>
-                          </TouchableOpacity>
+                        {ttsVoices.map(voice => (
+                          <View key={voice.id} style={styles.voiceItemWrapper}>
+                            <TouchableOpacity
+                              style={styles.voiceItem}
+                              onPress={() => {
+                                setSelectedVoiceId(voice.id);
+                                setDigitalVoice(voice.name);
+                              }}
+                              activeOpacity={0.7}
+                            >
+                              <Text style={[styles.voiceItemText, selectedVoiceId === voice.id && styles.voiceItemTextActive]}>
+                                {voice.name}
+                              </Text>
+                            </TouchableOpacity>
+                            {voice.preview_url && (
+                              <TouchableOpacity
+                                onPress={(e) => {
+                                  e.stopPropagation();
+                                  playVoicePreview(voice.id, voice.preview_url);
+                                }}
+                                style={styles.voicePlayButton}
+                                activeOpacity={0.7}
+                              >
+                                <Icon name={playingVoiceId === voice.id ? "pause-circle" : "play-circle"} size={24} color="#7c3aed" />
+                              </TouchableOpacity>
+                            )}
+                          </View>
                         ))}
                       </ScrollView>
                     </Card>
-                  )}
 
-                  {/* ========== 商品信息 ========== */}
-                  <Card style={styles.imageCard}>
-                    <View style={styles.cardHeader}>
-                      <Text style={styles.cardTitle}>🛍️ 商品信息（可选）</Text>
-                      <Text style={{ fontSize: 11, color: '#888' }}>不填则为达人口播</Text>
-                    </View>
+                    {/* 数字人名称 */}
+                    <Card style={styles.inputCard}>
+                      <Text style={styles.cardTitle}>📛 数字人名称（可选）</Text>
+                      <TextInput
+                        style={styles.promptInput}
+                        value={digitalName}
+                        onChangeText={setDigitalName}
+                        placeholder="我的数字人"
+                        placeholderTextColor="#888"
+                      />
+                    </Card>
 
-                    <Text style={styles.label}>商品图片（最多5张）</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      {talkingProductImages.map((img, index) => (
-                        <View key={index} style={{ marginRight: 8, position: 'relative', width: 80, height: 80 }}>
-                          <Image source={{ uri: URL.createObjectURL(img) }} style={{ width: 80, height: 80, borderRadius: 8 }} />
-                          <TouchableOpacity
-                            style={{
-                              position: 'absolute',
-                              top: 4,
-                              right: 4,
-                              backgroundColor: '#ef4444',
-                              borderRadius: 12,
-                              width: 24,
-                              height: 24,
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                              zIndex: 10,
-                            }}
-                            onPress={() => {
-                              const newImages = [...talkingProductImages];
-                              newImages.splice(index, 1);
-                              setTalkingProductImages(newImages);
-                            }}
-                          >
-                            <Icon name="close" size={14} color="#fff" />
-                          </TouchableOpacity>
-                        </View>
-                      ))}
-                      {talkingProductImages.length < 5 && (
-                        <TouchableOpacity
-                          onPress={pickTalkingProductImage}
-                          style={{ width: 80, height: 80, borderRadius: 8, borderWidth: 1, borderColor: '#ddd', borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center' }}
-                        >
-                          <Icon name="add" size={32} color="#888" />
-                        </TouchableOpacity>
-                      )}
-                    </ScrollView>
-
-                    <Text style={[styles.label, { marginTop: 12 }]}>商品标题</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="例如：JBL GO 4 便携蓝牙音箱"
-                      placeholderTextColor="#888"
-                      value={talkingGoodsTitle}
-                      onChangeText={setTalkingGoodsTitle}
-                    />
-
-                    <Text style={[styles.label, { marginTop: 12 }]}>商品价格（可选）</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="例如：399元"
-                      placeholderTextColor="#888"
-                      value={talkingGoodsPrice}
-                      onChangeText={setTalkingGoodsPrice}
-                    />
-
-                    <Text style={[styles.label, { marginTop: 12 }]}>目标人群（可选）</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="例如：露营人群"
-                      placeholderTextColor="#888"
-                      value={talkingTargetAudience}
-                      onChangeText={setTalkingTargetAudience}
-                    />
-
-                    <Text style={[styles.label, { marginTop: 12 }]}>商品卖点（可选）</Text>
-                    <TextInput
-                      style={[styles.input, { minHeight: 60 }]}
-                      placeholder="例如：IP67级防尘防水"
-                      placeholderTextColor="#888"
-                      value={talkingSellingPoint}
-                      onChangeText={setTalkingSellingPoint}
-                      multiline
-                    />
-                  </Card>
-
-                  {/* ========== 口播稿 ========== */}
-                  <Card style={styles.promptCard}>
-                    <Text style={styles.cardTitle}>🎙️ 口播稿 *</Text>
-                    <TextInput
-                      style={[styles.promptInput, { minHeight: 120 }]}
-                      value={talkingScript}
-                      onChangeText={setTalkingScript}
-                      placeholder="视频长短取决于文案长短，最长 2000 字，每秒 16 点"
-                      placeholderTextColor="#888"
-                      multiline
-                    />
-                    {talkingScript.length > 0 && (
-                      <Text style={{ fontSize: 11, color: '#7c3aed', marginTop: 4 }}>
-                        {(() => {
-                          const { scriptLength, estimatedSeconds, estimatedCost } = calcTalkingAgentCost(talkingScript);
-                          return `口播稿 ${scriptLength} 字，预估 ${estimatedSeconds} 秒，预扣 ${estimatedCost} 点`;
-                        })()}
-                      </Text>
-                    )}
-                  </Card>
-
-                  {/* ========== 视频设置 ========== */}
-                  <Card style={{ padding: 16, backgroundColor: '#1e1e2d', borderRadius: 12, marginBottom: 12 }}>
-                    <Text style={styles.cardTitle}>⚙️ 视频设置</Text>
-
-                    {/* 第 1 行：分辨率 + 画幅 */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                      <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>分辨率</Text>
-                      {['720p', '1080p'].map(res => (
-                        <TouchableOpacity
-                          key={res}
-                          style={[
-                            styles.durationButton,
-                            talkingResolution === res && styles.durationButtonActive,
-                            { marginRight: 4 }
-                          ]}
-                          onPress={() => setTalkingResolution(res)}
-                        >
-                          <Text style={[
-                            styles.durationText,
-                            talkingResolution === res && styles.durationTextActive
-                          ]}>{res}</Text>
-                        </TouchableOpacity>
-                      ))}
-                      <Text style={{ color: '#fff', fontSize: 13, marginLeft: 16, marginRight: 6 }}>画幅</Text>
-                      {['9:16', '16:9'].map(ratio => (
-                        <TouchableOpacity
-                          key={ratio}
-                          style={[
-                            styles.durationButton,
-                            talkingAspectRatio === ratio && styles.durationButtonActive,
-                            { marginRight: 4 }
-                          ]}
-                          onPress={() => setTalkingAspectRatio(ratio)}
-                        >
-                          <Text style={[
-                            styles.durationText,
-                            talkingAspectRatio === ratio && styles.durationTextActive
-                          ]}>{ratio === '9:16' ? '竖屏 9:16' : '横屏 16:9'}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-
-                    {/* 第 2 行：允许系统润色 + 添加背景音乐 */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Text style={{ color: '#fff', fontSize: 13, marginRight: 6 }}>允许系统润色口播文案</Text>
-                      <Switch value={talkingAllowPolish} onValueChange={setTalkingAllowPolish} />
-                      <Text style={{ color: '#fff', fontSize: 13, marginLeft: 16, marginRight: 6 }}>添加背景音乐</Text>
-                      <Switch value={talkingBgmEnabled} onValueChange={setTalkingBgmEnabled} />
-                    </View>
-                  </Card>
-
-                  {/* ========== 生成按钮 ========== */}
-                  <TouchableOpacity
-                    onPress={generateTalkingAgent}
-                    disabled={talkingLoading}
-                    style={styles.generateButton}
-                  >
-                    {talkingLoading ? (
-                      <ActivityIndicator color="#fff" size="small" />
-                    ) : (
-                      <Text style={styles.generateText}>
-                        生成口播视频
-                        {talkingScript.length > 0 && `（预扣 ${calcTalkingAgentCost(talkingScript).estimatedCost} 点）`}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </ScrollView>
-              </>
-            )}
-
-            {activeTab === 'multi' && (
-              <>
-                <Card style={styles.imageCard}>
-                  <Text style={styles.cardTitle}>🖼️ 上传多张照片（2-4张）</Text>
-                  <View style={styles.multiImageRow}>
-                    {multiImages.map((img, idx) => (
-                      <View key={idx} style={styles.multiImageItem}>
-                        <TouchableOpacity 
-                          onPress={() => {
-                            setPreviewUrl(img.uri);
-                            setModalVisible(true);
-                          }}
-                        >
-                          {img?.uri && <Image
-                            source={{ uri: img.uri }}
-                            style={{ width: 80, height: 80, resizeMode: 'contain' }}
-                          />}
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setMultiImages(multiImages.filter((_, i) => i !== idx))} style={styles.removeMultiImage}>
-                          <Icon name="close-circle" size={24} color="#ef4444" />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                    {multiImages.length < 4 && (
-                      <TouchableOpacity onPress={pickMultiImage} style={styles.addImageButton}>
-                        <Icon name="add-circle-outline" size={48} color="#666" />
-                        <Text style={styles.addImageText}>添加照片</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </Card>
-                <TouchableOpacity onPress={generateMultiAngle} disabled={multiLoading} style={styles.generateButton}>
-                  {multiLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>开始多角度合成</Text>}
-                </TouchableOpacity>
+                    {/* 生成按钮 */}
+                    <TouchableOpacity onPress={generateDigitalHuman} disabled={digitalLoading} style={styles.generateButton}>
+                      {digitalLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>生成数字人视频</Text>}
+                    </TouchableOpacity>
+                  </>
+                )}
               </>
             )}
 
@@ -3758,7 +4207,7 @@ export default function App() {
             ) */}
 
 
-            {(activeTab === 'image' || activeTab === 'video' || activeTab === 'tryon' || activeTab === 'multi') && (
+            {(activeTab === 'image' || activeTab === 'video' || activeTab === 'tryon') && (
               <Card style={styles.promptCard}>
                 <Text style={styles.cardTitle}>
                   💬 描述{' '}
@@ -4308,7 +4757,7 @@ export default function App() {
             )}
             {renderResult()}
 
-            {history.length > 0 && (
+            {activeTab !== 'home' && history.length > 0 && (
               <Card style={styles.historyCard}>
                 <Text style={styles.cardTitle}>📜 历史记录</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -4316,7 +4765,7 @@ export default function App() {
                     <View key={item.id} style={styles.historyItemContainer}>
                       <TouchableOpacity
                         onPress={() => {
-                          if (item.type.startsWith('视频生成') || item.type === '虚拟试穿' || item.type === '数字人分身' || item.type === '口播带货' || item.type === '多角度试穿') {
+                          if (item.type.startsWith('视频生成') || item.type === '虚拟试穿' || item.type === '数字人分身' || item.type === '口播带货' || item.type === '多角度试穿' || item.type === 'AI短剧') {
                             setCurrentVideoUrl(item.url);
                             setVideoModalVisible(true);
                           } else if (item.type === '图片生成') {
@@ -4472,8 +4921,9 @@ export default function App() {
                                           item.type === '数字人分身' || 
                                           item.type === '口播带货' || 
                                           item.type === '多角度试穿';
+                                          item.type === 'AI短剧'; 
                           const extension = isVideo ? 'mp4' : 'png';
-                          const fileName = `${item.type}_${Date.now()}.${extension}`;
+                          const fileName = `lingjing_${isVideo ? 'video' : 'image'}_${Date.now()}.${extension}`;
                           
                           // 鸿蒙
                           if (window.harmonyBridge?.saveFile) {
@@ -4540,17 +4990,39 @@ export default function App() {
                             showToast('视频已保存到内部存储/Documents');
                             return;
                           }
-                          // 其他平台
-                          const res = await fetch(item.url);
-                          const blob = await res.blob();
-                          const url = URL.createObjectURL(blob);
-                          const link = document.createElement('a');
-                          link.href = url;
-                          link.download = fileName;
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                          URL.revokeObjectURL(url);
+                          // ========== Web 端下载 ==========
+                          // AI 短剧文件大（70MB+），走直链避免 fetch + blob 卡死
+                          // 其他文件小，走 fetch + blob，download 属性才生效
+                          if (item.type === 'AI短剧') {
+                            // 大文件：直链
+                            const link = document.createElement('a');
+                            link.href = item.url;
+                            link.download = fileName;
+                            link.target = '_blank';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            showToast('下载已开始，请稍候...');
+                          } else {
+                            // 小文件：fetch + blob
+                            try {
+                              const res = await fetch(item.url);
+                              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                              const blob = await res.blob();
+                              const blobUrl = URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = blobUrl;
+                              link.download = fileName;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              URL.revokeObjectURL(blobUrl);
+                              showToast('下载成功');
+                            } catch (e) {
+                              console.error('下载失败:', e);
+                              showToast('下载失败: ' + (e.message || '未知错误'), true);
+                            }
+                          }
                         }}
                       >
                         <Icon name="download-outline" size={16} color="#10b981" />
@@ -4595,6 +5067,168 @@ export default function App() {
           </ScrollView>
         )}
 
+        {/* ★ 模板库全屏覆盖 */}
+        {showTemplates && (
+          <View style={StyleSheet.absoluteFill}>
+            <TemplateLibrary
+              type={templateType}
+              onClose={() => setShowTemplates(false)}
+              onVideoPlay={(item) => {
+                setCaseVideoUrl(item.result_url);
+                setCaseItem(item);
+                setCaseModalVisible(true);
+              }}
+            />
+          </View>
+        )}
+
+        <Modal visible={modalVisible} transparent={false} animationType="fade">
+          <View style={{ width: '100%', height: '100%', backgroundColor: '#000' }}>
+            {previewUrl && (
+              <Image
+                source={{ uri: previewUrl }}
+                style={{
+                  position: 'absolute',
+                  top: 0, left: 0,
+                  width: '100%', height: '100%',
+                }}
+                resizeMode="contain"
+              />
+            )}
+            <TouchableOpacity
+              onPress={() => setModalVisible(false)}
+              style={{
+                position: 'absolute',
+                top: 40,
+                right: 20,
+                zIndex: 10,
+                padding: 10,
+              }}
+            >
+              <Icon name="close" size={36} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </Modal>
+
+        {/* ★ 案例播放 Modal */}
+        <Modal
+          visible={caseModalVisible}
+          transparent={false}
+          animationType="fade"
+          onRequestClose={() => setCaseModalVisible(false)}
+        >
+          <View style={{ width: '100%', height: '100%', backgroundColor: '#000' }}>
+            <video
+              src={caseVideoUrl}
+              controls
+              playsInline
+              autoPlay
+              style={{
+                position: 'absolute',
+                top: 0, left: 0,
+                width: '100%', height: '100%',
+                objectFit: 'contain',
+                backgroundColor: '#000',
+              }}
+            />
+
+            <View style={{
+              position: 'absolute',
+              top: 40, left: 0, right: 0,
+              height: 50,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingHorizontal: 16,
+              backgroundColor: 'transparent',
+              zIndex: 10,
+            }}>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
+                {caseItem?.title || '灵境AI'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setCaseModalVisible(false)}
+                style={{ padding: 12 }}
+              >
+                <Icon name="close" size={36} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => {
+                const item = caseItem;
+                if (!item) return;
+
+                const params = JSON.parse(item.template_params || '{}');
+
+                setCaseModalVisible(false);
+                setShowTemplates(false);
+
+                // ★ 标记，跳过 useEffect 的清空
+                skipResetRef.current = true;
+                setActiveTab(item.module);
+
+                // 填参考图
+                if (params.reference_image) {
+                  if (item.module === 'video') {
+                    setSelectedImage({ uri: params.reference_image });
+                  } else if (item.module === 'digital_custom') {
+                    // 口播带货：需要 File 对象，先下载
+                    fetch(params.reference_image)
+                      .then(res => res.blob())
+                      .then(blob => {
+                        const file = new File([blob], 'reference.jpg', { type: blob.type });
+                        setTalkingAvatarImage(file);
+                      })
+                      .catch(e => console.error('下载参考图失败:', e));
+                  }
+                }
+
+                // ★ 试穿：单独判断，填两张图
+                if (item.module === 'tryon') {
+                  if (params.model_image) {
+                    setModelImage({ uri: params.model_image });
+                  }
+                  if (params.garment_image) {
+                    setGarmentImage({ uri: params.garment_image });
+                  }
+                }
+
+                // 填提示词
+                if (item.template_prompt) {
+                  if (item.module === 'video') setPrompt(item.template_prompt);
+                  else if (item.module === 'ai_drama') setAiDramaTheme(item.template_prompt);
+                  else if (item.module === 'digital_custom') setTalkingScript(item.template_prompt);
+                }
+
+                // 参数
+                if (item.module === 'ai_drama') {
+                  if (params.mode) setAiDramaMode(params.mode);
+                  if (params.duration) setAiDramaDuration(params.duration);
+                  if (params.language) setAiDramaLanguage(params.language);
+                }
+
+                if (item.module === 'video') {
+                  if (params.duration) setDuration(params.duration);
+                  if (params.model) setVideoModel(params.model);
+                  if (params.sound) setVideoSound(params.sound);
+                }
+              }}
+              style={{
+                position: 'absolute',
+                bottom: 60,
+                alignSelf: 'center',
+                backgroundColor: '#10b981',
+                paddingVertical: 14,
+                paddingHorizontal: 60,
+                borderRadius: 28,
+                zIndex: 10,
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>一键同款</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
 
         {/* 我的页面 - 单独放在外面 */}
         {activeTab === 'profile' && (
@@ -5181,16 +5815,12 @@ export default function App() {
                   setIsGenerating(false);
                   if (activeTab === 'digital_custom') {
                     setTalkingLoading(true);
-                  } else if (activeTab === 'digital') {
-                    setDigitalLoading(true);
                   } else if (activeTab === 'video') {
                     setVideoLoading(true);
                   } else if (activeTab === 'image') {
                     setImageLoading(true);
                   } else if (activeTab === 'tryon') {
                     setTryonLoading(true);
-                  } else if (activeTab === 'multi') {
-                    setMultiLoading(true);
                   } else if (activeTab === 'merchant') {
                     setMerchantLoading(true);
                   }
@@ -5241,7 +5871,7 @@ export default function App() {
               justifyContent: 'space-between',
               alignItems: 'center',
               paddingHorizontal: 16,
-              backgroundColor: 'rgba(0,0,0,0.5)',
+              backgroundColor: 'transparent',
               zIndex: 10,
             }}>
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>灵境AI</Text>
@@ -5286,7 +5916,7 @@ export default function App() {
                   position: 'absolute',
                   bottom: 10,
                   right: 10,
-                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  backgroundColor: 'transparent',
                   paddingHorizontal: 8,
                   paddingVertical: 4,
                   borderRadius: 4,
@@ -5335,7 +5965,7 @@ export default function App() {
               justifyContent: 'space-between',
               alignItems: 'center',
               paddingHorizontal: 30,
-              backgroundColor: 'rgba(0,0,0,0.5)',
+              backgroundColor: 'transparent',
               zIndex: 10,
             }}>
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>形象预览</Text>
@@ -5419,7 +6049,13 @@ const styles = StyleSheet.create({
   buttonRow: { flexDirection: 'row', gap: 16 },
   iconButton: { flexDirection: 'row', backgroundColor: '#3b3b5c', paddingVertical: S(10), paddingHorizontal: S(20), borderRadius: S(30), alignItems: 'center', gap: 8 },
   iconButtonText: { color: '#fff', fontSize: S(14) },
-  inputCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  inputCard: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'column',
+  },
   heightRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   heightInput: { backgroundColor: '#2d2d44', borderRadius: S(12), paddingVertical: S(12), paddingHorizontal: S(16), width: S(100), color: '#fff', fontSize: S(16), textAlign: 'center' },
   heightUnit: { color: '#aaa', fontSize: S(14) },
@@ -6041,4 +6677,189 @@ const styles = StyleSheet.create({
       color: '#888',
       marginTop: 2,
   },
+
+  homeContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24 },
+  bannerRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  bannerCard: {
+    flex: 1, height: 100, borderRadius: 12,
+    backgroundColor: '#1a4d4d', padding: 16, justifyContent: 'center',
+  },
+  bannerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+  bannerSubtitle: { color: '#a0d8d8', fontSize: 12, marginTop: 4 },
+  circleEntryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
+  circleEntry: { alignItems: 'center', flex: 1 },
+  circleIconWrap: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: '#2a2a2a', justifyContent: 'center', alignItems: 'center', marginBottom: 6,
+  },
+  circleLabel: { color: '#ccc', fontSize: 10 },
+  sectionHeader: {
+    marginBottom: 12,
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sectionTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  row1: { flexDirection: 'row', gap: 8, marginBottom: 8, height: 320 },
+  bigCard: {
+    flex: 1.5, borderRadius: 12, overflow: 'hidden',
+    backgroundColor: '#1a1a1a', position: 'relative',
+  },
+  bigCardImage: { width: '100%', height: '100%' },
+  smallColumn: { flex: 1, gap: 8 },
+  smallCard: {
+    flex: 1, borderRadius: 12, overflow: 'hidden',
+    backgroundColor: '#1a1a1a', position: 'relative',
+  },
+  smallCardImage: { width: '100%', height: '100%' },
+  row3: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  thirdCard: {
+    flex: 1, height: 180, borderRadius: 12, overflow: 'hidden',
+    backgroundColor: '#1a1a1a', position: 'relative',
+  },
+  thirdCardImage: { width: '100%', height: '100%' },
+  cardAIBadge: {
+    position: 'absolute', top: 8, left: 8,
+    backgroundColor: '#10b981', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+  },
+  cardAIBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  cardLabelWrap: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)', padding: 6,
+  },
+  cardLabel: { color: '#fff', fontSize: 13 },
+
+  tabScrollWrap: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 16,
+    marginHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+  },
+  tabScrollContent: {
+    paddingHorizontal: 16,
+    gap: 20,
+    alignItems: 'center',
+  },
+  circleTab: {
+    alignItems: 'center',
+    minWidth: 56,
+  },
+  circleTabIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#2a2a2a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  circleTabLabel: {
+    color: '#888',
+    fontSize: 11,
+  },
+
+  // ========== 模板库 ==========
+  tplContainer: {
+    flex: 1,
+    backgroundColor: '#0a0a0a',
+  },
+  tplHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#222',
+  },
+  tplBackBtn: { width: 40, height: 40, justifyContent: 'center' },
+  tplTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+
+  tplPreviewWrap: {
+    marginHorizontal: 12,
+    marginTop: 12,
+    height: 260,
+    backgroundColor: '#111',
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  tplPreviewVideo: { width: '100%', height: '100%' },
+  tplPreviewHint: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  tplPreviewHintText: { color: '#fff', fontSize: 11 },
+
+  tplContent: { padding: 12, paddingBottom: 8 },
+  tplGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  tplCard: {
+    width: '48%',
+    backgroundColor: '#1a1a2e',
+    borderRadius: 12,
+    padding: 8,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  tplCardSelected: {
+    borderColor: '#10b981',
+  },
+  tplThumbWrap: {
+    position: 'relative',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  tplThumb: { width: '100%', height: 160 },
+  tplCheck: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#10b981',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tplCardTitle: { color: '#fff', fontSize: 13, marginTop: 8 },
+  tplCardModule: { color: '#888', fontSize: 11, marginTop: 2 },
+
+  tplFooter: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#222',
+    backgroundColor: '#0a0a0a',
+  },
+  tplMainBtn: {
+    backgroundColor: '#10b981',
+    borderRadius: 24,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  tplMainBtnDisabled: { backgroundColor: '#333' },
+  tplMainBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+
+  tplModalBg: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tplModalClose: { position: 'absolute', top: 40, right: 20, zIndex: 10, padding: 10 },
+  tplModalVideo: { width: '90%', height: '70%' },
+  tplModalImage: { width: '90%', height: '70%' },
+
 });
