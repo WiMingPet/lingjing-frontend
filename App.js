@@ -3635,19 +3635,24 @@ export default function App() {
                 {/* 模式选择 */}
                 <Card style={styles.imageCard}>
                   <Text style={styles.cardTitle}>🎬 AI 剧场</Text>
-                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                    <TouchableOpacity
-                      style={[styles.durationButton, aiDramaMode === 'real' && styles.durationButtonActive]}
-                      onPress={() => setAiDramaMode('real')}
-                    >
-                      <Text style={[styles.durationText, aiDramaMode === 'real' && styles.durationTextActive]}>真人短剧</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.durationButton, aiDramaMode === 'anime' && styles.durationButtonActive]}
-                      onPress={() => setAiDramaMode('anime')}
-                    >
-                      <Text style={[styles.durationText, aiDramaMode === 'anime' && styles.durationTextActive]}>动漫短剧</Text>
-                    </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                    {[
+                      { code: 'real', name: '真人短剧' },
+                      { code: 'anime_cn', name: '国漫 3D' },
+                      { code: 'anime_jp', name: '日漫 2D' },
+                      { code: 'anime_pixar', name: '皮克斯 3D' },
+                      { code: 'anime_us', name: '美漫 2D' },
+                    ].map(m => (
+                      <TouchableOpacity
+                        key={m.code}
+                        style={[styles.durationButton, aiDramaMode === m.code && styles.durationButtonActive]}
+                        onPress={() => setAiDramaMode(m.code)}
+                      >
+                        <Text style={[styles.durationText, aiDramaMode === m.code && styles.durationTextActive]}>
+                          {m.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 </Card>
 
@@ -3776,7 +3781,15 @@ export default function App() {
                 >
                   {aiDramaLoading
                     ? <ActivityIndicator color="#fff" size="small" />
-                    : <Text style={styles.generateText}>生成{aiDramaMode === 'real' ? '真人' : '动漫'}短剧</Text>
+                    : <Text style={styles.generateText}>
+                        生成{
+                          aiDramaMode === 'real' ? '真人' :
+                          aiDramaMode === 'anime_cn' ? '国漫 3D' :
+                          aiDramaMode === 'anime_jp' ? '日漫 2D' :
+                          aiDramaMode === 'anime_pixar' ? '皮克斯 3D' :
+                          aiDramaMode === 'anime_us' ? '美漫 2D' : ''
+                        }短剧
+                      </Text>
                   }
                 </TouchableOpacity>
 
