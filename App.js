@@ -3742,12 +3742,27 @@ export default function App() {
                 {/* 主题 / 提示词 */}
                 <Card style={styles.promptCard}>
                   <Text style={styles.cardTitle}>📝 主题 / 提示词</Text>
+                  <Text style={{ color: '#f59e0b', fontSize: 11, marginTop: 4, marginBottom: 4, lineHeight: 16 }}>
+                    ① 一句话主题 → AI 自由发挥
+                  </Text>
+                  <Text style={{ color: '#f59e0b', fontSize: 11, marginBottom: 8, lineHeight: 16 }}>
+                    ② 几百字大纲（含角色、场景、情节）→ AI 严格按大纲
+                  </Text>
                   <TextInput
-                    style={[styles.promptInput, { minHeight: S(200) }]}      // ★ 加大到 200
+                    style={[styles.promptInput, { minHeight: S(200) }]}
                     placeholder={
-                      aiDramaMode === 'real'
-                        ? "例如：图 1 是唐僧，图 2 是孙悟空，图 3 是猪八戒。主题：三打白骨精。"
-                        : "例如：穿越古代，主角是女将军"
+                      "示例：\n" +
+                      "① 一句话：穷女婿被丈母娘嫌弃\n" +
+                      "② 大纲：\n" +
+                      "角色：\n" +
+                      "- 女婿：30岁，老实\n" +
+                      "- 丈母娘：50岁，势利\n" +
+                      "场景：客厅、饭桌\n" +
+                      "情节：\n" +
+                      "1. 女婿提礼物进门\n" +
+                      "2. 丈母娘冷脸\n" +
+                      "3. 饭桌上被羞辱\n" +
+                      "4. 被赶出门"
                     }
                     placeholderTextColor="#888"
                     value={aiDramaTheme}
@@ -3761,7 +3776,7 @@ export default function App() {
                 <Card style={styles.inputCard}>
                   <Text style={styles.cardTitle}>⏱️ 选时长</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                    {[1, 3, 5].map(d => (
+                    {[1, 3, 5, 6, 10].map(d => (
                       <TouchableOpacity
                         key={d}
                         style={[styles.durationButton, aiDramaDuration === d && styles.durationButtonActive]}
