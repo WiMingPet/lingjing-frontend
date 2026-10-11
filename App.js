@@ -2100,6 +2100,8 @@ export default function App() {
 
       if (!response.ok) {
         if (response.status === 401) {
+          setVideoLoading(false);
+          setIsGenerating(false);
           handle401();
           return;
         }
@@ -2171,6 +2173,8 @@ export default function App() {
 
           if (!response.ok) {
             if (response.status === 401) {
+              setVideoLoading(false);
+              setIsGenerating(false);
               handle401();
               return;
             }
@@ -2292,6 +2296,8 @@ export default function App() {
 
         if (!response.ok) {
           if (response.status === 401) {
+            setVideoLoading(false);
+            setIsGenerating(false);
             handle401();
             return;
           }
@@ -2417,6 +2423,8 @@ export default function App() {
 
         if (!response.ok) {
           if (response.status === 401) {
+            setVideoLoading(false);
+            setIsGenerating(false);
             handle401();
             return;
           }
@@ -2655,6 +2663,8 @@ export default function App() {
 
         if (!response.ok) {
           if (response.status === 401) {
+            setVideoLoading(false);
+            setIsGenerating(false);
             handle401();
             return;
           }
@@ -2816,6 +2826,8 @@ export default function App() {
 
       if (!response.ok) {
         if (response.status === 401) {
+          setVideoLoading(false);
+          setIsGenerating(false);
           handle401();
           return;
         }
@@ -3054,6 +3066,8 @@ export default function App() {
 
         if (!response.ok) {
           if (response.status === 401) {
+            setVideoLoading(false);
+            setIsGenerating(false);
             handle401();
             return;
           }
