@@ -410,6 +410,22 @@ export default function App() {
     };
   }, []);
 
+  // ★ 全局 401 拦截器：登录失效自动退出
+  useEffect(() => {
+    const interceptorId = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response && error.response.status === 401) {
+          handle401();
+        }
+        return Promise.reject(error);
+      }
+    );
+    return () => {
+      axios.interceptors.response.eject(interceptorId);
+    };
+  }, []);
+
   const [videoModalVisible, setVideoModalVisible] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
   const fullscreenVideoRef = useRef(null);
@@ -1393,6 +1409,18 @@ export default function App() {
     setTimeout(() => setToastVisible(false), 2000);
   };
 
+  const handle401 = () => {
+    console.log('401 未授权，清理登录状态');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user_credits');
+    localStorage.removeItem('pending_task');
+    setAccessToken(null);
+    setIsLoggedIn(false);
+    setUserCredits(0);
+    showToast('登录已失效，请重新登录', true);
+    setShowLoginModal(true);
+  };
+
   // 检查灵境点余额是否足够
   const checkAndUseCredits = (cost, actionName, callback) => {
     if (userCredits < cost) {
@@ -2071,6 +2099,10 @@ export default function App() {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          handle401();
+          return;
+        }
         const errorData = await response.json();
         throw new Error(errorData.detail || '请求失败');
       }
@@ -2138,6 +2170,10 @@ export default function App() {
           });
 
           if (!response.ok) {
+            if (response.status === 401) {
+              handle401();
+              return;
+            }
             const errorData = await response.json();
             throw new Error(errorData.detail || '生成失败');
           }
@@ -2255,6 +2291,10 @@ export default function App() {
         });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            handle401();
+            return;
+          }
           const errorData = await response.json();
           throw new Error(errorData.detail || '生成失败');
         }
@@ -2376,6 +2416,10 @@ export default function App() {
         });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            handle401();
+            return;
+          }
           const errorData = await response.json();
           throw new Error(errorData.detail || '试穿失败');
         }
@@ -2455,6 +2499,19 @@ export default function App() {
 
     if (!aiDramaTheme.trim()) {
       showToast('请输入主题 / 提示词', true);
+      return;
+    }
+
+    // ★ 余额检查
+    const DRAMA_PRICES = { 1: 600, 3: 1800, 5: 2980, 6: 3600, 10: 5600 };
+    const dramaCost = DRAMA_PRICES[aiDramaDuration] || 0;
+    if (dramaCost === 0) {
+      showToast('请选择有效的时长', true);
+      return;
+    }
+    if (userCredits < dramaCost) {
+      showToast(`余额不足，需要 ${dramaCost} 点，当前 ${userCredits} 点`, true);
+      setShowRechargeModal(true);
       return;
     }
 
@@ -2597,6 +2654,10 @@ export default function App() {
         }
 
         if (!response.ok) {
+          if (response.status === 401) {
+            handle401();
+            return;
+          }
           const errorData = await response.json();
           throw new Error(errorData.detail || '生成失败');
         }
@@ -2754,6 +2815,10 @@ export default function App() {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          handle401();
+          return;
+        }
         const errorData = await response.json();
         throw new Error(errorData.detail || '生成失败');
       }
@@ -2988,6 +3053,10 @@ export default function App() {
         });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            handle401();
+            return;
+          }
           const errorData = await response.json();
           throw new Error(errorData.detail || '多角度合成失败');
         }
@@ -3776,13 +3845,28 @@ export default function App() {
                 <Card style={styles.inputCard}>
                   <Text style={styles.cardTitle}>⏱️ 选时长</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                    {[1, 3, 5, 6, 10].map(d => (
+                    {[
+                      { min: 1, cost: 600 },
+                      { min: 3, cost: 1800 },
+                      { min: 5, cost: 2980 },
+                      { min: 6, cost: 3600 },
+                      { min: 10, cost: 5600 },
+                    ].map(item => (
                       <TouchableOpacity
-                        key={d}
-                        style={[styles.durationButton, aiDramaDuration === d && styles.durationButtonActive]}
-                        onPress={() => setAiDramaDuration(d)}
+                        key={item.min}
+                        style={[styles.durationButton, aiDramaDuration === item.min && styles.durationButtonActive]}
+                        onPress={() => setAiDramaDuration(item.min)}
                       >
-                        <Text style={[styles.durationText, aiDramaDuration === d && styles.durationTextActive]}>{d}分钟</Text>
+                        <Text style={[styles.durationText, aiDramaDuration === item.min && styles.durationTextActive]}>
+                          {item.min}分钟
+                        </Text>
+                        <Text style={{
+                          fontSize: 10,
+                          color: aiDramaDuration === item.min ? '#fff' : '#888',
+                          marginTop: 2,
+                        }}>
+                          {item.cost}点
+                        </Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -3803,7 +3887,9 @@ export default function App() {
                           aiDramaMode === 'anime_jp' ? '日漫 2D' :
                           aiDramaMode === 'anime_pixar' ? '皮克斯 3D' :
                           aiDramaMode === 'anime_us' ? '美漫 2D' : ''
-                        }短剧
+                        }短剧（{
+                          { 1: 600, 3: 1800, 5: 2980, 6: 3600, 10: 5600 }[aiDramaDuration] || 0
+                        }点）
                       </Text>
                   }
                 </TouchableOpacity>
