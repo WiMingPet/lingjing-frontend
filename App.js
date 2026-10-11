@@ -5289,6 +5289,12 @@ export default function App() {
 
                 const params = JSON.parse(item.template_params || '{}');
 
+                // ★ 调试日志
+                console.log('[CASE] item.module:', item.module);
+                console.log('[CASE] item.title:', item.title);
+                console.log('[CASE] params:', params);
+                console.log('[CASE] params.mode:', params.mode);
+
                 setCaseModalVisible(false);
                 setShowTemplates(false);
 
@@ -5331,9 +5337,12 @@ export default function App() {
 
                 // 参数
                 if (item.module === 'ai_drama') {
+                  console.log('[CASE] 即将 setAiDramaMode:', params.mode);
                   if (params.mode) setAiDramaMode(params.mode);
                   if (params.duration) setAiDramaDuration(params.duration);
                   if (params.language) setAiDramaLanguage(params.language);
+                } else {
+                  console.log('[CASE] item.module 不是 ai_drama，跳过');
                 }
 
                 if (item.module === 'video') {
