@@ -469,16 +469,27 @@ export default function App() {
   // AI 剧场
   const [aiDramaMode, setAiDramaMode] = useState('real');
   const [aiDramaTheme, setAiDramaTheme] = useState('');
-  const [aiDramaDuration, setAiDramaDuration] = useState(1);
+  const [aiDramaDuration, setAiDramaDuration] = useState(30);
   const [aiDramaStyle, setAiDramaStyle] = useState('古风');
   const [aiDramaLoading, setAiDramaLoading] = useState(false);
   const [aiDramaResult, setAiDramaResult] = useState(null);
   const [aiDramaImages, setAiDramaImages] = useState([]);
   const [aiDramaLanguage, setAiDramaLanguage] = useState('zh');
+  const [dramaInputMode, setDramaInputMode] = useState('ai');  // 'ai' 或 'script'
+  const [userScriptText, setUserScriptText] = useState('');
+  const [userScriptImages, setUserScriptImages] = useState([]);
+  const [parsedScript, setParsedScript] = useState(null);
+  const [parsing, setParsing] = useState(false);
 
 
   // 更多
   const [moreSubTab, setMoreSubTab] = useState(null);
+  const [goodsImages, setGoodsImages] = useState([]);
+  const [goodsTitle, setGoodsTitle] = useState('');
+  const [goodsDescription, setGoodsDescription] = useState('');
+  const [goodsDuration, setGoodsDuration] = useState(15);
+  const [goodsLoading, setGoodsLoading] = useState(false);
+  const [goodsResult, setGoodsResult] = useState(null);
 
   // 形象预览视频 Modal 状态
   const [previewVideoVisible, setPreviewVideoVisible] = useState(false);
@@ -508,8 +519,8 @@ export default function App() {
   const [clothCategory, setClothCategory] = useState('other');
   const [duration, setDuration] = useState(5);
   const [digitalImage, setDigitalImage] = useState(null);
-  const [videoModel, setVideoModel] = useState('2.6'); // '2.6' 或 '3.0'
-  const [videoSound, setVideoSound] = useState('off'); // 'off' 或 'native'
+  const [videoModel, setVideoModel] = useState('2.6'); // '2.6' / '3.0' / '4.0'
+  const [videoSound, setVideoSound] = useState('off'); // 'off' / 'native'
     // 预设形象相关状态
   const [presetAvatars, setPresetAvatars] = useState([]);
   const [selectedAvatarId, setSelectedAvatarId] = useState(null);
@@ -2219,7 +2230,7 @@ export default function App() {
     if (videoModel === '2.6') {
       const prices = {5: 25, 10: 50};
       return prices[duration] || 0;
-    } else {
+    } else if (videoModel === '3.0') {
       if (videoSound === 'off') {
         const prices = {5: 45, 10: 90, 15: 135};
         return prices[duration] || 0;
@@ -2227,7 +2238,12 @@ export default function App() {
         const prices = {5: 60, 10: 120, 15: 180};
         return prices[duration] || 0;
       }
+    } else if (videoModel === '4.0') {
+      // 4.0 只有有声，15 点/秒
+      const prices = {5: 75, 10: 150, 15: 225, 30: 450};
+      return prices[duration] || 0;
     }
+    return 0;
   };
   // ==============================
 
@@ -2262,11 +2278,13 @@ export default function App() {
     setIsGenerating(true);
     setGeneratingTitle('AI正在生成视频');
     setGeneratingSubtitle(
-      videoModel === '3.0' && videoSound === 'native'
-        ? '3.0增强版 有声视频生成中'
-        : videoModel === '3.0'
-          ? '3.0增强版 无声视频生成中'
-          : '2.6基础版 无声视频生成中'
+      videoModel === '4.0'
+        ? '4.0 有声视频生成中'
+        : videoModel === '3.0' && videoSound === 'native'
+          ? '3.0增强版 有声视频生成中'
+          : videoModel === '3.0'
+            ? '3.0增强版 无声视频生成中'
+            : '2.6基础版 无声视频生成中'
     );
 
     const formData = new FormData();
@@ -2281,7 +2299,7 @@ export default function App() {
     formData.append('duration', duration.toString());
     formData.append('mode', 'std');
     formData.append('model', videoModel);
-    formData.append('sound', videoSound);
+    formData.append('sound', videoModel === '4.0' ? 'native' : videoSound);
     formData.append('credits', cost.toString());
 
       try {
@@ -2349,7 +2367,7 @@ export default function App() {
           setUserCredits(res.data.remaining_credits);
         }
         
-        showToast(`视频生成成功${videoModel === '3.0' && videoSound === 'native' ? '（有声）' : '（无声）'}`);
+        showToast(`视频生成成功${(videoModel === '4.0' || (videoModel === '3.0' && videoSound === 'native')) ? '（有声）' : '（无声）'}`);
         await loadHistory();
         setVideoLoading(false);
         setIsGenerating(false);
@@ -2495,6 +2513,37 @@ export default function App() {
     }
   };
 
+  const pickUserScriptImage = async () => {
+    if (userScriptImages.length >= 10) {
+      showToast('最多上传 10 张', true);
+      return;
+    }
+    ImagePicker.launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
+      if (res.assets?.[0]) {
+        setUserScriptImages([...userScriptImages, res.assets[0]]);
+      }
+    });
+  };
+
+  const takeUserScriptPhoto = async () => {
+    if (userScriptImages.length >= 10) {
+      showToast('最多上传 10 张', true);
+      return;
+    }
+    try {
+      const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+      const image = await Camera.getPhoto({
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Camera,
+        quality: 90,
+      });
+      setUserScriptImages([...userScriptImages, { uri: image.webPath }]);
+    } catch (e) {
+      showToast('拍照失败', true);
+    }
+  };
+
+
   const generateAiDrama = async (mode) => {
     const consented = await checkAIPrivacyConsent();
     if (!consented) return;
@@ -2511,7 +2560,7 @@ export default function App() {
     }
 
     // ★ 余额检查
-    const DRAMA_PRICES = { 1: 600, 3: 1800, 5: 2980, 6: 3600, 10: 5600 };
+    const DRAMA_PRICES = { 30: 350 };
     const dramaCost = DRAMA_PRICES[aiDramaDuration] || 0;
     if (dramaCost === 0) {
       showToast('请选择有效的时长', true);
@@ -2530,7 +2579,7 @@ export default function App() {
       const formData = new FormData();
       formData.append('mode', mode);
       formData.append('theme', aiDramaTheme);
-      formData.append('duration', aiDramaDuration);
+      formData.append('duration', aiDramaDuration);  // 30 或 60
       formData.append('language', aiDramaLanguage); 
 
 
@@ -2559,7 +2608,7 @@ export default function App() {
         if (res.data.data.async) {
           const taskId = res.data.data.task_id;
           const cost = res.data.data.cost || 0;
-          showToast(`AI短剧预计生成30分钟，请稍后查看（${cost} 点）`);
+          showToast(`AI短剧预计生成5-8分钟，请稍后查看（${cost} 点）`);
 
           fetchUserCredits();
           startPollingTask(
@@ -2603,6 +2652,205 @@ export default function App() {
       setAiDramaLoading(false);
       setIsGenerating(false);
     }
+  };
+
+  const parseUserScript = async () => {
+    if (!userScriptText.trim()) return;
+    setParsing(true);
+    setParsedScript(null);
+    try {
+      const token = localStorage.getItem('access_token');
+      const formData = new FormData();
+      formData.append('raw_text', userScriptText);
+      formData.append('language', aiDramaLanguage);
+
+      // 上传参考图
+      for (let i = 0; i < userScriptImages.length; i++) {
+        const file = await convertToFile(userScriptImages[i]);
+        const safeFile = new File(
+          [file],
+          `ref_${i + 1}.${file.name.split('.').pop() || 'jpg'}`,
+          { type: file.type }
+        );
+        formData.append('reference_images', safeFile);
+      }
+
+      const res = await axios.post(`${API_URL}/short-drama/parse-script`, formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      if (res.data.code === 200) {
+        setParsedScript(res.data.data);
+        showToast('解析成功，请确认后生成');
+      } else {
+        showToast(res.data.message || '解析失败', true);
+      }
+    } catch (e) {
+      showToast(e.response?.data?.detail || e.message || '解析失败', true);
+    } finally {
+      setParsing(false);
+    }
+  };
+
+  const generateFromScript = async (parsed) => {
+    const cost = parsed.cost;
+    if (userCredits < cost) {
+      showToast(`余额不足，需要 ${cost} 点`, true);
+      setShowRechargeModal(true);
+      return;
+    }
+    setAiDramaLoading(true);
+    setIsGenerating(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await axios.post(`${API_URL}/short-drama/generate-from-script`, {
+        parsed_script: {
+          ...parsed.parsed,
+          total_duration: parsed.total_duration,
+          mode: aiDramaMode,
+          language: aiDramaLanguage,
+          reference_urls: parsed.reference_urls || [],
+        }
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.data.code === 200 && res.data.data.async) {
+        const taskId = res.data.data.task_id;
+        showToast(`任务已提交（${cost}点），预计5-8分钟`);
+        fetchUserCredits();
+        startPollingTask(
+          taskId, 'AI短剧',
+          `${API_URL}/short-drama/task/${taskId}`,
+          async (task, status) => {
+            setAiDramaLoading(false);
+            setIsGenerating(false);
+            if (status === 'completed') {
+              setAiDramaResult({
+                video_url: task.output_data?.video_url,
+                thumbnail: task.output_data?.thumbnail,
+              });
+              showToast('短剧生成成功');
+              fetchUserCredits();
+              await loadHistory();
+            } else if (status === 'failed') {
+              showToast('短剧生成失败，已退款', true);
+              fetchUserCredits();
+            }
+          }
+        );
+      } else {
+        showToast(res.data.message || '生成失败', true);
+        setAiDramaLoading(false);
+        setIsGenerating(false);
+      }
+    } catch (e) {
+      showToast(e.response?.data?.detail || e.message || '生成失败', true);
+      setAiDramaLoading(false);
+      setIsGenerating(false);
+    }
+  };
+
+  const pickGoodsImages = async () => {
+    if (goodsImages.length >= 5) {
+      showToast('最多上传 5 张商品图');
+      return;
+    }
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
+    input.onchange = (e) => {
+      const files = Array.from(e.target.files || []);
+      const remaining = 5 - goodsImages.length;
+      const newFiles = files.slice(0, remaining).map(file => ({
+        file,
+        preview: URL.createObjectURL(file),
+      }));
+      setGoodsImages([...goodsImages, ...newFiles]);
+    };
+    input.click();
+  };
+
+  const generateGoodsStudio = async () => {
+    if (goodsImages.length === 0 || !goodsTitle.trim()) {
+      Alert.alert('提示', '请上传商品图并填写标题');
+      return;
+    }
+    setGoodsLoading(true);
+    setIsGenerating(true);
+    setGeneratingTitle('AI正在生成商品成片');
+    setGeneratingSubtitle('一键生成商品广告视频');
+    try {
+      const formData = new FormData();
+      goodsImages.forEach((img) => {
+        formData.append('images', img.file);
+      });
+      formData.append('title', goodsTitle);
+      formData.append('description', goodsDescription);
+      formData.append('duration', goodsDuration.toString());
+
+      const response = await fetch(`${API_URL}/goods-studio/generate`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || '生成失败');
+      }
+
+      const res = await response.json();
+      fetchUserCredits();
+      pollGoodsStudio(res.task_id);
+    } catch (e) {
+      Alert.alert('失败', e.message);
+      setIsGenerating(false);
+    } finally {
+      setGoodsLoading(false);
+    }
+  };
+
+  const pollGoodsStudio = async (taskId) => {
+    const maxAttempts = 120;
+    let attempts = 0;
+    const poll = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/goods-studio/task/${taskId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const { status, output_data, error_message } = res.data;
+        if (status === 'completed') {
+          setIsGenerating(false);
+          setGoodsResult(output_data);
+          loadHistory();
+          fetchUserCredits();
+          showToast('商品成片生成成功');
+          return;
+        }
+        if (status === 'failed') {
+          setIsGenerating(false);
+          showToast('商品成片生成失败，已退款', true);
+          loadHistory();
+          fetchUserCredits();
+          return;
+        }
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 10000);
+        } else {
+          setIsGenerating(false);
+          showToast('生成超时，请稍后查看历史记录');
+        }
+      } catch (e) {
+        console.error('轮询失败', e);
+      }
+    };
+    poll();
   };
 
   const generateDigitalHuman = async () => {
@@ -2891,7 +3139,7 @@ export default function App() {
       localStorage.setItem('pending_task', JSON.stringify({ taskId, type, queryUrl }));
 
       let attempts = 0;
-      const maxAttempts = 360;
+      const maxAttempts = 720;
 
       // ========== 轮询间隔：根据 type 调整 ==========
       const getInterval = () => {
@@ -3715,6 +3963,8 @@ export default function App() {
 
             {activeTab === 'ai_drama' && (
               <>
+                {/* ==================== AI 生成模式 ==================== */}
+
                 {/* 模式选择 */}
                 <Card style={styles.imageCard}>
                   <Text style={styles.cardTitle}>🎬 AI 剧场</Text>
@@ -3739,7 +3989,7 @@ export default function App() {
                   </View>
                 </Card>
 
-                {/* ★ 上传参考图（真人短剧才显示） */}
+                {/* 参考图（真人短剧才显示） */}
                 {aiDramaMode === 'real' && (
                   <Card style={styles.imageCard}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -3750,10 +4000,7 @@ export default function App() {
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
                       {aiDramaImages.map((img, idx) => (
                         <View key={idx} style={{ position: 'relative' }}>
-                          <Image
-                            source={{ uri: img.uri }}
-                            style={{ width: 80, height: 80, borderRadius: 8 }}
-                          />
+                          <Image source={{ uri: img.uri }} style={{ width: 80, height: 80, borderRadius: 8 }} />
                           <View style={{
                             position: 'absolute', bottom: 0, left: 0, right: 0,
                             backgroundColor: 'rgba(0,0,0,0.6)',
@@ -3786,14 +4033,12 @@ export default function App() {
                     </View>
 
                     <Text style={{ color: '#888', fontSize: 11, marginTop: 8, lineHeight: 18 }}>
-                      💡 在下方"主题/提示词"中说明每张图的角色，例如："图 1 是唐僧，图 2 是孙悟空，图 3 是猪八戒。主题：三打白骨精"。
-                    </Text>
-                    <Text style={{ color: '#f59e0b', fontSize: 12, fontWeight: 'bold', marginTop: 6, lineHeight: 18 }}>
-                      不上传参考图则 AI 自动生成
+                      💡 在下方"主题/提示词"中说明每张图的角色。
                     </Text>
                   </Card>
                 )}
 
+                {/* 语言 */}
                 <Card style={styles.inputCard}>
                   <Text style={styles.cardTitle}>🌍 语言</Text>
                   <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
@@ -3822,31 +4067,18 @@ export default function App() {
                   </View>
                 </Card>
 
-                {/* 主题 / 提示词 */}
+                {/* 主题 */}
                 <Card style={styles.promptCard}>
                   <Text style={styles.cardTitle}>📝 主题 / 提示词</Text>
                   <Text style={{ color: '#f59e0b', fontSize: 11, marginTop: 4, marginBottom: 4, lineHeight: 16 }}>
                     ① 一句话主题 → AI 自由发挥
                   </Text>
                   <Text style={{ color: '#f59e0b', fontSize: 11, marginBottom: 8, lineHeight: 16 }}>
-                    ② 几百字大纲（含角色、场景、情节）→ AI 严格按大纲
+                    ② 几百字大纲 → AI 严格按大纲
                   </Text>
                   <TextInput
                     style={[styles.promptInput, { minHeight: S(200) }]}
-                    placeholder={
-                      "示例：\n" +
-                      "① 一句话：穷女婿被丈母娘嫌弃\n" +
-                      "② 大纲：\n" +
-                      "角色：\n" +
-                      "- 女婿：30岁，老实\n" +
-                      "- 丈母娘：50岁，势利\n" +
-                      "场景：客厅、饭桌\n" +
-                      "情节：\n" +
-                      "1. 女婿提礼物进门\n" +
-                      "2. 丈母娘冷脸\n" +
-                      "3. 饭桌上被羞辱\n" +
-                      "4. 被赶出门"
-                    }
+                    placeholder={"示例：\n① 一句话：穷女婿被丈母娘嫌弃\n② 大纲：..."}
                     placeholderTextColor="#888"
                     value={aiDramaTheme}
                     onChangeText={setAiDramaTheme}
@@ -3855,16 +4087,12 @@ export default function App() {
                   />
                 </Card>
 
-                {/* 时长 */}
+                {/* 时长（只有 30 秒） */}
                 <Card style={styles.inputCard}>
                   <Text style={styles.cardTitle}>⏱️ 选时长</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
                     {[
-                      { min: 1, cost: 600 },
-                      { min: 3, cost: 1800 },
-                      { min: 5, cost: 2980 },
-                      { min: 6, cost: 3600 },
-                      { min: 10, cost: 5600 },
+                      { min: 30, cost: 350, label: '30秒' },
                     ].map(item => (
                       <TouchableOpacity
                         key={item.min}
@@ -3872,7 +4100,7 @@ export default function App() {
                         onPress={() => setAiDramaDuration(item.min)}
                       >
                         <Text style={[styles.durationText, aiDramaDuration === item.min && styles.durationTextActive]}>
-                          {item.min}分钟
+                          {item.label}
                         </Text>
                         <Text style={{
                           fontSize: 10,
@@ -3902,7 +4130,7 @@ export default function App() {
                           aiDramaMode === 'anime_pixar' ? '皮克斯 3D' :
                           aiDramaMode === 'anime_us' ? '美漫 2D' : ''
                         }短剧（{
-                          { 1: 600, 3: 1800, 5: 2980, 6: 3600, 10: 5600 }[aiDramaDuration] || 0
+                          { 30: 350 }[aiDramaDuration] || 0
                         }点）
                       </Text>
                   }
@@ -4144,6 +4372,15 @@ export default function App() {
                         </View>
                         <Text style={{ color: '#fff', fontSize: 12, marginTop: 6 }}>数字人</Text>
                       </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => setMoreSubTab('goods_studio')}
+                        style={{ alignItems: 'center', width: 80 }}
+                      >
+                        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#1a1a1a', justifyContent: 'center', alignItems: 'center' }}>
+                          <Icon name="videocam-outline" size={28} color="#0ea5e9" />
+                        </View>
+                        <Text style={{ color: '#fff', fontSize: 12, marginTop: 6 }}>商品成片</Text>
+                      </TouchableOpacity>
                     </View>
                   </Card>
                 )}
@@ -4314,6 +4551,99 @@ export default function App() {
                     </TouchableOpacity>
                   </>
                 )}
+                {/* 商品成片子模块 */}
+                {moreSubTab === 'goods_studio' && (
+                  <>
+                    <TouchableOpacity
+                      onPress={() => setMoreSubTab(null)}
+                      style={{ flexDirection: 'row', alignItems: 'center', padding: 8 }}
+                    >
+                      <Icon name="chevron-back-outline" size={24} color="#fff" />
+                      <Text style={{ color: '#fff', fontSize: 14, marginLeft: 4 }}>返回更多</Text>
+                    </TouchableOpacity>
+
+                    <Card style={styles.imageCard}>
+                      <Text style={styles.cardTitle}>📸 商品图（最多 5 张）</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+                        {goodsImages.map((img, idx) => (
+                          <View key={idx} style={{ marginRight: 8, position: 'relative' }}>
+                            <Image source={{ uri: img.preview }} style={{ width: 80, height: 80, borderRadius: 8 }} />
+                            <TouchableOpacity
+                              onPress={() => setGoodsImages(goodsImages.filter((_, i) => i !== idx))}
+                              style={{ position: 'absolute', top: -4, right: -4, backgroundColor: '#ef4444', borderRadius: 12, width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }}
+                            >
+                              <Icon name="close" size={16} color="#fff" />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                        {goodsImages.length < 5 && (
+                          <TouchableOpacity
+                            onPress={pickGoodsImages}
+                            style={{ width: 80, height: 80, borderRadius: 8, borderWidth: 1, borderColor: '#444', borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center' }}
+                          >
+                            <Icon name="add" size={28} color="#666" />
+                          </TouchableOpacity>
+                        )}
+                      </ScrollView>
+                    </Card>
+
+                    <Card style={styles.inputCard}>
+                      <Text style={styles.cardTitle}>📝 商品标题</Text>
+                      <TextInput
+                        style={styles.promptInput}
+                        value={goodsTitle}
+                        onChangeText={setGoodsTitle}
+                        placeholder="例如：精美雨伞"
+                        placeholderTextColor="#888"
+                      />
+                    </Card>
+
+                    <Card style={styles.promptCard}>
+                      <Text style={styles.cardTitle}>📄 商品描述（可选）</Text>
+                      <TextInput
+                        style={styles.promptInput}
+                        value={goodsDescription}
+                        onChangeText={setGoodsDescription}
+                        placeholder="例如：一把精美的雨伞，防风防雨，轻便耐用"
+                        placeholderTextColor="#888"
+                        multiline
+                      />
+                    </Card>
+
+                    <Card style={styles.inputCard}>
+                      <Text style={styles.cardTitle}>⏱️ 视频时长</Text>
+                      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                        {[15].map(d => (
+                          <TouchableOpacity
+                            key={d}
+                            style={[styles.durationButton, goodsDuration === d && styles.durationButtonActive]}
+                            onPress={() => setGoodsDuration(d)}
+                          >
+                            <Text style={[styles.durationText, goodsDuration === d && styles.durationTextActive]}>
+                              {d}秒
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </Card>
+
+                    <TouchableOpacity onPress={generateGoodsStudio} disabled={goodsLoading} style={styles.generateButton}>
+                      {goodsLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.generateText}>生成商品成片</Text>}
+                    </TouchableOpacity>
+
+                    {goodsResult && goodsResult.video_url && (
+                      <Card style={styles.imageCard}>
+                        <Text style={styles.cardTitle}>✅ 生成完成</Text>
+                        <Video
+                          source={{ uri: goodsResult.video_url }}
+                          style={{ width: '100%', height: 200, marginTop: 8 }}
+                          useNativeControls
+                          resizeMode="contain"
+                        />
+                      </Card>
+                    )}
+                  </>
+                )}
               </>
             )}
 
@@ -4371,19 +4701,23 @@ export default function App() {
                       onPress={() => {
                         setVideoModel('2.6');
                         setVideoSound('off'); // 2.6强制无声
-                        if (duration === 15) setDuration(10); // 2.6不支持15秒
+                        if (duration === 15 || duration === 30) setDuration(10); // 2.6不支持15/30秒
                       }}
                     >
                       <Text style={[styles.durationText, videoModel === '2.6' && styles.durationTextActive]}>
-                        2.6 基础版                      </Text>
+                        2.6 基础版
+                      </Text>
                       <Text style={[styles.durationSubtext, videoModel === '2.6' && styles.durationTextActive]}>
                         无声 · 25-50点
                       </Text>
                     </TouchableOpacity>
-                    
+
                     <TouchableOpacity
                       style={[styles.durationButton, videoModel === '3.0' && styles.durationButtonActive]}
-                      onPress={() => setVideoModel('3.0')}
+                      onPress={() => {
+                        setVideoModel('3.0');
+                        if (duration === 30) setDuration(15); // 3.0不支持30秒
+                      }}
                     >
                       <Text style={[styles.durationText, videoModel === '3.0' && styles.durationTextActive]}>
                         3.0 增强版
@@ -4392,10 +4726,25 @@ export default function App() {
                         有声/无声 · 45-180点
                       </Text>
                     </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.durationButton, videoModel === '4.0' && styles.durationButtonActive]}
+                      onPress={() => {
+                        setVideoModel('4.0');
+                        setVideoSound('native'); // 4.0强制有声
+                      }}
+                    >
+                      <Text style={[styles.durationText, videoModel === '4.0' && styles.durationTextActive]}>
+                        4.0
+                      </Text>
+                      <Text style={[styles.durationSubtext, videoModel === '4.0' && styles.durationTextActive]}>
+                        有声 · 75-450点
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 </Card>
 
-                {/* ========== 声音选择（仅3.0显示） ========== */}
+                {/* ========== 声音选择（仅3.0显示，4.0固定有声） ========== */}
                 {videoModel === '3.0' && (
                   <Card style={styles.inputCard}>
                     <Text style={styles.cardTitle}>🔊 声音模式</Text>
@@ -4411,7 +4760,7 @@ export default function App() {
                           45-135点
                         </Text>
                       </TouchableOpacity>
-                      
+
                       <TouchableOpacity
                         style={[styles.durationButton, videoSound === 'native' && styles.durationButtonActive]}
                         onPress={() => setVideoSound('native')}
@@ -4424,6 +4773,14 @@ export default function App() {
                         </Text>
                       </TouchableOpacity>
                     </View>
+                  </Card>
+                )}
+
+                {/* ========== 4.0 提示 ========== */}
+                {videoModel === '4.0' && (
+                  <Card style={styles.inputCard}>
+                    <Text style={styles.cardTitle}>🔊 声音模式</Text>
+                    <Text style={{ color: '#888', fontSize: 13 }}>4.0 默认带音画同步（有声），无需选择</Text>
                   </Card>
                 )}
 
@@ -4447,7 +4804,7 @@ export default function App() {
                           </Text>
                         </TouchableOpacity>
                       ))
-                    ) : (
+                    ) : videoModel === '3.0' ? (
                       // 3.0：5秒、10秒、15秒
                       [5, 10, 15].map(sec => (
                         <TouchableOpacity
@@ -4463,6 +4820,22 @@ export default function App() {
                               ? (sec === 5 ? '45点' : sec === 10 ? '90点' : '135点')
                               : (sec === 5 ? '60点' : sec === 10 ? '120点' : '180点')
                             }
+                          </Text>
+                        </TouchableOpacity>
+                      ))
+                    ) : (
+                      // 4.0：5秒、10秒、15秒、30秒（只有有声）
+                      [5, 10, 15, 30].map(sec => (
+                        <TouchableOpacity
+                          key={sec}
+                          style={[styles.durationButton, duration === sec && styles.durationButtonActive]}
+                          onPress={() => setDuration(sec)}
+                        >
+                          <Text style={[styles.durationText, duration === sec && styles.durationTextActive]}>
+                            {sec}秒
+                          </Text>
+                          <Text style={[styles.durationSubtext, duration === sec && styles.durationTextActive]}>
+                            {sec === 5 ? '75点' : sec === 10 ? '150点' : sec === 15 ? '225点' : '450点'}
                           </Text>
                         </TouchableOpacity>
                       ))
@@ -5960,6 +6333,8 @@ export default function App() {
                     setTryonLoading(true);
                   } else if (activeTab === 'merchant') {
                     setMerchantLoading(true);
+                  } else if (activeTab === 'more' && moreSubTab === 'goods_studio') {
+                    setGoodsLoading(true);
                   }
                   showToast('已切换后台生成，完成后自动保存至历史记录');
                 }}
