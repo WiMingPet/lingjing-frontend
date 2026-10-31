@@ -4695,7 +4695,7 @@ export default function App() {
                 {/* ========== 模型选择 ========== */}
                 <Card style={styles.inputCard}>
                   <Text style={styles.cardTitle}>🎯 选择模型</Text>
-                  <View style={styles.durationRow}>
+                  <View style={[styles.durationRow, { flexWrap: 'wrap' }]}>
                     <TouchableOpacity
                       style={[styles.durationButton, videoModel === '2.6' && styles.durationButtonActive]}
                       onPress={() => {
@@ -4787,7 +4787,7 @@ export default function App() {
                 {/* ========== 时长选择 ========== */}
                 <Card style={styles.inputCard}>
                   <Text style={styles.cardTitle}>⏱️ 视频时长</Text>
-                  <View style={styles.durationRow}>
+                  <View style={[styles.durationRow, { flexWrap: 'wrap' }]}>
                     {videoModel === '2.6' ? (
                       // 2.6：只有5秒和10秒
                       [5, 10].map(sec => (
